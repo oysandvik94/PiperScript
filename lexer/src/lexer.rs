@@ -2,100 +2,89 @@ use std::{iter::Peekable, str::Chars};
 
 use crate::token::{Token, TokenType};
 
-#[derive(Debug)]
-pub struct Lexer<'a> {
-    source_code: &'a str,
-}
+pub fn generate_tokens(source_code: &str) -> Vec<Token> {
+    let mut code_iter = source_code.chars().peekable();
 
-impl Lexer<'_> {
-    pub fn generate_tokens(&self) -> Vec<Token> {
-        let mut code_iter = self.source_code.chars().peekable();
-
-        let mut tokens: Vec<Token> = Vec::new();
-        while let Some(current_char) = code_iter.next() {
-            if current_char.is_whitespace() {
-                continue;
-            }
-
-            let lexed_token = match current_char {
-                '!' => match code_iter.peek() {
-                    Some('=') => Token {
-                        token_type: TokenType::NotEqual,
-                        literal: {
-                            current_char.to_string()
-                                + &code_iter.next().expect("Should be equals char").to_string()
-                        },
-                    },
-                    _ => Token::new(TokenType::Bang, current_char),
-                },
-                '=' => match code_iter.peek() {
-                    Some('=') => Token {
-                        token_type: TokenType::Equal,
-                        literal: {
-                            current_char.to_string()
-                                + &code_iter.next().expect("Should be equals char").to_string()
-                        },
-                    },
-                    _ => Token::new(TokenType::Illegal, current_char),
-                },
-                '+' => Token::new(TokenType::Add, current_char),
-                ':' => Token::new(TokenType::Assign, current_char),
-                '}' => Token::new(TokenType::RBrace, current_char),
-                '{' => Token::new(TokenType::LBrace, current_char),
-                ')' => Token::new(TokenType::RParen, current_char),
-                '(' => Token::new(TokenType::LParen, current_char),
-                ']' => Token::new(TokenType::RBracket, current_char),
-                '[' => Token::new(TokenType::LBracket, current_char),
-                '<' => Token::new(TokenType::LessThan, current_char),
-                '>' => Token::new(TokenType::GreaterThan, current_char),
-                ',' => Token::new(TokenType::Comma, current_char),
-                '~' => Token::new(TokenType::Tilde, current_char),
-                numeric_char if numeric_char.is_numeric() => {
-                    let mut literal: String = String::from(current_char);
-
-                    let is_numeric = |c: &char| c.is_numeric();
-                    while let Some(c) = read_target(&mut code_iter, is_numeric) {
-                        literal.push(c);
-                    }
-
-                    Token {
-                        token_type: TokenType::Int,
-                        literal,
-                    }
-                }
-                alphabetic_char if alphabetic_char.is_alphabetic() => {
-                    let next_alphabetic = |x: &mut Peekable<Chars>| -> Option<char> {
-                        match x.peek() {
-                            Some(c) => match c.is_alphabetic() {
-                                true => Some(x.next().expect("Expected next character")),
-                                false => None,
-                            },
-                            None => None,
-                        }
-                    };
-
-                    let mut literal: String = String::from(current_char);
-                    while let Some(c) = next_alphabetic(&mut code_iter) {
-                        literal.push(c);
-                    }
-
-                    Token {
-                        token_type: TokenType::parse_keyword(&literal),
-                        literal,
-                    }
-                }
-                _ => Token::new(TokenType::Illegal, current_char),
-            };
-
-            tokens.push(lexed_token);
+    let mut tokens: Vec<Token> = Vec::new();
+    while let Some(current_char) = code_iter.next() {
+        if current_char.is_whitespace() {
+            continue;
         }
 
-        tokens
+        let lexed_token = match current_char {
+            '!' => match code_iter.peek() {
+                Some('=') => Token {
+                    token_type: TokenType::NotEqual,
+                    literal: {
+                        current_char.to_string()
+                            + &code_iter.next().expect("Should be equals char").to_string()
+                    },
+                },
+                _ => Token::new(TokenType::Bang, current_char),
+            },
+            '=' => match code_iter.peek() {
+                Some('=') => Token {
+                    token_type: TokenType::Equal,
+                    literal: {
+                        current_char.to_string()
+                            + &code_iter.next().expect("Should be equals char").to_string()
+                    },
+                },
+                _ => Token::new(TokenType::Illegal, current_char),
+            },
+            '+' => Token::new(TokenType::Add, current_char),
+            ':' => Token::new(TokenType::Assign, current_char),
+            '}' => Token::new(TokenType::RBrace, current_char),
+            '{' => Token::new(TokenType::LBrace, current_char),
+            ')' => Token::new(TokenType::RParen, current_char),
+            '(' => Token::new(TokenType::LParen, current_char),
+            ']' => Token::new(TokenType::RBracket, current_char),
+            '[' => Token::new(TokenType::LBracket, current_char),
+            '<' => Token::new(TokenType::LessThan, current_char),
+            '>' => Token::new(TokenType::GreaterThan, current_char),
+            ',' => Token::new(TokenType::Comma, current_char),
+            '~' => Token::new(TokenType::Tilde, current_char),
+            numeric_char if numeric_char.is_numeric() => {
+                let mut literal: String = String::from(current_char);
+
+                let is_numeric = |c: &char| c.is_numeric();
+                while let Some(c) = read_target(&mut code_iter, is_numeric) {
+                    literal.push(c);
+                }
+
+                Token {
+                    token_type: TokenType::Int,
+                    literal,
+                }
+            }
+            alphabetic_char if alphabetic_char.is_alphabetic() => {
+                let next_alphabetic = |x: &mut Peekable<Chars>| -> Option<char> {
+                    match x.peek() {
+                        Some(c) => match c.is_alphabetic() {
+                            true => Some(x.next().expect("Expected next character")),
+                            false => None,
+                        },
+                        None => None,
+                    }
+                };
+
+                let mut literal: String = String::from(current_char);
+                while let Some(c) = next_alphabetic(&mut code_iter) {
+                    literal.push(c);
+                }
+
+                Token {
+                    token_type: TokenType::parse_keyword(&literal),
+                    literal,
+                }
+            }
+            _ => Token::new(TokenType::Illegal, current_char),
+        };
+
+        tokens.push(lexed_token);
     }
 
-    pub fn new(source_code: &str) -> Lexer {
-        Lexer { source_code }
-    }
+    tokens
 }
 
 fn read_target<F>(iterator: &mut Peekable<Chars>, f: F) -> Option<char>
@@ -113,8 +102,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::Lexer;
-    use crate::token::{Token, TokenType};
+    use crate::{
+        lexer::generate_tokens,
+        token::{Token, TokenType},
+    };
     use TokenType::*;
 
     fn create_token(token_type: TokenType, literal: &str) -> Token {
@@ -143,8 +134,7 @@ mod tests {
             create_token(Tilde, "~"),
         ];
 
-        let lexer = Lexer::new(source_code);
-        let found_tokens = lexer.generate_tokens();
+        let found_tokens = generate_tokens(source_code);
 
         assert_eq!(
             found_tokens.len(),
@@ -167,8 +157,7 @@ mod tests {
 
         let expected_tokens = [create_token(Ident, "foo")];
 
-        let lexer = Lexer::new(source_code);
-        let found_tokens = lexer.generate_tokens();
+        let found_tokens = generate_tokens(source_code);
 
         assert_eq!(
             found_tokens.len(),
@@ -267,8 +256,7 @@ mod tests {
             create_token(NotEqual, "!="),
         ];
 
-        let lexer = Lexer::new(source_code);
-        let found_tokens = lexer.generate_tokens();
+        let found_tokens = generate_tokens(source_code);
 
         expected_tokens.iter().enumerate().for_each(|(idx, token)| {
             assert_eq!(
