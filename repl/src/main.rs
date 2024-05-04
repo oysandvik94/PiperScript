@@ -1,6 +1,6 @@
 use std::io::stdin;
 
-use lexer::Lexer;
+use lexer::lexer::Lexer;
 
 fn main() {
     println!("Welcome to lasagnelang, try and write some code");
