@@ -13,6 +13,7 @@ fn main() {
                 let input = buffer.trim_end();
                 let res = { generate_tokens(input) };
 
+
                 println!("{:?}", res);
             }
             Err(_) => panic!(),

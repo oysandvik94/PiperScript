@@ -1,10 +1,13 @@
+use crate::parser::ParseError;
+
 pub struct Program {
     pub statements: Vec<Statement>,
+    pub parse_errors: Vec<ParseError>,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum Statement {
-    LetStatement(Identifier, Expression),
+    AssignStatement(Identifier, Expression),
     ReturnStatement(Expression),
 }
 

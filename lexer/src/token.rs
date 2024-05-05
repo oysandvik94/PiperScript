@@ -1,8 +1,8 @@
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum TokenType {
     Bang,
     Add,
-    Assign,
+    Colon,
     RBrace,
     LBrace,
     RParen,
@@ -10,7 +10,7 @@ pub enum TokenType {
     RBracket,
     LBracket,
     Illegal,
-    Tilde,
+    Assign,
     Equal,
     NotEqual,
     Ident,
@@ -40,7 +40,7 @@ impl TokenType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub literal: String,
