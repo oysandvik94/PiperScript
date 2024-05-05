@@ -2,7 +2,7 @@
 pub enum TokenType {
     Bang,
     Add,
-    Colon,
+    Assign,
     RBrace,
     LBrace,
     RParen,
@@ -10,7 +10,7 @@ pub enum TokenType {
     RBracket,
     LBracket,
     Illegal,
-    Assign,
+    Lasagna,
     Equal,
     NotEqual,
     Ident,

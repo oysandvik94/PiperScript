@@ -4,6 +4,8 @@ use lexer::token::{Token, TokenType};
 
 use crate::ast::{Expression, Identifier, Program, Statement};
 
+#[derive(Debug)]
+// TODO: Implement fmt
 pub enum ParseError {
     UnexpectedToken {
         expected_token: TokenType,
@@ -35,12 +37,15 @@ impl Parser {
             };
         }
 
-        Program { statements, parse_errors }
+        Program {
+            statements,
+            parse_errors,
+        }
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.token_iter.next() {
-            Some(token) if token.token_type == TokenType::Assign => self.parse_assign_statement(),
+            Some(token) if token.token_type == TokenType::Lasagna => self.parse_assign_statement(),
             Some(unknown_token) => Err(ParseError::UnknownToken(unknown_token)),
             None => Err(ParseError::ExpectedToken),
         }
@@ -48,8 +53,23 @@ impl Parser {
 
     fn parse_assign_statement(&mut self) -> Result<Statement, ParseError> {
         let identifier: Identifier = Identifier(self.expect_peek(TokenType::Ident)?.literal);
-        let assign_statement = Statement::AssignStatement(identifier, Expression::TodoExpression);
 
+        self.expect_peek(TokenType::Assign)?;
+
+
+        // TODO: skip over expressions until we know how to handle them
+        loop {
+            if let Some(token) = self.token_iter.peek() {
+                if token.token_type == TokenType::Lasagna {
+                    break;
+                }
+            }
+
+            self.token_iter.next();
+        }
+
+        self.expect_peek(TokenType::Lasagna)?;
+        let assign_statement = Statement::AssignStatement(identifier, Expression::TodoExpression);
         Ok(assign_statement)
     }
 
@@ -59,6 +79,7 @@ impl Parser {
             .next_if(|x| x.token_type == expected_token_type)
         {
             Some(token) => Ok(token),
+            // TODO: When finding error, advance to next statement
             None => Err(ParseError::UnexpectedToken {
                 expected_token: expected_token_type,
                 found_token: self.token_iter.peek().cloned(),
@@ -79,7 +100,7 @@ mod tests {
     use super::Token;
 
     #[test]
-    fn parse_let_statement() {
+    fn parse_assign_statement() {
         let source_code = "
             ~x: 5~
             ~y: 10~
@@ -90,6 +111,7 @@ mod tests {
         let mut parser: Parser = Parser::new(tokens);
         let program: Program = parser.parse_program();
 
+        check_parser_errors(&program);
         assert_eq!(
             program.statements.len(),
             3,
@@ -115,5 +137,18 @@ mod tests {
             }
             incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
         };
+    }
+
+    fn check_parser_errors(program: &Program) {
+        if program.parse_errors.is_empty() {
+            return;
+        }
+
+        eprintln!("Found parser errors:");
+        for parse_error in &program.parse_errors {
+            eprintln!("parser error: {:?}", parse_error);
+        }
+
+        panic!("Test failed because of parses errors");
     }
 }

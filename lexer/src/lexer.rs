@@ -33,7 +33,7 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
                 _ => Token::new(TokenType::Illegal, current_char),
             },
             '+' => Token::new(TokenType::Add, current_char),
-            ':' => Token::new(TokenType::Colon, current_char),
+            ':' => Token::new(TokenType::Assign, current_char),
             '}' => Token::new(TokenType::RBrace, current_char),
             '{' => Token::new(TokenType::LBrace, current_char),
             ')' => Token::new(TokenType::RParen, current_char),
@@ -43,7 +43,7 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
             '<' => Token::new(TokenType::LessThan, current_char),
             '>' => Token::new(TokenType::GreaterThan, current_char),
             ',' => Token::new(TokenType::Comma, current_char),
-            '~' => Token::new(TokenType::Assign, current_char),
+            '~' => Token::new(TokenType::Lasagna, current_char),
             numeric_char if numeric_char.is_numeric() => {
                 let mut literal: String = String::from(current_char);
 
@@ -124,14 +124,14 @@ mod tests {
         let expected_tokens = vec![
             create_token(Bang, "!"),
             create_token(Add, "+"),
-            create_token(Colon, ":"),
+            create_token(Assign, ":"),
             create_token(RBrace, "}"),
             create_token(LBrace, "{"),
             create_token(RParen, ")"),
             create_token(LParen, "("),
             create_token(RBracket, "]"),
             create_token(LBracket, "["),
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
         ];
 
         let found_tokens = generate_tokens(source_code);
@@ -196,26 +196,26 @@ mod tests {
 
         let expected_tokens = vec![
             // Line 1
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(Ident, "foo"),
-            create_token(Colon, ":"),
+            create_token(Assign, ":"),
             create_token(Int, "5"),
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             // Line 2
             create_token(Ident, "foo"),
             create_token(Add, "+"),
             create_token(Int, "6"),
             // Line 3
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(Ident, "fooFunc"),
             create_token(LParen, "("),
             create_token(Ident, "x"),
             create_token(Comma, ","),
             create_token(Ident, "y"),
             create_token(RParen, ")"),
-            create_token(Colon, ":"),
+            create_token(Assign, ":"),
             // Line 4
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(Ident, "res"),
             create_token(Ident, "x"),
             create_token(Add, "+"),
@@ -224,16 +224,16 @@ mod tests {
             create_token(Return, "return"),
             create_token(Ident, "res"),
             // Line 6
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             // Line 7
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(If, "if"),
             create_token(LParen, "("),
             create_token(Int, "5"),
             create_token(LessThan, "<"),
             create_token(Int, "10"),
             create_token(RParen, ")"),
-            create_token(Colon, ":"),
+            create_token(Assign, ":"),
             create_token(Int, "5"),
             create_token(Add, "+"),
             create_token(Int, "6"),
@@ -243,15 +243,15 @@ mod tests {
             create_token(Return, "return"),
             create_token(True, "true"),
             // Line 13
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(Else, "else"),
-            create_token(Colon, ":"),
+            create_token(Assign, ":"),
             // Line 14
             create_token(Bang, "!"),
             create_token(Return, "return"),
             create_token(False, "false"),
             // Line 15
-            create_token(Assign, "~"),
+            create_token(Lasagna, "~"),
             create_token(Equal, "=="),
             create_token(NotEqual, "!="),
         ];
