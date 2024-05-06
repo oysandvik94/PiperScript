@@ -46,8 +46,8 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.token_iter.next() {
             Some(token) if token.token_type == TokenType::Lasagna => self.parse_assign_statement(),
-            Some(unknown_token) => Err(ParseError::UnknownToken(unknown_token)),
-            None => Err(ParseError::ExpectedToken),
+            Some(unknown_token) => self.handle_error(ParseError::UnknownToken(unknown_token)),
+            None => self.handle_error(ParseError::ExpectedToken),
         }
     }
 
@@ -55,7 +55,6 @@ impl Parser {
         let identifier: Identifier = Identifier(self.expect_peek(TokenType::Ident)?.literal);
 
         self.expect_peek(TokenType::Assign)?;
-
 
         // TODO: skip over expressions until we know how to handle them
         loop {
@@ -79,11 +78,31 @@ impl Parser {
             .next_if(|x| x.token_type == expected_token_type)
         {
             Some(token) => Ok(token),
-            // TODO: When finding error, advance to next statement
-            None => Err(ParseError::UnexpectedToken {
-                expected_token: expected_token_type,
-                found_token: self.token_iter.peek().cloned(),
-            }),
+            None => {
+                let next_token = self.token_iter.peek().cloned();
+                self.handle_error(ParseError::UnexpectedToken {
+                    expected_token: expected_token_type,
+                    found_token: next_token,
+                })
+            }
+        }
+    }
+
+    fn handle_error<T>(&mut self, parse_error: ParseError) -> Result<T, ParseError> {
+        self.iterate_to_next_statement();
+
+        Err(parse_error)
+    }
+
+    fn iterate_to_next_statement(&mut self) {
+        while let Some(token) = self.token_iter.peek() {
+            _ = match token.token_type {
+                TokenType::Lasagna => {
+                    self.token_iter.next();
+                    break;
+                }
+                _ => self.token_iter.next(),
+            }
         }
     }
 }
@@ -94,7 +113,7 @@ mod tests {
 
     use crate::{
         ast::{Identifier, Program, Statement},
-        parser::Parser,
+        parser::{ParseError, Parser},
     };
 
     use super::Token;
@@ -128,6 +147,30 @@ mod tests {
             .iter()
             .enumerate()
             .for_each(|(idx, ident)| test_let_statement(&program.statements[idx], ident));
+    }
+
+    #[test]
+    fn parse_errors() {
+        let source_code = "
+            ~x 5~
+            ~: 10~
+            ~ 54456~
+        ";
+
+        let tokens: Vec<Token> = generate_tokens(source_code);
+        let mut parser: Parser = Parser::new(tokens);
+        let program: Program = parser.parse_program();
+
+        assert_eq!(program.parse_errors.len(), 3, "Should have 3 errors");
+        program.parse_errors.iter().for_each(|parse_error| {
+            assert!(matches!(
+                parse_error,
+                ParseError::UnexpectedToken {
+                    expected_token: _,
+                    found_token: _
+                }
+            ))
+        });
     }
 
     fn test_let_statement(found: &Statement, expected_identifier: &Identifier) {
