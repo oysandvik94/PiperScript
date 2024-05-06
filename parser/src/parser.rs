@@ -95,13 +95,9 @@ impl Parser {
     }
 
     fn iterate_to_next_statement(&mut self) {
-        while let Some(token) = self.token_iter.peek() {
-            _ = match token.token_type {
-                TokenType::Lasagna => {
-                    self.token_iter.next();
-                    break;
-                }
-                _ => self.token_iter.next(),
+        for token in self.token_iter.by_ref() {
+            if token.token_type == TokenType::Lasagna {
+                break;
             }
         }
     }
