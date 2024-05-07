@@ -1,11 +1,14 @@
-use std::{iter::Peekable, vec::IntoIter};
+use std::{
+    fmt::{write, Display},
+    iter::Peekable,
+    vec::IntoIter,
+};
 
 use lexer::token::{Token, TokenType};
 
 use crate::ast::{Expression, Identifier, Program, Statement};
 
 #[derive(Debug)]
-// TODO: Implement fmt
 pub enum ParseError {
     UnexpectedToken {
         expected_token: TokenType,
@@ -13,6 +16,19 @@ pub enum ParseError {
     },
     ExpectedToken,
     UnknownToken(Token),
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::UnexpectedToken {
+                expected_token,
+                found_token,
+            } => write!(f, "Expected token of type {expected_token:?}, but received token of type {found_token:?}"),
+            ParseError::ExpectedToken => write!(f, "Expected to receive a token, but no token was received"),
+            ParseError::UnknownToken(token) => write!(f, "Received unknown token of type {token:?}, don't know how to handle it"),
+        }
+    }
 }
 
 pub struct Parser {
@@ -109,7 +125,6 @@ impl Parser {
             }
         }
     }
-
 }
 
 #[cfg(test)]
@@ -172,7 +187,8 @@ mod tests {
             "Program should be parsed to 3 statements"
         );
 
-        program.statements
+        program
+            .statements
             .iter()
             .for_each(|ident| assert!(matches!(ident, Statement::ReturnStatement(_))));
     }
