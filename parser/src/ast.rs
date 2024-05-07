@@ -17,6 +17,7 @@ pub enum Statement {
 #[derive(PartialEq, Debug)]
 pub enum Expression {
     TodoExpression,
+    IdentifierExpression(Identifier)
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -46,6 +47,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expression::TodoExpression => write!(f, ""),
+            Expression::IdentifierExpression(ident) => write!(f, "{ident}")
         }
     }
 }
@@ -56,6 +58,7 @@ impl Display for Identifier {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::ast::{Expression, Identifier};
 

@@ -1,5 +1,5 @@
 use std::{
-    fmt::{write, Display},
+    fmt::Display,
     iter::Peekable,
     vec::IntoIter,
 };
@@ -131,10 +131,7 @@ impl Parser {
 mod tests {
     use lexer::lexer::generate_tokens;
 
-    use crate::{
-        ast::{Identifier, Program, Statement},
-        parser::{ParseError, Parser},
-    };
+    use crate::{ast::{Identifier, Program, Statement}, parser::{ParseError, Parser}, test_util::check_parser_errors};
 
     use super::Token;
 
@@ -224,18 +221,5 @@ mod tests {
             }
             incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
         };
-    }
-
-    fn check_parser_errors(program: &Program) {
-        if program.parse_errors.is_empty() {
-            return;
-        }
-
-        eprintln!("Found parser errors:");
-        for parse_error in &program.parse_errors {
-            eprintln!("parser error: {:?}", parse_error);
-        }
-
-        panic!("Test failed because of parses errors");
     }
 }
