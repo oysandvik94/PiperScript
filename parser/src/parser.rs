@@ -1,11 +1,35 @@
-use std::{ iter::Peekable, vec::IntoIter };
+use std::{
+    fmt::{write, Display},
+    iter::Peekable,
+    vec::IntoIter,
+};
 
 use lexer::token::{Token, TokenType};
 
 use crate::ast::{Expression, Identifier, Program, Statement};
 
-use super::errors::ParseError;
+#[derive(Debug)]
+pub enum ParseError {
+    UnexpectedToken {
+        expected_token: TokenType,
+        found_token: Option<Token>,
+    },
+    ExpectedToken,
+    UnknownToken(Token),
+}
 
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::UnexpectedToken {
+                expected_token,
+                found_token,
+            } => write!(f, "Expected token of type {expected_token:?}, but received token of type {found_token:?}"),
+            ParseError::ExpectedToken => write!(f, "Expected to receive a token, but no token was received"),
+            ParseError::UnknownToken(token) => write!(f, "Received unknown token of type {token:?}, don't know how to handle it"),
+        }
+    }
+}
 
 pub struct Parser {
     token_iter: Peekable<IntoIter<Token>>,
@@ -107,7 +131,10 @@ impl Parser {
 mod tests {
     use lexer::lexer::generate_tokens;
 
-    use crate::{ast::{Identifier, Program, Statement}, parse::{errors::ParseError, parser::Parser}};
+    use crate::{
+        ast::{Identifier, Program, Statement},
+        parser::{ParseError, Parser},
+    };
 
     use super::Token;
 

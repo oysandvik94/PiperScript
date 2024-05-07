@@ -1,5 +1,4 @@
-use crate::parse::errors::ParseError;
-
+use crate::parser::ParseError;
 
 pub struct Program {
     pub statements: Vec<Statement>,
