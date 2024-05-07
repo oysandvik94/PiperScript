@@ -46,6 +46,7 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.token_iter.next() {
             Some(token) if token.token_type == TokenType::Lasagna => self.parse_assign_statement(),
+            Some(token) if token.token_type == TokenType::Return => self.parse_return_statement(),
             Some(unknown_token) => self.handle_error(ParseError::UnknownToken(unknown_token)),
             None => self.handle_error(ParseError::ExpectedToken),
         }
@@ -70,6 +71,13 @@ impl Parser {
         self.expect_peek(TokenType::Lasagna)?;
         let assign_statement = Statement::AssignStatement(identifier, Expression::TodoExpression);
         Ok(assign_statement)
+    }
+
+    fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
+        // TODO: skip over expressions until we know how to handle them
+        self.iterate_to_next_statement();
+
+        Ok(Statement::ReturnStatement(Expression::TodoExpression))
     }
 
     fn expect_peek(&mut self, expected_token_type: TokenType) -> Result<Token, ParseError> {
@@ -101,6 +109,7 @@ impl Parser {
             }
         }
     }
+
 }
 
 #[cfg(test)]
@@ -143,6 +152,29 @@ mod tests {
             .iter()
             .enumerate()
             .for_each(|(idx, ident)| test_let_statement(&program.statements[idx], ident));
+    }
+
+    #[test]
+    fn parse_return_statement() {
+        let source_code = "
+            return 5~
+            return foobar~
+        ";
+
+        let tokens: Vec<Token> = generate_tokens(source_code);
+        let mut parser: Parser = Parser::new(tokens);
+        let program: Program = parser.parse_program();
+
+        check_parser_errors(&program);
+        assert_eq!(
+            program.statements.len(),
+            2,
+            "Program should be parsed to 3 statements"
+        );
+
+        program.statements
+            .iter()
+            .for_each(|ident| assert!(matches!(ident, Statement::ReturnStatement(_))));
     }
 
     #[test]
