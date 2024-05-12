@@ -4,3 +4,4 @@ pub mod expression_parser;
 
 #[cfg(test)]
 mod test_util;
+pub mod parse_errors;
