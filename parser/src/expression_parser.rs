@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(
             1,
             program.statements.len(),
-            "Shoul only have parsed one expression statement"
+            "Should only have parsed one expression statement"
         );
 
         let parsed_statement = program.statements.first().expect("Already checked length");
