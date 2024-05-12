@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use lexer::token::Token;
+
 use crate::parser::ParseError;
 
 pub struct Program {
@@ -17,11 +19,23 @@ pub enum Statement {
 #[derive(PartialEq, Debug)]
 pub enum Expression {
     TodoExpression,
-    IdentifierExpression(Identifier)
+    IdentifierExpression(Identifier),
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Identifier(pub String);
+
+impl Identifier {
+    pub fn parse_from_token(value: &Token) -> Result<Identifier, ParseError> {
+        match value {
+            Token::Ident(ident_token) => Ok(Identifier(ident_token.to_string())),
+            unexpected_token => Err(ParseError::UnexpectedToken {
+                expected_token: Token::Ident("".to_string()),
+                found_token: Some(unexpected_token.clone()),
+            }),
+        }
+    }
+}
 
 impl Display for Program {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -47,7 +61,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expression::TodoExpression => write!(f, ""),
-            Expression::IdentifierExpression(ident) => write!(f, "{ident}")
+            Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
         }
     }
 }
@@ -72,9 +86,7 @@ mod tests {
                     Identifier("foo".to_string()),
                     Expression::TodoExpression,
                 ),
-                Statement::ReturnStatement(
-                    Expression::TodoExpression,
-                ),
+                Statement::ReturnStatement(Expression::TodoExpression),
             ]),
             parse_errors: Vec::new(),
         };

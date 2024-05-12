@@ -1,5 +1,5 @@
 #[derive(PartialEq, Debug, Clone)]
-pub enum TokenType {
+pub enum Token {
     Bang,
     Add,
     Assign,
@@ -13,8 +13,8 @@ pub enum TokenType {
     Lasagna,
     Equal,
     NotEqual,
-    Ident,
-    Int,
+    Ident(String),
+    Int(String),
     Comma,
     Return,
     If,
@@ -25,32 +25,17 @@ pub enum TokenType {
     Else,
 }
 
-use TokenType::*;
+use Token::*;
 
-impl TokenType {
-    pub fn parse_keyword(literal_keyword: &str) -> TokenType {
+impl Token {
+    pub fn parse_keyword(literal_keyword: &str) -> Token {
         match literal_keyword {
             "return" => Return,
             "true" => True,
             "false" => False,
             "else" => Else,
             "if" => If,
-            _ => Ident,
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub literal: String,
-}
-
-impl Token {
-    pub fn new(token_type: TokenType, literal: char) -> Token {
-        Token {
-            token_type,
-            literal: literal.to_string(),
+            identifier_literal => Ident(identifier_literal.to_string()),
         }
     }
 }

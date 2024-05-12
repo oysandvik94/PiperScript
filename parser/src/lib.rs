@@ -1,4 +1,6 @@
 pub mod ast;
 pub mod parser;
-mod expression_parser;
+pub mod expression_parser;
+
+#[cfg(test)]
 mod test_util;

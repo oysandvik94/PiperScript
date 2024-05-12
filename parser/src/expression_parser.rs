@@ -1,14 +1,20 @@
-use lexer::token::TokenType;
+use lexer::token::Token;
 
-use crate::parser::Parser;
+use crate::{
+    ast::{Expression, Identifier},
+    parser::Parser,
+};
 
-trait PrefixParser {
-    fn parse(&self, parser: Parser);
+pub trait PrefixParser {
+    fn parse(&self, parser: &Parser) -> Option<Expression>;
 }
 
-impl PrefixParser for TokenType {
-    fn parse(&self, parser: Parser) {
-        todo!()
+impl PrefixParser for Token {
+    fn parse(&self, parser: &Parser) -> Option<Expression> {
+        match self {
+            Token::Ident(literal) => Some(Expression::IdentifierExpression(Identifier(literal.to_string()))),
+            _ => None,
+        }
     }
 }
 
@@ -36,11 +42,7 @@ mod tests {
             "Shoul only have parsed one expression statement"
         );
 
-        let parsed_statement = program
-            .statements
-            .get(0)
-            .expect("Already checked length")
-            .clone();
+        let parsed_statement = program.statements.first().expect("Already checked length");
 
         assert!(matches!(
             parsed_statement,

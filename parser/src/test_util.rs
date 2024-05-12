@@ -1,6 +1,7 @@
-use crate::ast::Program;
+use lexer::{lexer::generate_tokens, token::Token};
 
-#[cfg(test)]
+use crate::{ast::Program, parser::Parser};
+
 pub fn check_parser_errors(program: &Program) {
     if program.parse_errors.is_empty() {
         return;
@@ -12,4 +13,10 @@ pub fn check_parser_errors(program: &Program) {
     }
 
     panic!("Test failed because of parses errors");
+}
+
+pub fn parse_program(source_code: &str) -> Program {
+    let tokens: Vec<Token> = generate_tokens(source_code);
+    let mut parser: Parser = Parser::new(tokens);
+    parser.parse_program()
 }

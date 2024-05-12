@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::Chars};
 
-use crate::token::{Token, TokenType};
+use crate::token::Token;
 
 pub fn generate_tokens(source_code: &str) -> Vec<Token> {
     let mut code_iter = source_code.chars().peekable();
@@ -13,37 +13,31 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
 
         let lexed_token = match current_char {
             '!' => match code_iter.peek() {
-                Some('=') => Token {
-                    token_type: TokenType::NotEqual,
-                    literal: {
-                        current_char.to_string()
-                            + &code_iter.next().expect("Should be equals char").to_string()
-                    },
-                },
-                _ => Token::new(TokenType::Bang, current_char),
+                Some('=') => {
+                    code_iter.next();
+                    Token::NotEqual
+                }
+                _ => Token::Bang,
             },
             '=' => match code_iter.peek() {
-                Some('=') => Token {
-                    token_type: TokenType::Equal,
-                    literal: {
-                        current_char.to_string()
-                            + &code_iter.next().expect("Should be equals char").to_string()
-                    },
-                },
-                _ => Token::new(TokenType::Illegal, current_char),
+                Some('=') => {
+                    code_iter.next();
+                    Token::Equal
+                }
+                _ => Token::Illegal,
             },
-            '+' => Token::new(TokenType::Add, current_char),
-            ':' => Token::new(TokenType::Assign, current_char),
-            '}' => Token::new(TokenType::RBrace, current_char),
-            '{' => Token::new(TokenType::LBrace, current_char),
-            ')' => Token::new(TokenType::RParen, current_char),
-            '(' => Token::new(TokenType::LParen, current_char),
-            ']' => Token::new(TokenType::RBracket, current_char),
-            '[' => Token::new(TokenType::LBracket, current_char),
-            '<' => Token::new(TokenType::LessThan, current_char),
-            '>' => Token::new(TokenType::GreaterThan, current_char),
-            ',' => Token::new(TokenType::Comma, current_char),
-            '~' => Token::new(TokenType::Lasagna, current_char),
+            '+' => Token::Add,
+            ':' => Token::Assign,
+            '}' => Token::RBrace,
+            '{' => Token::LBrace,
+            ')' => Token::RParen,
+            '(' => Token::LParen,
+            ']' => Token::RBracket,
+            '[' => Token::LBracket,
+            '<' => Token::LessThan,
+            '>' => Token::GreaterThan,
+            ',' => Token::Comma,
+            '~' => Token::Lasagna,
             numeric_char if numeric_char.is_numeric() => {
                 let mut literal: String = String::from(current_char);
 
@@ -52,10 +46,7 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
                     literal.push(c);
                 }
 
-                Token {
-                    token_type: TokenType::Int,
-                    literal,
-                }
+                Token::Int(literal)
             }
             alphabetic_char if alphabetic_char.is_alphabetic() => {
                 let next_alphabetic = |x: &mut Peekable<Chars>| -> Option<char> {
@@ -73,12 +64,9 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
                     literal.push(c);
                 }
 
-                Token {
-                    token_type: TokenType::parse_keyword(&literal),
-                    literal,
-                }
+                Token::parse_keyword(&literal)
             }
-            _ => Token::new(TokenType::Illegal, current_char),
+            _ => Token::Illegal,
         };
 
         tokens.push(lexed_token);
@@ -102,18 +90,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lexer::generate_tokens,
-        token::{Token, TokenType},
-    };
-    use TokenType::*;
-
-    fn create_token(token_type: TokenType, literal: &str) -> Token {
-        Token {
-            token_type,
-            literal: literal.to_string(),
-        }
-    }
+    use crate::{lexer::generate_tokens, token::Token};
 
     #[test]
     fn parse_sympols() {
@@ -122,16 +99,16 @@ mod tests {
         ";
 
         let expected_tokens = vec![
-            create_token(Bang, "!"),
-            create_token(Add, "+"),
-            create_token(Assign, ":"),
-            create_token(RBrace, "}"),
-            create_token(LBrace, "{"),
-            create_token(RParen, ")"),
-            create_token(LParen, "("),
-            create_token(RBracket, "]"),
-            create_token(LBracket, "["),
-            create_token(Lasagna, "~"),
+            Token::Bang,
+            Token::Add,
+            Token::Assign,
+            Token::RBrace,
+            Token::LBrace,
+            Token::RParen,
+            Token::LParen,
+            Token::RBracket,
+            Token::LBracket,
+            Token::Lasagna,
         ];
 
         let found_tokens = generate_tokens(source_code);
@@ -155,7 +132,7 @@ mod tests {
             foo
         ";
 
-        let expected_tokens = [create_token(Ident, "foo")];
+        let expected_tokens = [Token::Ident("foo".to_string())];
 
         let found_tokens = generate_tokens(source_code);
 
@@ -195,65 +172,55 @@ mod tests {
         ";
 
         let expected_tokens = vec![
-            // Line 1
-            create_token(Lasagna, "~"),
-            create_token(Ident, "foo"),
-            create_token(Assign, ":"),
-            create_token(Int, "5"),
-            create_token(Lasagna, "~"),
-            // Line 2
-            create_token(Ident, "foo"),
-            create_token(Add, "+"),
-            create_token(Int, "6"),
-            // Line 3
-            create_token(Lasagna, "~"),
-            create_token(Ident, "fooFunc"),
-            create_token(LParen, "("),
-            create_token(Ident, "x"),
-            create_token(Comma, ","),
-            create_token(Ident, "y"),
-            create_token(RParen, ")"),
-            create_token(Assign, ":"),
-            // Line 4
-            create_token(Lasagna, "~"),
-            create_token(Ident, "res"),
-            create_token(Ident, "x"),
-            create_token(Add, "+"),
-            create_token(Ident, "y"),
-            // Line 5
-            create_token(Return, "return"),
-            create_token(Ident, "res"),
-            // Line 6
-            create_token(Lasagna, "~"),
-            // Line 7
-            create_token(Lasagna, "~"),
-            create_token(If, "if"),
-            create_token(LParen, "("),
-            create_token(Int, "5"),
-            create_token(LessThan, "<"),
-            create_token(Int, "10"),
-            create_token(RParen, ")"),
-            create_token(Assign, ":"),
-            create_token(Int, "5"),
-            create_token(Add, "+"),
-            create_token(Int, "6"),
-            create_token(Int, "6"),
-            create_token(Add, "+"),
-            create_token(Int, "7"),
-            create_token(Return, "return"),
-            create_token(True, "true"),
-            // Line 13
-            create_token(Lasagna, "~"),
-            create_token(Else, "else"),
-            create_token(Assign, ":"),
-            // Line 14
-            create_token(Bang, "!"),
-            create_token(Return, "return"),
-            create_token(False, "false"),
-            // Line 15
-            create_token(Lasagna, "~"),
-            create_token(Equal, "=="),
-            create_token(NotEqual, "!="),
+            Token::Lasagna,
+            Token::Ident("foo".to_string()),
+            Token::Assign,
+            Token::Int("5".to_string()),
+            Token::Lasagna,
+            Token::Ident("foo".to_string()),
+            Token::Add,
+            Token::Int("6".to_string()),
+            Token::Lasagna,
+            Token::Ident("fooFunc".to_string()),
+            Token::LParen,
+            Token::Ident("x".to_string()),
+            Token::Comma,
+            Token::Ident("y".to_string()),
+            Token::RParen,
+            Token::Assign,
+            Token::Lasagna,
+            Token::Ident("res".to_string()),
+            Token::Ident("x".to_string()),
+            Token::Add,
+            Token::Ident("y".to_string()),
+            Token::Return,
+            Token::Ident("res".to_string()),
+            Token::Lasagna,
+            Token::Lasagna,
+            Token::If,
+            Token::LParen,
+            Token::Int("5".to_string()),
+            Token::LessThan,
+            Token::Int("10".to_string()),
+            Token::RParen,
+            Token::Assign,
+            Token::Int("5".to_string()),
+            Token::Add,
+            Token::Int("6".to_string()),
+            Token::Int("6".to_string()),
+            Token::Add,
+            Token::Int("7".to_string()),
+            Token::Return,
+            Token::True,
+            Token::Lasagna,
+            Token::Else,
+            Token::Assign,
+            Token::Bang,
+            Token::Return,
+            Token::False,
+            Token::Lasagna,
+            Token::Equal,
+            Token::NotEqual,
         ];
 
         let found_tokens = generate_tokens(source_code);
