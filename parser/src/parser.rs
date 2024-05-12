@@ -37,7 +37,6 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.token_iter.next() {
-            // TODO: matche better
             Some(Token::Lasagna) => self.parse_assign_statement(),
             Some(Token::Return) => self.parse_return_statement(),
             Some(token) => self.parse_expression_statement(token),
