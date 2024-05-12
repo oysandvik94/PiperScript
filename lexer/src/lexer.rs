@@ -39,31 +39,13 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
             ',' => Token::Comma,
             '~' => Token::Lasagna,
             numeric_char if numeric_char.is_numeric() => {
-                let mut literal: String = String::from(current_char);
-
-                let is_numeric = |c: &char| c.is_numeric();
-                while let Some(c) = read_target(&mut code_iter, is_numeric) {
-                    literal.push(c);
-                }
-
+                let literal: String =
+                    read_literal(&mut code_iter, numeric_char, |char| char.is_numeric());
                 Token::Int(literal)
             }
             alphabetic_char if alphabetic_char.is_alphabetic() => {
-                let next_alphabetic = |x: &mut Peekable<Chars>| -> Option<char> {
-                    match x.peek() {
-                        Some(c) => match c.is_alphabetic() {
-                            true => Some(x.next().expect("Expected next character")),
-                            false => None,
-                        },
-                        None => None,
-                    }
-                };
-
-                let mut literal: String = String::from(current_char);
-                while let Some(c) = next_alphabetic(&mut code_iter) {
-                    literal.push(c);
-                }
-
+                let literal: String =
+                    read_literal(&mut code_iter, alphabetic_char, |char| char.is_alphabetic());
                 Token::parse_keyword(&literal)
             }
             _ => Token::Illegal,
@@ -75,7 +57,19 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
     tokens
 }
 
-fn read_target<F>(iterator: &mut Peekable<Chars>, f: F) -> Option<char>
+fn read_literal<F>(iterator: &mut Peekable<Chars>, first_char: char, read_until: F) -> String
+where
+    F: Fn(&char) -> bool,
+{
+    let mut literal: String = String::from(first_char);
+    while let Some(c) = expect_peek(iterator, &read_until) {
+        literal.push(c);
+    }
+
+    literal
+}
+
+fn expect_peek<F>(iterator: &mut Peekable<Chars>, f: F) -> Option<char>
 where
     F: Fn(&char) -> bool,
 {
