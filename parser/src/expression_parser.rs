@@ -21,7 +21,7 @@ impl InfixParser for Token {
 mod tests {
     use crate::{
         ast::{Expression, Identifier, Operator, Program, Statement},
-        test_util::{check_parser_errors, parse_program},
+        test_util::{check_parser_errors, create_prefix_test_case, parse_program},
     };
 
     #[test]
@@ -72,20 +72,21 @@ mod tests {
             statement: Statement,
         }
 
-        let test_cases: [TestCase; 2] = [
+        let test_cases: [TestCase; 3] = [
             (
                 "!5",
-                Statement::ExpressionStatement(Expression::PrefixExpression {
-                    right: Box::new(Expression::IntegerExpression(5)),
-                    operator: Operator::Bang,
-                }),
+                create_prefix_test_case(Expression::IntegerExpression(5), Operator::Bang),
+            ),
+            (
+                "!foo",
+                create_prefix_test_case(
+                    Expression::IdentifierExpression(Identifier("foo".to_string())),
+                    Operator::Bang,
+                ),
             ),
             (
                 "-15",
-                Statement::ExpressionStatement(Expression::PrefixExpression {
-                    right: Box::new(Expression::IntegerExpression(15)),
-                    operator: Operator::Minus,
-                }),
+                create_prefix_test_case(Expression::IntegerExpression(15), Operator::Minus),
             ),
         ]
         .map(|(input, statement)| TestCase {
