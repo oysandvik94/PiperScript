@@ -1,26 +1,18 @@
 use lexer::token::Token;
 
-use crate::{
-    ast::{Expression, Identifier}, parse_errors::ParseError
-};
+use crate::{ast::Expression, parse_errors::ParseError};
 
-pub trait PrefixParser {
-    fn parse(&self) -> Option<Result<Expression, ParseError>>;
+trait InfixParser {
+    fn parse_infix(&self, left: Expression) -> Option<Result<Expression, ParseError>>;
 }
 
-impl PrefixParser for Token {
-    fn parse(&self) -> Option<Result<Expression, ParseError>> {
+impl InfixParser for Token {
+    fn parse_infix(&self, left: Expression) -> Option<Result<Expression, ParseError>> {
         match self {
-            Token::Ident(literal) => Some(Ok(Expression::IdentifierExpression(Identifier(
-                literal.to_string(),
-            )))),
-            Token::Int(integer_literal) => {
-                match integer_literal.parse::<i32>() {
-                    Ok(parsed_number) => Some(Ok(Expression::IntegerLiteral(parsed_number))),
-                    Err(error) => Some(Err(ParseError::ParseIntegerError(error)))
-                }
+            Token::Add => {
+                todo!()
             }
-            _ => None
+            _ => None,
         }
     }
 }
@@ -28,7 +20,7 @@ impl PrefixParser for Token {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{Expression, Identifier, Program, Statement},
+        ast::{Expression, Identifier, Operator, Program, Statement},
         test_util::{check_parser_errors, parse_program},
     };
 
@@ -39,13 +31,14 @@ mod tests {
         let program: Program = parse_program(input);
         check_parser_errors(&program);
 
-        let parsed_statement = program.statements.first().expect("Should only have one statement");
+        let parsed_statement = program
+            .statements
+            .first()
+            .expect("Should only have one statement");
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::IntegerLiteral(
-                5
-            )) 
+            Statement::ExpressionStatement(Expression::IntegerExpression(5))
         ));
     }
 
@@ -70,5 +63,47 @@ mod tests {
                 Identifier(ident)
             )) if ident == "foobar"
         ));
+    }
+
+    #[test]
+    fn test_parse_prefix() {
+        struct TestCase {
+            input: String,
+            statement: Statement,
+        }
+
+        let test_cases: [TestCase; 2] = [
+            (
+                "!5",
+                Statement::ExpressionStatement(Expression::PrefixExpression {
+                    right: Box::new(Expression::IntegerExpression(5)),
+                    operator: Operator::Bang,
+                }),
+            ),
+            (
+                "-15",
+                Statement::ExpressionStatement(Expression::PrefixExpression {
+                    right: Box::new(Expression::IntegerExpression(15)),
+                    operator: Operator::Minus,
+                }),
+            ),
+        ]
+        .map(|(input, statement)| TestCase {
+            input: input.to_string(),
+            statement,
+        });
+
+        for test_case in test_cases {
+            let program: Program = parse_program(&test_case.input);
+            check_parser_errors(&program);
+
+            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+            let statement = program.statements.first().expect("Should be one statement");
+
+            assert_eq!(
+                statement, &test_case.statement,
+                "Parsed statement should match testcase"
+            );
+        }
     }
 }

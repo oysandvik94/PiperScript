@@ -27,6 +27,7 @@ pub fn generate_tokens(source_code: &str) -> Vec<Token> {
                 _ => Token::Illegal,
             },
             '+' => Token::Add,
+            '-' => Token::Minus,
             ':' => Token::Assign,
             '}' => Token::RBrace,
             '{' => Token::LBrace,

@@ -1,4 +1,7 @@
-use std::{fmt::Display, num::ParseIntError};
+use std::{
+    fmt::{write, Display},
+    num::ParseIntError,
+};
 
 use lexer::token::Token;
 
@@ -11,7 +14,9 @@ pub enum ParseError {
     ExpectedToken,
     UnknownToken(Token),
     ExpressionError(String),
+    NoPrefixExpression(Token),
     ParseIntegerError(ParseIntError),
+    NoPrefixPartner,
 }
 
 impl Display for ParseError {
@@ -24,7 +29,9 @@ impl Display for ParseError {
             ParseError::ExpectedToken => write!(f, "Expected to receive a token, but no token was received"),
             ParseError::UnknownToken(token) => write!(f, "Received unknown token of type {token:?}, don't know how to handle it"),
             ParseError::ExpressionError(error) => write!(f, "{error}"),
-            ParseError::ParseIntegerError(error) => write!(f, "{error}")
+            ParseError::ParseIntegerError(error) => write!(f, "{error}"),
+            ParseError::NoPrefixExpression(token) => write!(f, "No prefix parse function for {token:?} found"),
+            ParseError::NoPrefixPartner => write!(f, "Expected expression to follow prefix")
         }
     }
 }

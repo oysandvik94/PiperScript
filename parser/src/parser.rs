@@ -3,8 +3,8 @@ use std::{iter::Peekable, vec::IntoIter};
 use lexer::token::Token;
 
 use crate::{
-    ast::{Expression, Identifier, Program, Statement},
-    expression_parser::PrefixParser, parse_errors::ParseError,
+    ast::{Expression, Identifier, Operator, Program, Statement},
+    parse_errors::ParseError,
 };
 
 pub struct Parser {
@@ -87,26 +87,49 @@ impl Parser {
         Ok(Statement::ReturnStatement(Expression::TodoExpression))
     }
 
-    fn parse_expression_statement(&mut self, first_token: Token) -> Result<Statement, ParseError> {
-        let expression = self.parse_expression(first_token)?;
+    fn parse_expression_statement(
+        &mut self,
+        current_token: Token,
+    ) -> Result<Statement, ParseError> {
+        let expression = self.parse_expression(current_token)?;
 
         Ok(Statement::ExpressionStatement(expression))
     }
 
-    fn parse_expression(&mut self, first_token: Token) -> Result<Expression, ParseError> {
-        match first_token.parse() {
-            Some(prefix) => Ok(prefix)?,
-            None => self.handle_error(ParseError::ExpressionError(
-                "Could not parse prefix. Not sure what to do here yet".to_string(),
-            )),
+    fn parse_expression(&mut self, current_token: Token) -> Result<Expression, ParseError> {
+        self.parse_prefix_expression(&current_token)
+    }
+
+    fn parse_prefix_expression(&mut self, token: &Token) -> Result<Expression, ParseError> {
+        match token {
+            Token::Ident(literal) => Ok(Expression::IdentifierExpression(Identifier(
+                literal.to_string(),
+            ))),
+            Token::Int(integer_literal) => match integer_literal.parse::<i32>() {
+                Ok(parsed_number) => Ok(Expression::IntegerExpression(parsed_number)),
+                Err(error) => Err(ParseError::ParseIntegerError(error)),
+            },
+            Token::Bang => self.create_prefix_expression(Operator::Bang),
+            Token::Minus => self.create_prefix_expression(Operator::Minus),
+            unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
         }
     }
 
+    fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
+        let token = match self.token_iter.next() {
+            Some(token) => Ok(token),
+            None => Err(ParseError::NoPrefixPartner),
+        }?;
+
+        let right = self.parse_expression(token)?;
+        Ok(Expression::PrefixExpression {
+            right: Box::new(right),
+            operator,
+        })
+    }
+
     fn expect_peek(&mut self, expected_token_type: Token) -> Result<Token, ParseError> {
-        match self
-            .token_iter
-            .next_if_eq(&expected_token_type)
-        {
+        match self.token_iter.next_if_eq(&expected_token_type) {
             Some(token) => Ok(token),
             None => {
                 let next_token = self.token_iter.peek().cloned();

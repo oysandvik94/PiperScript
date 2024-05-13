@@ -9,10 +9,10 @@ pub fn check_parser_errors(program: &Program) {
 
     eprintln!("Found parser errors:");
     for parse_error in &program.parse_errors {
-        eprintln!("parser error: {:?}", parse_error);
+        eprintln!("parser error: {parse_error}");
     }
 
-    panic!("Test failed because of parses errors");
+    panic!("Test failed because of parser errors");
 }
 
 pub fn parse_program(source_code: &str) -> Program {

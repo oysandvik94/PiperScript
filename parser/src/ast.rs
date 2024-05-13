@@ -20,7 +20,22 @@ pub enum Statement {
 pub enum Expression {
     TodoExpression,
     IdentifierExpression(Identifier),
-    IntegerLiteral(i32),
+    IntegerExpression(i32),
+    PrefixExpression {
+        right: Box<Expression>,
+        operator: Operator,
+    },
+    OperatorExpression {
+        left: Box<Expression>,
+        right: Box<Expression>,
+        operator: Operator,
+    },
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Operator {
+    Bang,
+    Minus,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -63,7 +78,13 @@ impl Display for Expression {
         match self {
             Expression::TodoExpression => write!(f, ""),
             Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
-            Expression::IntegerLiteral(integerd_literal) => write!(f, "{integerd_literal}")
+            Expression::IntegerExpression(integerd_literal) => write!(f, "{integerd_literal}"),
+            Expression::PrefixExpression { right, operator } => write!(f, "({operator}{right})"),
+            Expression::OperatorExpression {
+                left,
+                right,
+                operator,
+            } => todo!(),
         }
     }
 }
@@ -71,6 +92,15 @@ impl Display for Expression {
 impl Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operator::Bang => write!(f, "+"),
+            Operator::Minus => write!(f, "-"),
+        }
     }
 }
 
