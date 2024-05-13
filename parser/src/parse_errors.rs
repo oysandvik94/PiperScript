@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, num::ParseIntError};
 
 use lexer::token::Token;
 
@@ -11,6 +11,7 @@ pub enum ParseError {
     ExpectedToken,
     UnknownToken(Token),
     ExpressionError(String),
+    ParseIntegerError(ParseIntError),
 }
 
 impl Display for ParseError {
@@ -22,7 +23,8 @@ impl Display for ParseError {
             } => write!(f, "Expected token of type {expected_token:?}, but received token of type {found_token:?}"),
             ParseError::ExpectedToken => write!(f, "Expected to receive a token, but no token was received"),
             ParseError::UnknownToken(token) => write!(f, "Received unknown token of type {token:?}, don't know how to handle it"),
-            ParseError::ExpressionError(error) => write!(f, "{error}")
+            ParseError::ExpressionError(error) => write!(f, "{error}"),
+            ParseError::ParseIntegerError(error) => write!(f, "{error}")
         }
     }
 }

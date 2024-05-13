@@ -20,6 +20,7 @@ pub enum Statement {
 pub enum Expression {
     TodoExpression,
     IdentifierExpression(Identifier),
+    IntegerLiteral(i32),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -62,6 +63,7 @@ impl Display for Expression {
         match self {
             Expression::TodoExpression => write!(f, ""),
             Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
+            Expression::IntegerLiteral(integerd_literal) => write!(f, "{integerd_literal}")
         }
     }
 }

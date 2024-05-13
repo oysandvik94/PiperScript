@@ -1,19 +1,26 @@
 use lexer::token::Token;
 
 use crate::{
-    ast::{Expression, Identifier},
-    parser::Parser,
+    ast::{Expression, Identifier}, parse_errors::ParseError
 };
 
 pub trait PrefixParser {
-    fn parse(&self, parser: &Parser) -> Option<Expression>;
+    fn parse(&self) -> Option<Result<Expression, ParseError>>;
 }
 
 impl PrefixParser for Token {
-    fn parse(&self, parser: &Parser) -> Option<Expression> {
+    fn parse(&self) -> Option<Result<Expression, ParseError>> {
         match self {
-            Token::Ident(literal) => Some(Expression::IdentifierExpression(Identifier(literal.to_string()))),
-            _ => None,
+            Token::Ident(literal) => Some(Ok(Expression::IdentifierExpression(Identifier(
+                literal.to_string(),
+            )))),
+            Token::Int(integer_literal) => {
+                match integer_literal.parse::<i32>() {
+                    Ok(parsed_number) => Some(Ok(Expression::IntegerLiteral(parsed_number))),
+                    Err(error) => Some(Err(ParseError::ParseIntegerError(error)))
+                }
+            }
+            _ => None
         }
     }
 }
@@ -21,19 +28,32 @@ impl PrefixParser for Token {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{Identifier, Program, Statement},
-        parser::Parser,
-        test_util::check_parser_errors,
+        ast::{Expression, Identifier, Program, Statement},
+        test_util::{check_parser_errors, parse_program},
     };
+
+    #[test]
+    fn test_integer_expression() {
+        let input: &str = "5";
+
+        let program: Program = parse_program(input);
+        check_parser_errors(&program);
+
+        let parsed_statement = program.statements.first().expect("Should only have one statement");
+
+        assert!(matches!(
+            parsed_statement,
+            Statement::ExpressionStatement(Expression::IntegerLiteral(
+                5
+            )) 
+        ));
+    }
 
     #[test]
     fn test_identifier_expression() {
         let input: &str = "foobar";
 
-        let tokens = lexer::lexer::generate_tokens(input);
-        let mut parser = Parser::new(tokens);
-        let program: Program = parser.parse_program();
-
+        let program: Program = parse_program(input);
         check_parser_errors(&program);
 
         assert_eq!(
@@ -46,7 +66,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(crate::ast::Expression::IdentifierExpression(
+            Statement::ExpressionStatement(Expression::IdentifierExpression(
                 Identifier(ident)
             )) if ident == "foobar"
         ));

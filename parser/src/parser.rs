@@ -94,8 +94,8 @@ impl Parser {
     }
 
     fn parse_expression(&mut self, first_token: Token) -> Result<Expression, ParseError> {
-        match first_token.parse(self) {
-            Some(prefix) => Ok(prefix),
+        match first_token.parse() {
+            Some(prefix) => Ok(prefix)?,
             None => self.handle_error(ParseError::ExpressionError(
                 "Could not parse prefix. Not sure what to do here yet".to_string(),
             )),
