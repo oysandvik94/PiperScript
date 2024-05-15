@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use lexer::token::Token;
 
-use crate::parse_errors::ParseError;
+use crate::{lexer, parse_errors::ParseError};
 
 pub struct Program {
     pub statements: Vec<Statement>,

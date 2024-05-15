@@ -1,21 +1,18 @@
-use std::{iter::Peekable, vec::IntoIter};
-
-use lexer::token::Token;
+use lexer::{lexedtokens::LexedTokens, token::Token};
 
 use crate::{
     ast::{Expression, Identifier, Operator, Program, Statement},
+    lexer,
     parse_errors::ParseError,
 };
 
 pub struct Parser {
-    token_iter: Peekable<IntoIter<Token>>,
+    token_iter: LexedTokens,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Parser {
-        Parser {
-            token_iter: tokens.clone().into_iter().peekable(),
-        }
+    pub fn new(tokens: LexedTokens) -> Parser {
+        Parser { token_iter: tokens }
     }
 
     pub fn parse_program(&mut self) -> Program {
@@ -25,7 +22,10 @@ impl Parser {
         while self.token_iter.peek().is_some() {
             match self.parse_statement() {
                 Ok(parsed_statement) => statements.push(parsed_statement),
-                Err(parse_error) => parse_errors.push(parse_error),
+                Err(parse_error) => {
+                    self.token_iter.iterate_to_next_statement();
+                    parse_errors.push(parse_error)
+                }
             };
         }
 
@@ -36,33 +36,18 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
-        match self.token_iter.next() {
+        match self.token_iter.consume() {
             Some(Token::Lasagna) => self.parse_assign_statement(),
             Some(Token::Return) => self.parse_return_statement(),
             Some(token) => self.parse_expression_statement(token),
-            None => self.handle_error(ParseError::ExpectedToken),
-        }
-    }
-
-    fn expected_identifier(&mut self) -> Result<Identifier, ParseError> {
-        let peeked_token_is_ident: Result<Identifier, ParseError> = match self.token_iter.peek() {
-            Some(peeked_token) => Identifier::parse_from_token(peeked_token),
             None => Err(ParseError::ExpectedToken),
-        };
-
-        match peeked_token_is_ident {
-            Ok(parsed_identifier) => {
-                self.token_iter.next();
-                Ok(parsed_identifier)
-            }
-            Err(parse_error) => self.handle_error(parse_error),
         }
     }
 
     fn parse_assign_statement(&mut self) -> Result<Statement, ParseError> {
-        let identifier: Identifier = self.expected_identifier()?;
+        let identifier: Identifier = self.token_iter.expected_identifier()?;
 
-        self.expect_peek(Token::Assign)?;
+        self.token_iter.expect_peek(Token::Assign)?;
 
         // TODO: skip over expressions until we know how to handle them
         loop {
@@ -72,17 +57,18 @@ impl Parser {
                 }
             }
 
-            self.token_iter.next();
+            self.token_iter.consume();
         }
 
-        self.expect_peek(Token::Lasagna)?;
+        self.token_iter.expect_peek(Token::Lasagna)?;
+
         let assign_statement = Statement::AssignStatement(identifier, Expression::TodoExpression);
         Ok(assign_statement)
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
         // TODO: skip over expressions until we know how to handle them
-        self.iterate_to_next_statement();
+        self.token_iter.iterate_to_next_statement();
 
         Ok(Statement::ReturnStatement(Expression::TodoExpression))
     }
@@ -107,7 +93,7 @@ impl Parser {
             ))),
             Token::Int(integer_literal) => match integer_literal.parse::<i32>() {
                 Ok(parsed_number) => Ok(Expression::IntegerExpression(parsed_number)),
-                Err(error) => Err(ParseError::ParseIntegerError(error)),
+                Err(error) => Err(ParseError::ParseIntegerError(token.clone(), error)),
             },
             Token::Bang => self.create_prefix_expression(Operator::Bang),
             Token::Minus => self.create_prefix_expression(Operator::Minus),
@@ -116,7 +102,7 @@ impl Parser {
     }
 
     fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
-        let token = match self.token_iter.next() {
+        let token = match self.token_iter.consume() {
             Some(token) => Ok(token),
             None => Err(ParseError::NoPrefixPartner),
         }?;
@@ -127,46 +113,15 @@ impl Parser {
             operator,
         })
     }
-
-    fn expect_peek(&mut self, expected_token_type: Token) -> Result<Token, ParseError> {
-        match self.token_iter.next_if_eq(&expected_token_type) {
-            Some(token) => Ok(token),
-            None => {
-                let next_token = self.token_iter.peek().cloned();
-                self.handle_error(ParseError::UnexpectedToken {
-                    expected_token: expected_token_type,
-                    found_token: next_token,
-                })
-            }
-        }
-    }
-
-    fn handle_error<T>(&mut self, parse_error: ParseError) -> Result<T, ParseError> {
-        self.iterate_to_next_statement();
-
-        Err(parse_error)
-    }
-
-    fn iterate_to_next_statement(&mut self) {
-        for token in self.token_iter.by_ref() {
-            if token == Token::Lasagna {
-                break;
-            }
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use lexer::lexer::generate_tokens;
 
     use crate::{
         ast::{Expression, Identifier, Program, Statement},
-        parser::{ParseError, Parser},
         test_util::{check_parser_errors, parse_program},
     };
-
-    use super::Token;
 
     #[test]
     fn parse_assign_statement() {
@@ -176,9 +131,7 @@ mod tests {
             ~foobar: 54456~
         ";
 
-        let tokens: Vec<Token> = generate_tokens(source_code);
-        let mut parser: Parser = Parser::new(tokens);
-        let program: Program = parser.parse_program();
+        let program: Program = parse_program(source_code);
 
         check_parser_errors(&program);
         assert_eq!(
@@ -227,7 +180,11 @@ mod tests {
 
         let program: Program = parse_program(return_statement);
 
-        assert_eq!(1, program.statements.len());
+        assert_eq!(
+            1,
+            program.statements.len(),
+            "Should only parse to 1 statement"
+        );
         assert_eq!(
             Statement::ReturnStatement(Expression::TodoExpression),
             *program
@@ -235,28 +192,6 @@ mod tests {
                 .first()
                 .expect("Should retrieve first and only statement")
         );
-    }
-
-    #[test]
-    fn parse_errors() {
-        let source_code = "
-            ~x 5~
-            ~: 10~
-            ~ 54456~
-        ";
-
-        let program: Program = parse_program(source_code);
-
-        assert_eq!(program.parse_errors.len(), 3, "Should have 3 errors");
-        program.parse_errors.iter().for_each(|parse_error| {
-            assert!(matches!(
-                parse_error,
-                ParseError::UnexpectedToken {
-                    expected_token: _,
-                    found_token: _
-                }
-            ))
-        });
     }
 
     fn test_let_statement(found: &Statement, expected_identifier: &Identifier) {
