@@ -24,6 +24,7 @@ pub enum Token {
     True,
     False,
     Else,
+    Period,
 }
 
 pub enum ParsedToken {
@@ -73,6 +74,7 @@ impl Token {
             '<' => CompleteToken(Token::LessThan),
             '>' => CompleteToken(Token::GreaterThan),
             ',' => CompleteToken(Token::Comma),
+            '.' => CompleteToken(Token::Period),
             '~' => CompleteToken(Token::Lasagna),
             numeric_char if numeric_char.is_numeric() => NumericStart,
             alphabetic_char if alphabetic_char.is_alphabetic() => AlphabeticStart,

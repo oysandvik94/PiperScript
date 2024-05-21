@@ -57,13 +57,20 @@ impl LexedTokens {
         self.token_iter.next()
     }
 
+    pub fn expect(&mut self) -> Result<Token, ParseError> {
+        match self.consume() {
+            Some(token) => Ok(token),
+            None => Err(ParseError::ExpectedToken),
+        }
+    }
+
     pub fn peek(&mut self) -> Option<&Token> {
         self.token_iter.peek()
     }
 
     pub fn iterate_to_next_statement(&mut self) {
         for token in self.token_iter.by_ref() {
-            if token == Token::Lasagna {
+            if token == Token::Period {
                 break;
             }
         }

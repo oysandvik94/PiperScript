@@ -37,40 +37,36 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.token_iter.consume() {
-            Some(Token::Lasagna) => self.parse_assign_statement(),
             Some(Token::Return) => self.parse_return_statement(),
+            Some(Token::Ident(identifier)) => match self.token_iter.peek() {
+                Some(Token::Assign) => self.parse_assign_statement(identifier),
+                Some(_) => self.parse_expression_statement(Token::Ident(identifier)),
+                None => Err(ParseError::ExpectedToken),
+            },
             Some(token) => self.parse_expression_statement(token),
             None => Err(ParseError::ExpectedToken),
         }
     }
 
-    fn parse_assign_statement(&mut self) -> Result<Statement, ParseError> {
-        let identifier: Identifier = self.token_iter.expected_identifier()?;
-
+    fn parse_assign_statement(&mut self, identifier: String) -> Result<Statement, ParseError> {
         self.token_iter.expect_peek(Token::Assign)?;
 
-        // TODO: skip over expressions until we know how to handle them
-        loop {
-            if let Some(token) = self.token_iter.peek() {
-                if *token == Token::Lasagna {
-                    break;
-                }
-            }
+        let next_token = self.token_iter.expect()?;
+        let expression = self.parse_expression(next_token)?;
 
-            self.token_iter.consume();
-        }
+        self.token_iter.expect_peek(Token::Period)?;
 
-        self.token_iter.expect_peek(Token::Lasagna)?;
-
-        let assign_statement = Statement::AssignStatement(identifier, Expression::TodoExpression);
+        let assign_statement = Statement::AssignStatement(Identifier(identifier), expression);
         Ok(assign_statement)
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
-        // TODO: skip over expressions until we know how to handle them
-        self.token_iter.iterate_to_next_statement();
+        let next_token = self.token_iter.expect()?;
+        let expression = self.parse_expression(next_token)?;
 
-        Ok(Statement::ReturnStatement(Expression::TodoExpression))
+        self.token_iter.expect_peek(Token::Period)?;
+
+        Ok(Statement::ReturnStatement(expression))
     }
 
     fn parse_expression_statement(
@@ -78,6 +74,8 @@ impl Parser {
         current_token: Token,
     ) -> Result<Statement, ParseError> {
         let expression = self.parse_expression(current_token)?;
+
+        self.token_iter.expect_peek(Token::Period)?;
 
         Ok(Statement::ExpressionStatement(expression))
     }
@@ -126,9 +124,9 @@ mod tests {
     #[test]
     fn parse_assign_statement() {
         let source_code = "
-            ~x: 5~
-            ~y: 10~
-            ~foobar: 54456~
+            x: 5.
+            y: 10.
+            foobar: 54456.
         ";
 
         let program: Program = parse_program(source_code);
@@ -155,8 +153,8 @@ mod tests {
     #[test]
     fn parse_return_statement() {
         let source_code = "
-            return 5~
-            return foobar~
+            return 5.
+            return foobar.
         ";
 
         let program: Program = parse_program(source_code);
@@ -176,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_return_statement() {
-        let return_statement = "return foo";
+        let return_statement = "return foo.";
 
         let program: Program = parse_program(return_statement);
 
@@ -186,7 +184,9 @@ mod tests {
             "Should only parse to 1 statement"
         );
         assert_eq!(
-            Statement::ReturnStatement(Expression::TodoExpression),
+            Statement::ReturnStatement(Expression::IdentifierExpression(Identifier(
+                "foo".to_string()
+            ))),
             *program
                 .statements
                 .first()

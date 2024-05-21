@@ -55,22 +55,13 @@ mod tests {
     #[test]
     fn test_parse_errors() {
         let source_code = "
-            ~x 5~
-            ~: 10~
-            ~ 54456~
+            foo: .
         ";
 
         let program: Program = parse_program(source_code);
 
         program.parse_errors.iter().for_each(|parse_error| {
-            assert!(matches!(
-                parse_error,
-                ParseError::UnexpectedToken {
-                    expected_token: _,
-                    found_token: _
-                }
-            ))
+            assert!(matches!(parse_error, ParseError::NoPrefixExpression(_)))
         });
-        assert_eq!(program.parse_errors.len(), 3, "Should have 3 errors");
     }
 }

@@ -12,15 +12,25 @@ as well as implementing some more novel idea for the language.
 Lasagnalang may look something like this:
 
 ```
-~foo: 5~
+foo: 5
 
-~if foo is 5~
+if foo is 5:
     foo + 10
 ~
 
-~bar: fn(x, y): return x + y~
+add: fn(x, y): return x + y~
 
-bar(5, 1)
+add 5 1
+
+complex: fn(x, y, k):
+    foo: add x y
+    return k(foo)
+~
+
+power: fn(x): return x * x~
+
+complex 5 3 power // 64
+res: complex 5 3 power
 ```
 
 There is nothing interesting or worthwhile about the language, the project is
