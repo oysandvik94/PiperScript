@@ -117,7 +117,7 @@ impl Parser {
 mod tests {
 
     use crate::{
-        ast::{Expression, Identifier, Program, Statement},
+        ast::{Expression, Identifier, Operator, Program, Statement},
         test_util::{check_parser_errors, parse_program},
     };
 
@@ -192,6 +192,89 @@ mod tests {
                 .first()
                 .expect("Should retrieve first and only statement")
         );
+    }
+
+    #[test]
+    fn test_integer_expression() {
+        let input: &str = "5.";
+
+        let program: Program = parse_program(input);
+        check_parser_errors(&program);
+
+        let parsed_statement = program
+            .statements
+            .first()
+            .expect("Should only have one statement");
+
+        assert!(matches!(
+            parsed_statement,
+            Statement::ExpressionStatement(Expression::IntegerExpression(5))
+        ));
+    }
+
+    #[test]
+    fn test_identifier_expression() {
+        let input: &str = "foobar.";
+
+        let program: Program = parse_program(input);
+        check_parser_errors(&program);
+
+        assert_eq!(
+            1,
+            program.statements.len(),
+            "Should only have parsed one expression statement"
+        );
+
+        let parsed_statement = program.statements.first().expect("Already checked length");
+
+        assert!(matches!(
+            parsed_statement,
+            Statement::ExpressionStatement(Expression::IdentifierExpression(
+                Identifier(ident)
+            )) if ident == "foobar"
+        ));
+    }
+
+    #[test]
+    fn test_parse_prefix() {
+        struct TestCase {
+            input: String,
+            statement: Statement,
+        }
+
+        let test_cases: [TestCase; 2] = [
+            (
+                "!5.",
+                Statement::ExpressionStatement(Expression::PrefixExpression {
+                    right: Box::new(Expression::IntegerExpression(5)),
+                    operator: Operator::Bang,
+                }),
+            ),
+            (
+                "-15.",
+                Statement::ExpressionStatement(Expression::PrefixExpression {
+                    right: Box::new(Expression::IntegerExpression(15)),
+                    operator: Operator::Minus,
+                }),
+            ),
+        ]
+        .map(|(input, statement)| TestCase {
+            input: input.to_string(),
+            statement,
+        });
+
+        for test_case in test_cases {
+            let program: Program = parse_program(&test_case.input);
+            check_parser_errors(&program);
+
+            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+            let statement = program.statements.first().expect("Should be one statement");
+
+            assert_eq!(
+                statement, &test_case.statement,
+                "Parsed statement should match testcase"
+            );
+        }
     }
 
     fn test_let_statement(found: &Statement, expected_identifier: &Identifier) {
