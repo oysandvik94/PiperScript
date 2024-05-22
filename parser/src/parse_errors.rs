@@ -14,6 +14,7 @@ pub enum ParseError {
     UnknownToken(Token),
     ExpressionError(String),
     NoPrefixExpression(Token),
+    NoInfixExpression(Token),
     ParseIntegerError(Token, ParseIntError),
     NoPrefixPartner,
 }
@@ -44,6 +45,9 @@ impl Display for ParseError {
                 write!(f, "No prefix parse function for {token:?} found")
             }
             ParseError::NoPrefixPartner => write!(f, "Expected expression to follow prefix"),
+            ParseError::NoInfixExpression(token) => {
+                write!(f, "No infix parse function for {token:?} found")
+            }
         }
     }
 }

@@ -1,8 +1,9 @@
-use lexer::{lexedtokens::LexedTokens, token::Token};
-
 use crate::{
     ast::{Expression, Identifier, Operator, Program, Statement},
-    lexer,
+    lexer::{
+        lexedtokens::LexedTokens,
+        token::{HasInfix, Precedence, Token},
+    },
     parse_errors::ParseError,
 };
 
@@ -52,7 +53,7 @@ impl Parser {
         self.token_iter.expect_peek(Token::Assign)?;
 
         let next_token = self.token_iter.expect()?;
-        let expression = self.parse_expression(next_token)?;
+        let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
         self.token_iter.expect_peek(Token::Period)?;
 
@@ -62,7 +63,7 @@ impl Parser {
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
         let next_token = self.token_iter.expect()?;
-        let expression = self.parse_expression(next_token)?;
+        let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
         self.token_iter.expect_peek(Token::Period)?;
 
@@ -73,15 +74,28 @@ impl Parser {
         &mut self,
         current_token: Token,
     ) -> Result<Statement, ParseError> {
-        let expression = self.parse_expression(current_token)?;
+        let expression = self.parse_expression(current_token, Precedence::Lowest)?;
 
         self.token_iter.expect_peek(Token::Period)?;
 
         Ok(Statement::ExpressionStatement(expression))
     }
 
-    fn parse_expression(&mut self, current_token: Token) -> Result<Expression, ParseError> {
-        self.parse_prefix_expression(&current_token)
+    fn parse_expression(
+        &mut self,
+        current_token: Token,
+        precedence: Precedence,
+    ) -> Result<Expression, ParseError> {
+        let mut left = self.parse_prefix_expression(&current_token)?;
+
+        while self.token_iter.next_token_has_infix()
+            && precedence < self.token_iter.next_token_precedence()
+        {
+            let next_token = self.token_iter.expect()?;
+            left = self.parse_infix_expression(left, &next_token)?;
+        }
+
+        Ok(left)
     }
 
     fn parse_prefix_expression(&mut self, token: &Token) -> Result<Expression, ParseError> {
@@ -99,13 +113,34 @@ impl Parser {
         }
     }
 
+    fn parse_infix_expression(
+        &mut self,
+        left: Expression,
+        token: &Token,
+    ) -> Result<Expression, ParseError> {
+        match token.has_infix() {
+            HasInfix::Yes(operator) => {
+                let precedence = token.get_precedence();
+                let next_token = self.token_iter.expect()?;
+                let right = self.parse_expression(next_token, precedence)?;
+
+                Ok(Expression::InfixExpression {
+                    left: Box::from(left),
+                    right: Box::from(right),
+                    operator,
+                })
+            }
+            HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
+        }
+    }
+
     fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
         let token = match self.token_iter.consume() {
             Some(token) => Ok(token),
             None => Err(ParseError::NoPrefixPartner),
         }?;
 
-        let right = self.parse_expression(token)?;
+        let right = self.parse_expression(token, Precedence::Lowest)?;
         Ok(Expression::PrefixExpression {
             right: Box::new(right),
             operator,
@@ -118,7 +153,9 @@ mod tests {
 
     use crate::{
         ast::{Expression, Identifier, Operator, Program, Statement},
-        test_util::{check_parser_errors, parse_program},
+        test_util::{
+            check_parser_errors, create_infix_test_case, create_prefix_test_case, parse_program,
+        },
     };
 
     #[test]
@@ -245,17 +282,11 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "!5.",
-                Statement::ExpressionStatement(Expression::PrefixExpression {
-                    right: Box::new(Expression::IntegerExpression(5)),
-                    operator: Operator::Bang,
-                }),
+                create_prefix_test_case(Expression::IntegerExpression(5), Operator::Bang),
             ),
             (
                 "-15.",
-                Statement::ExpressionStatement(Expression::PrefixExpression {
-                    right: Box::new(Expression::IntegerExpression(15)),
-                    operator: Operator::Minus,
-                }),
+                create_prefix_test_case(Expression::IntegerExpression(15), Operator::Minus),
             ),
         ]
         .map(|(input, statement)| TestCase {
@@ -274,6 +305,68 @@ mod tests {
                 statement, &test_case.statement,
                 "Parsed statement should match testcase"
             );
+        }
+    }
+
+    #[test]
+    fn test_parse_infix() {
+        struct TestCase {
+            input: String,
+            statement: Statement,
+        }
+
+        use Expression::*;
+        use Operator::*;
+        let test_cases: [TestCase; 8] = [
+            (
+                "5 + 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Plus),
+            ),
+            (
+                "5 - 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Minus),
+            ),
+            (
+                "5 * 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Multiply),
+            ),
+            (
+                "5 / 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), DividedBy),
+            ),
+            (
+                "5 > 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), GreaterThan),
+            ),
+            (
+                "5 < 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), LessThan),
+            ),
+            (
+                "5 == 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Equals),
+            ),
+            (
+                "5 != 5.",
+                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), NotEquals),
+            ),
+        ]
+        .map(|(input, statement)| TestCase {
+            input: input.to_string(),
+            statement,
+        });
+
+        for test_case in test_cases {
+            let program: Program = parse_program(&test_case.input);
+            check_parser_errors(&program);
+
+            let statement = program.statements.first().expect("Should be one statement");
+
+            assert_eq!(
+                statement, &test_case.statement,
+                "Parsed statement should match testcase"
+            );
+            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
         }
     }
 

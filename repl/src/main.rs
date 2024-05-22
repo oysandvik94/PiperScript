@@ -18,7 +18,12 @@ fn main() -> Result<(), std::io::Error> {
                 let mut parser: Parser = Parser::new(tokens);
                 let program: Program = parser.parse_program();
 
-                println!("{:}", program);
+                if program.parse_errors.is_empty() {
+                    println!("{:}", program);
+                } else {
+                    println!("Error!");
+                    program.parse_errors.iter().for_each(|x| println!("{x}"));
+                }
             }
             Err(_) => panic!(),
         }

@@ -2,7 +2,7 @@ use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
 use crate::{ast::Identifier, parse_errors::ParseError};
 
-use super::token::{ParsedMultipartToken, ParsedToken, Token};
+use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
 
 pub struct LexedTokens {
     token_iter: Peekable<IntoIter<Token>>,
@@ -68,6 +68,23 @@ impl LexedTokens {
         self.token_iter.peek()
     }
 
+    pub fn next_token_has_infix(&mut self) -> bool {
+        match self.token_iter.peek() {
+            Some(token) => match token.has_infix() {
+                HasInfix::Yes(_) => true,
+                HasInfix::No(_) => false,
+            },
+            None => false,
+        }
+    }
+
+    pub fn next_token_is(&mut self, is_token: &Token) -> bool {
+        match self.token_iter.peek() {
+            Some(token) => is_token == token,
+            None => false,
+        }
+    }
+
     pub fn iterate_to_next_statement(&mut self) {
         for token in self.token_iter.by_ref() {
             if token == Token::Period {
@@ -97,6 +114,13 @@ impl LexedTokens {
                 Ok(parsed_identifier)
             }
             None => Err(ParseError::ExpectedToken),
+        }
+    }
+
+    pub fn next_token_precedence(&mut self) -> Precedence {
+        match self.peek() {
+            Some(token) => token.get_precedence(),
+            None => Precedence::Lowest,
         }
     }
 }
@@ -250,5 +274,16 @@ mod tests {
             let expected_token = expected_iter.next().unwrap();
             assert_eq!(token, expected_token);
         }
+        //    found_tokens.token_iter.len(),
+        //    "List of expected tokens should be the same as found tokens"
+        //);
+
+        //expected_tokens.iter().enumerate().for_each(|(idx, token)| {
+        //    let found_token = &found_tokens.token_iter.nth(idx).expect("Should be a token");
+        //    assert_eq!(
+        //        token, found_token,
+        //        "Expected {token:?} to be {found_token:?} at index {idx}"
+        //    )
+        //});
     }
 }

@@ -29,3 +29,15 @@ pub fn create_prefix_test_case(right_expression: Expression, operator: Operator)
         operator,
     })
 }
+
+pub fn create_infix_test_case(
+    left_expression: Expression,
+    right_expression: Expression,
+    operator: Operator,
+) -> Statement {
+    Statement::ExpressionStatement(Expression::InfixExpression {
+        left: Box::new(left_expression),
+        right: Box::new(right_expression),
+        operator,
+    })
+}

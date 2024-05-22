@@ -25,7 +25,7 @@ pub enum Expression {
         right: Box<Expression>,
         operator: Operator,
     },
-    OperatorExpression {
+    InfixExpression {
         left: Box<Expression>,
         right: Box<Expression>,
         operator: Operator,
@@ -36,6 +36,13 @@ pub enum Expression {
 pub enum Operator {
     Bang,
     Minus,
+    Plus,
+    Multiply,
+    Equals,
+    NotEquals,
+    GreaterThan,
+    LessThan,
+    DividedBy,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -80,11 +87,11 @@ impl Display for Expression {
             Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
             Expression::IntegerExpression(integerd_literal) => write!(f, "{integerd_literal}"),
             Expression::PrefixExpression { right, operator } => write!(f, "({operator}{right})"),
-            Expression::OperatorExpression {
+            Expression::InfixExpression {
                 left,
                 right,
                 operator,
-            } => todo!(),
+            } => write!(f, "({left} {operator} {right})"),
         }
     }
 }
@@ -98,8 +105,15 @@ impl Display for Identifier {
 impl Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Operator::Bang => write!(f, "+"),
+            Operator::Bang => write!(f, "!"),
             Operator::Minus => write!(f, "-"),
+            Operator::Plus => write!(f, "+"),
+            Operator::Multiply => write!(f, "*"),
+            Operator::Equals => write!(f, "=="),
+            Operator::NotEquals => write!(f, "!="),
+            Operator::GreaterThan => write!(f, ">"),
+            Operator::LessThan => write!(f, "<"),
+            Operator::DividedBy => write!(f, "/"),
         }
     }
 }
