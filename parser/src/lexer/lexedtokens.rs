@@ -250,18 +250,5 @@ mod tests {
             let expected_token = expected_iter.next().unwrap();
             assert_eq!(token, expected_token);
         }
-        //assert_eq!(
-        //    expected_tokens.len(),
-        //    found_tokens.token_iter.len(),
-        //    "List of expected tokens should be the same as found tokens"
-        //);
-
-        //expected_tokens.iter().enumerate().for_each(|(idx, token)| {
-        //    let found_token = &found_tokens.token_iter.nth(idx).expect("Should be a token");
-        //    assert_eq!(
-        //        token, found_token,
-        //        "Expected {token:?} to be {found_token:?} at index {idx}"
-        //    )
-        //});
     }
 }
