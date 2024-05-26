@@ -4,9 +4,9 @@ use crate::{
     parser::Parser,
 };
 
-pub fn check_parser_errors(program: &Program) {
+pub fn has_parser_errors(program: &Program) -> bool {
     if program.parse_errors.is_empty() {
-        return;
+        return false;
     }
 
     eprintln!("Found parser errors:");
@@ -14,7 +14,7 @@ pub fn check_parser_errors(program: &Program) {
         eprintln!("parser error: {parse_error}");
     }
 
-    panic!("Test failed because of parser errors");
+    true
 }
 
 pub fn parse_program(source_code: &str) -> Program {

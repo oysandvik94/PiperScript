@@ -109,6 +109,8 @@ impl Parser {
             },
             Token::Bang => self.create_prefix_expression(Operator::Bang),
             Token::Minus => self.create_prefix_expression(Operator::Minus),
+            Token::True => Ok(Expression::BooleanLiteral(true)),
+            Token::False => Ok(Expression::BooleanLiteral(false)),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
         }
     }
@@ -140,7 +142,7 @@ impl Parser {
             None => Err(ParseError::NoPrefixPartner),
         }?;
 
-        let right = self.parse_expression(token, Precedence::Lowest)?;
+        let right = self.parse_expression(token, Precedence::Prefix)?;
         Ok(Expression::PrefixExpression {
             right: Box::new(right),
             operator,
@@ -154,7 +156,7 @@ mod tests {
     use crate::{
         ast::{Expression, Identifier, Operator, Program, Statement},
         test_util::{
-            check_parser_errors, create_infix_test_case, create_prefix_test_case, parse_program,
+            create_infix_test_case, create_prefix_test_case, has_parser_errors, parse_program,
         },
     };
 
@@ -168,7 +170,7 @@ mod tests {
 
         let program: Program = parse_program(source_code);
 
-        check_parser_errors(&program);
+        has_parser_errors(&program);
         assert_eq!(
             program.statements.len(),
             3,
@@ -196,7 +198,7 @@ mod tests {
 
         let program: Program = parse_program(source_code);
 
-        check_parser_errors(&program);
+        has_parser_errors(&program);
         assert_eq!(
             program.statements.len(),
             2,
@@ -236,7 +238,7 @@ mod tests {
         let input: &str = "5.";
 
         let program: Program = parse_program(input);
-        check_parser_errors(&program);
+        has_parser_errors(&program);
 
         let parsed_statement = program
             .statements
@@ -254,7 +256,7 @@ mod tests {
         let input: &str = "foobar.";
 
         let program: Program = parse_program(input);
-        check_parser_errors(&program);
+        has_parser_errors(&program);
 
         assert_eq!(
             1,
@@ -269,6 +271,31 @@ mod tests {
             Statement::ExpressionStatement(Expression::IdentifierLiteral(
                 Identifier(ident)
             )) if ident == "foobar"
+        ));
+    }
+
+    #[test]
+    fn test_boolean_expression() {
+        let input: &str = "true.false.";
+
+        let program: Program = parse_program(input);
+        has_parser_errors(&program);
+
+        assert_eq!(
+            2,
+            program.statements.len(),
+            "Should only have parsed one expression statement"
+        );
+
+        let parsed_statement = program.statements.first().expect("Already checked length");
+
+        assert!(matches!(
+            parsed_statement,
+            Statement::ExpressionStatement(Expression::BooleanLiteral(true))
+        ));
+        assert!(matches!(
+            program.statements.get(1).unwrap(),
+            Statement::ExpressionStatement(Expression::BooleanLiteral(false))
         ));
     }
 
@@ -296,7 +323,7 @@ mod tests {
 
         for test_case in test_cases {
             let program: Program = parse_program(&test_case.input);
-            check_parser_errors(&program);
+            has_parser_errors(&program);
 
             assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
             let statement = program.statements.first().expect("Should be one statement");
@@ -318,7 +345,7 @@ mod tests {
         use Expression::*;
         use Operator::*;
 
-        let test_cases: [TestCase; 8] = [
+        let test_cases: [TestCase; 11] = [
             (
                 "5 + 5.",
                 create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
@@ -351,6 +378,18 @@ mod tests {
                 "5 != 5.",
                 create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
             ),
+            (
+                "true == true.",
+                create_infix_test_case(BooleanLiteral(true), BooleanLiteral(true), Equals),
+            ),
+            (
+                "true != false.",
+                create_infix_test_case(BooleanLiteral(true), BooleanLiteral(false), NotEquals),
+            ),
+            (
+                "false == false.",
+                create_infix_test_case(BooleanLiteral(false), BooleanLiteral(false), Equals),
+            ),
         ]
         .map(|(input, statement)| TestCase {
             input: input.to_string(),
@@ -359,7 +398,7 @@ mod tests {
 
         for test_case in test_cases {
             let program: Program = parse_program(&test_case.input);
-            check_parser_errors(&program);
+            has_parser_errors(&program);
 
             let statement = program.statements.first().expect("Should be one statement");
 
@@ -368,6 +407,51 @@ mod tests {
                 "Parsed statement should match testcase"
             );
             assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+        }
+    }
+
+    #[test]
+    fn test_operator_precedence() {
+        struct TestCase {
+            input: String,
+            expected: String,
+        }
+        let test_cases: [TestCase; 16] = [
+            ("-a * b.", "((-a) * b)."),
+            ("!-a.", "(!(-a))."),
+            ("a + b + c.", "((a + b) + c)."),
+            ("a + b - c.", "((a + b) - c)."),
+            ("a * b * c.", "((a * b) * c)."),
+            ("a * b / c.", "((a * b) / c)."),
+            ("a + b / c.", "(a + (b / c))."),
+            ("a + b * c + d / e - f.", "(((a + (b * c)) + (d / e)) - f)."),
+            ("3 + 4. -5 * 5.", "(3 + 4).((-5) * 5)."),
+            ("5 > 4 == 3 < 4.", "((5 > 4) == (3 < 4))."),
+            ("5 < 4 != 3 > 4.", "((5 < 4) != (3 > 4))."),
+            (
+                "3 + 4 * 5 == 3 * 1 + 4 * 5.",
+                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5))).",
+            ),
+            ("true.", "true."),
+            ("false.", "false."),
+            ("3 > 5 == false.", "((3 > 5) == false)."),
+            ("3 < 5 == true.", "((3 < 5) == true)."),
+        ]
+        .map(|(input, expected)| TestCase {
+            input: input.to_string(),
+            expected: expected.to_string(),
+        });
+
+        for testcase in test_cases {
+            let actual = parse_program(&testcase.input);
+
+            if has_parser_errors(&actual) {
+                let expected = testcase.expected;
+                println!("{expected}");
+                panic!("Found parser errors");
+            }
+
+            assert_eq!(actual.to_string().replace('\n', ""), testcase.expected);
         }
     }
 

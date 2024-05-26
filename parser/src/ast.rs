@@ -20,6 +20,7 @@ pub enum Statement {
 pub enum Expression {
     IdentifierLiteral(Identifier),
     IntegerLiteral(i32),
+    BooleanLiteral(bool),
     PrefixExpression {
         right: Box<Expression>,
         operator: Operator,
@@ -74,7 +75,7 @@ impl Display for Statement {
         match self {
             Statement::AssignStatement(ident, expression) => write!(f, "~{ident}: {expression}~"),
             Statement::ReturnStatement(expression) => write!(f, "return {expression}"),
-            Statement::ExpressionStatement(expression) => write!(f, "{expression}"),
+            Statement::ExpressionStatement(expression) => write!(f, "{expression}."),
         }
     }
 }
@@ -90,6 +91,7 @@ impl Display for Expression {
                 right,
                 operator,
             } => write!(f, "({left} {operator} {right})"),
+            Expression::BooleanLiteral(boolean) => write!(f, "{boolean}"),
         }
     }
 }
