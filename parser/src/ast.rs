@@ -18,8 +18,8 @@ pub enum Statement {
 
 #[derive(PartialEq, Debug)]
 pub enum Expression {
-    IdentifierExpression(Identifier),
-    IntegerExpression(i32),
+    IdentifierLiteral(Identifier),
+    IntegerLiteral(i32),
     PrefixExpression {
         right: Box<Expression>,
         operator: Operator,
@@ -82,8 +82,8 @@ impl Display for Statement {
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
-            Expression::IntegerExpression(integerd_literal) => write!(f, "{integerd_literal}"),
+            Expression::IdentifierLiteral(ident) => write!(f, "{ident}"),
+            Expression::IntegerLiteral(integerd_literal) => write!(f, "{integerd_literal}"),
             Expression::PrefixExpression { right, operator } => write!(f, "({operator}{right})"),
             Expression::InfixExpression {
                 left,
@@ -128,9 +128,9 @@ mod tests {
             statements: Vec::from([
                 Statement::AssignStatement(
                     Identifier("foo".to_string()),
-                    Expression::IdentifierExpression(Identifier("bar".to_string())),
+                    Expression::IdentifierLiteral(Identifier("bar".to_string())),
                 ),
-                Statement::ReturnStatement(Expression::IdentifierExpression(Identifier(
+                Statement::ReturnStatement(Expression::IdentifierLiteral(Identifier(
                     "hey".to_string(),
                 ))),
             ]),

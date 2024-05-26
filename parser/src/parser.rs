@@ -100,11 +100,11 @@ impl Parser {
 
     fn parse_prefix_expression(&mut self, token: &Token) -> Result<Expression, ParseError> {
         match token {
-            Token::Ident(literal) => Ok(Expression::IdentifierExpression(Identifier(
+            Token::Ident(literal) => Ok(Expression::IdentifierLiteral(Identifier(
                 literal.to_string(),
             ))),
             Token::Int(integer_literal) => match integer_literal.parse::<i32>() {
-                Ok(parsed_number) => Ok(Expression::IntegerExpression(parsed_number)),
+                Ok(parsed_number) => Ok(Expression::IntegerLiteral(parsed_number)),
                 Err(error) => Err(ParseError::ParseIntegerError(token.clone(), error)),
             },
             Token::Bang => self.create_prefix_expression(Operator::Bang),
@@ -221,7 +221,7 @@ mod tests {
             "Should only parse to 1 statement"
         );
         assert_eq!(
-            Statement::ReturnStatement(Expression::IdentifierExpression(Identifier(
+            Statement::ReturnStatement(Expression::IdentifierLiteral(Identifier(
                 "foo".to_string()
             ))),
             *program
@@ -245,7 +245,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::IntegerExpression(5))
+            Statement::ExpressionStatement(Expression::IntegerLiteral(5))
         ));
     }
 
@@ -266,7 +266,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::IdentifierExpression(
+            Statement::ExpressionStatement(Expression::IdentifierLiteral(
                 Identifier(ident)
             )) if ident == "foobar"
         ));
@@ -282,11 +282,11 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "!5.",
-                create_prefix_test_case(Expression::IntegerExpression(5), Operator::Bang),
+                create_prefix_test_case(Expression::IntegerLiteral(5), Operator::Bang),
             ),
             (
                 "-15.",
-                create_prefix_test_case(Expression::IntegerExpression(15), Operator::Minus),
+                create_prefix_test_case(Expression::IntegerLiteral(15), Operator::Minus),
             ),
         ]
         .map(|(input, statement)| TestCase {
@@ -321,35 +321,35 @@ mod tests {
         let test_cases: [TestCase; 8] = [
             (
                 "5 + 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Plus),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
             ),
             (
                 "5 - 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Minus),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Minus),
             ),
             (
                 "5 * 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Multiply),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Multiply),
             ),
             (
                 "5 / 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), DividedBy),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), DividedBy),
             ),
             (
                 "5 > 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), GreaterThan),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), GreaterThan),
             ),
             (
                 "5 < 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), LessThan),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), LessThan),
             ),
             (
                 "5 == 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), Equals),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Equals),
             ),
             (
                 "5 != 5.",
-                create_infix_test_case(IntegerExpression(5), IntegerExpression(5), NotEquals),
+                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
             ),
         ]
         .map(|(input, statement)| TestCase {
