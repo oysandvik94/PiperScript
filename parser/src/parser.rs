@@ -109,6 +109,7 @@ impl Parser {
             },
             Token::Bang => self.create_prefix_expression(Operator::Bang),
             Token::Minus => self.create_prefix_expression(Operator::Minus),
+            Token::LParen => self.create_grouped_expression(),
             Token::True => Ok(Expression::BooleanLiteral(true)),
             Token::False => Ok(Expression::BooleanLiteral(false)),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
@@ -134,6 +135,13 @@ impl Parser {
             }
             HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
         }
+    }
+
+    fn create_grouped_expression(&mut self) -> Result<Expression, ParseError> {
+        let next_token = self.token_iter.expect()?;
+        let grouped_expression = self.parse_expression(next_token, Precedence::Lowest);
+        self.token_iter.expect_peek(Token::RParen)?;
+        grouped_expression
     }
 
     fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
@@ -416,7 +424,7 @@ mod tests {
             input: String,
             expected: String,
         }
-        let test_cases: [TestCase; 16] = [
+        let test_cases: [TestCase; 21] = [
             ("-a * b.", "((-a) * b)."),
             ("!-a.", "(!(-a))."),
             ("a + b + c.", "((a + b) + c)."),
@@ -436,6 +444,11 @@ mod tests {
             ("false.", "false."),
             ("3 > 5 == false.", "((3 > 5) == false)."),
             ("3 < 5 == true.", "((3 < 5) == true)."),
+            ("1 + (2 + 3) + 4.", "((1 + (2 + 3)) + 4)."),
+            ("(5 + 5) * 2.", "((5 + 5) * 2)."),
+            ("2 / (5 + 5).", "(2 / (5 + 5))."),
+            ("-(5 + 5).", "(-(5 + 5))."),
+            ("!(true == true).", "(!(true == true))."),
         ]
         .map(|(input, expected)| TestCase {
             input: input.to_string(),
