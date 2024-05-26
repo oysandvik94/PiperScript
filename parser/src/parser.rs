@@ -317,6 +317,7 @@ mod tests {
 
         use Expression::*;
         use Operator::*;
+
         let test_cases: [TestCase; 8] = [
             (
                 "5 + 5.",

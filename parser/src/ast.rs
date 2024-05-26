@@ -18,7 +18,6 @@ pub enum Statement {
 
 #[derive(PartialEq, Debug)]
 pub enum Expression {
-    TodoExpression,
     IdentifierExpression(Identifier),
     IntegerExpression(i32),
     PrefixExpression {
@@ -83,7 +82,6 @@ impl Display for Statement {
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Expression::TodoExpression => write!(f, ""),
             Expression::IdentifierExpression(ident) => write!(f, "{ident}"),
             Expression::IntegerExpression(integerd_literal) => write!(f, "{integerd_literal}"),
             Expression::PrefixExpression { right, operator } => write!(f, "({operator}{right})"),
@@ -130,15 +128,17 @@ mod tests {
             statements: Vec::from([
                 Statement::AssignStatement(
                     Identifier("foo".to_string()),
-                    Expression::TodoExpression,
+                    Expression::IdentifierExpression(Identifier("bar".to_string())),
                 ),
-                Statement::ReturnStatement(Expression::TodoExpression),
+                Statement::ReturnStatement(Expression::IdentifierExpression(Identifier(
+                    "hey".to_string(),
+                ))),
             ]),
             parse_errors: Vec::new(),
         };
 
-        let expected_program: &str = "~foo: ~
-return 
+        let expected_program: &str = "~foo: bar~
+return hey
 ";
 
         assert_eq!(expected_program, format!("{program}"));
