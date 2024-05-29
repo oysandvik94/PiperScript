@@ -88,7 +88,7 @@ impl Display for Statement {
         match self {
             Statement::AssignStatement(ident, expression) => write!(f, "~{ident}: {expression}~"),
             Statement::ReturnStatement(expression) => write!(f, "return {expression}"),
-            Statement::ExpressionStatement(expression) => write!(f, "{expression}."),
+            Statement::ExpressionStatement(expression) => write!(f, "{expression}"),
         }
     }
 }
