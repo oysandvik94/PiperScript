@@ -120,7 +120,9 @@ impl Display for Expression {
             } => {
                 write!(f, "if {condition}: {consequence}")?;
                 match alternative {
-                    Some(found_alternative) => write!(f, "{found_alternative}"),
+                    Some(found_alternative) => {
+                        write!(f, " else: {found_alternative}")
+                    }
                     None => Ok(()),
                 }
             }
