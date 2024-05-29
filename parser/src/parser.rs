@@ -1,10 +1,10 @@
 use crate::{
-    ast::{Expression, Identifier, Operator, Program, Statement},
+    ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::{
         lexedtokens::LexedTokens,
         token::{HasInfix, Precedence, Token},
     },
-    parse_errors::ParseError,
+    parse_errors::{ParseError, TokenExpectation},
 };
 
 pub struct Parser {
@@ -76,7 +76,7 @@ impl Parser {
     ) -> Result<Statement, ParseError> {
         let expression = self.parse_expression(current_token, Precedence::Lowest)?;
 
-        self.token_iter.expect_peek(Token::Period)?;
+        self.token_iter.optional_expect_peek(Token::Period);
 
         Ok(Statement::ExpressionStatement(expression))
     }
@@ -110,6 +110,7 @@ impl Parser {
             Token::Bang => self.create_prefix_expression(Operator::Bang),
             Token::Minus => self.create_prefix_expression(Operator::Minus),
             Token::LParen => self.create_grouped_expression(),
+            Token::If => self.parse_if_expression(),
             Token::True => Ok(Expression::BooleanLiteral(true)),
             Token::False => Ok(Expression::BooleanLiteral(false)),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
@@ -144,6 +145,49 @@ impl Parser {
         grouped_expression
     }
 
+    fn parse_if_expression(&mut self) -> Result<Expression, ParseError> {
+        let next_token = self.token_iter.expect()?;
+        let condition = self.parse_expression(next_token, Precedence::Lowest)?;
+
+        self.token_iter.expect_peek(Token::Assign)?;
+
+        let consequence = self.parse_blockstatement()?;
+
+        let alternative = match self.token_iter.consume() {
+            Some(Token::Lasagna) => Ok(None),
+            Some(Token::Else) => {
+                self.token_iter.expect_peek(Token::Assign)?;
+                let else_block = Some(self.parse_blockstatement()?);
+                self.token_iter.expect_peek(Token::Lasagna)?;
+                Ok(else_block)
+            }
+            Some(unexpected_token) => Err(ParseError::UnexpectedToken {
+                expected_token: TokenExpectation::MultipleExpectation(
+                    [Token::Lasagna, Token::Else].to_vec(),
+                ),
+                found_token: Some(unexpected_token.clone()),
+            }),
+            None => Err(ParseError::ExpectedToken),
+        }?;
+
+        Ok(Expression::IfExpression {
+            condition: Box::from(condition),
+            consequence,
+            alternative,
+        })
+    }
+
+    fn parse_blockstatement(&mut self) -> Result<BlockStatement, ParseError> {
+        let mut statements: Vec<Statement> = Vec::new();
+        while !self.token_iter.next_token_is(&Token::Lasagna)
+            && !self.token_iter.next_token_is(&Token::Else)
+        {
+            statements.push(self.parse_statement()?);
+        }
+
+        Ok(BlockStatement { statements })
+    }
+
     fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
         let token = match self.token_iter.consume() {
             Some(token) => Ok(token),
@@ -162,8 +206,9 @@ impl Parser {
 mod tests {
 
     use crate::{
-        ast::{Expression, Identifier, Operator, Program, Statement},
+        ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
         test_util::{
+            create_identifierliteral, create_if_condition, create_infix_expression,
             create_infix_test_case, create_prefix_test_case, has_parser_errors, parse_program,
         },
     };
@@ -418,6 +463,73 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_if_expression() {
+        struct TestCase {
+            input: String,
+            expected: Statement,
+        }
+        let test_cases: [TestCase; 2] = [
+            (
+                "if x < y: x.~",
+                create_if_condition(
+                    create_infix_expression(
+                        create_identifierliteral("x"),
+                        create_identifierliteral("y"),
+                        Operator::LessThan,
+                    ),
+                    BlockStatement {
+                        statements: Vec::from([Statement::ExpressionStatement(
+                            create_identifierliteral("x"),
+                        )]),
+                    },
+                    None,
+                ),
+            ),
+            (
+                "if x > y: x. else: y.~",
+                create_if_condition(
+                    create_infix_expression(
+                        create_identifierliteral("x"),
+                        create_identifierliteral("y"),
+                        Operator::GreaterThan,
+                    ),
+                    BlockStatement {
+                        statements: Vec::from([Statement::ExpressionStatement(
+                            create_identifierliteral("x"),
+                        )]),
+                    },
+                    Some(BlockStatement {
+                        statements: Vec::from([Statement::ExpressionStatement(
+                            create_identifierliteral("y"),
+                        )]),
+                    }),
+                ),
+            ),
+        ]
+        .map(|(input, expected)| TestCase {
+            input: input.to_string(),
+            expected,
+        });
+
+        for test_case in test_cases {
+            let program: Program = parse_program(&test_case.input);
+
+            if has_parser_errors(&program) {
+                let test_input = test_case.input;
+                println!("Program: {test_input}");
+                panic!("Failed due to parse errors");
+            }
+
+            let statement = program.statements.first().expect("Should be one statement");
+
+            assert_eq!(
+                statement, &test_case.expected,
+                "Parsed statement should match testcase"
+            );
+            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+        }
+    }
     #[test]
     fn test_operator_precedence() {
         struct TestCase {

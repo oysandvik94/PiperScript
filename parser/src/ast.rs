@@ -2,7 +2,10 @@ use std::fmt::Display;
 
 use lexer::token::Token;
 
-use crate::{lexer, parse_errors::ParseError};
+use crate::{
+    lexer,
+    parse_errors::{ParseError, TokenExpectation},
+};
 
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -14,6 +17,11 @@ pub enum Statement {
     AssignStatement(Identifier, Expression),
     ReturnStatement(Expression),
     ExpressionStatement(Expression),
+}
+
+#[derive(PartialEq, Debug)]
+pub struct BlockStatement {
+    pub statements: Vec<Statement>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -29,6 +37,11 @@ pub enum Expression {
         left: Box<Expression>,
         right: Box<Expression>,
         operator: Operator,
+    },
+    IfExpression {
+        condition: Box<Expression>,
+        consequence: BlockStatement,
+        alternative: Option<BlockStatement>,
     },
 }
 
@@ -53,7 +66,7 @@ impl Identifier {
         match value {
             Token::Ident(ident_literal) => Ok(Identifier(ident_literal.to_string())),
             unexpected_token => Err(ParseError::UnexpectedToken {
-                expected_token: Token::Ident("".to_string()),
+                expected_token: TokenExpectation::SingleExpectation(Token::Ident("".to_string())),
                 found_token: Some(unexpected_token.clone()),
             }),
         }
@@ -80,6 +93,14 @@ impl Display for Statement {
     }
 }
 
+impl Display for BlockStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.statements
+            .iter()
+            .try_for_each(|statement| write!(f, "{}", statement))
+    }
+}
+
 impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -92,6 +113,17 @@ impl Display for Expression {
                 operator,
             } => write!(f, "({left} {operator} {right})"),
             Expression::BooleanLiteral(boolean) => write!(f, "{boolean}"),
+            Expression::IfExpression {
+                condition,
+                consequence,
+                alternative,
+            } => {
+                write!(f, "if {condition}: {consequence}")?;
+                match alternative {
+                    Some(found_alternative) => write!(f, "{found_alternative}"),
+                    None => Ok(()),
+                }
+            }
         }
     }
 }

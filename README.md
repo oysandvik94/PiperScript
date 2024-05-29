@@ -14,8 +14,10 @@ Lasagnalang may look something like this:
 ```
 foo: 5
 
-if foo is 5:
+if foo == 5:
     foo + 10
+else:
+    1 + 1
 ~
 
 add: fn(x, y): return x + y~

@@ -7,7 +7,7 @@ use crate::lexer;
 #[derive(Debug)]
 pub enum ParseError {
     UnexpectedToken {
-        expected_token: Token,
+        expected_token: TokenExpectation,
         found_token: Option<Token>,
     },
     ExpectedToken,
@@ -17,6 +17,12 @@ pub enum ParseError {
     NoInfixExpression(Token),
     ParseIntegerError(Token, ParseIntError),
     NoPrefixPartner,
+}
+
+#[derive(Debug)]
+pub enum TokenExpectation {
+    SingleExpectation(Token),
+    MultipleExpectation(Vec<Token>),
 }
 
 impl Display for ParseError {

@@ -1,6 +1,9 @@
 use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
-use crate::{ast::Identifier, parse_errors::ParseError};
+use crate::{
+    ast::Identifier,
+    parse_errors::{ParseError, TokenExpectation},
+};
 
 use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
 
@@ -99,11 +102,15 @@ impl LexedTokens {
             None => {
                 let next_token = self.token_iter.peek().cloned();
                 Err(ParseError::UnexpectedToken {
-                    expected_token: expected_token_type,
+                    expected_token: TokenExpectation::SingleExpectation(expected_token_type),
                     found_token: next_token,
                 })
             }
         }
+    }
+
+    pub fn optional_expect_peek(&mut self, expected_token_type: Token) {
+        self.token_iter.next_if_eq(&expected_token_type);
     }
 
     pub fn expected_identifier(&mut self) -> Result<Identifier, ParseError> {

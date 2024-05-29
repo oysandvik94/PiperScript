@@ -1,5 +1,5 @@
 use crate::{
-    ast::{Expression, Operator, Program, Statement},
+    ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::lexedtokens::LexedTokens,
     parser::Parser,
 };
@@ -40,4 +40,33 @@ pub fn create_infix_test_case(
         right: Box::new(right_expression),
         operator,
     })
+}
+
+pub fn create_if_condition(
+    condition: Expression,
+    consequence: BlockStatement,
+    alternative: Option<BlockStatement>,
+) -> Statement {
+    use Expression::*;
+    Statement::ExpressionStatement(IfExpression {
+        condition: Box::from(condition),
+        consequence,
+        alternative,
+    })
+}
+
+pub fn create_infix_expression(
+    left: Expression,
+    right_expression: Expression,
+    operator: Operator,
+) -> Expression {
+    Expression::InfixExpression {
+        right: Box::from(right_expression),
+        left: Box::from(left),
+        operator,
+    }
+}
+
+pub fn create_identifierliteral(literal: &str) -> Expression {
+    Expression::IdentifierLiteral(Identifier(literal.to_string()))
 }
