@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::{
@@ -111,6 +113,7 @@ impl Parser {
             Token::Minus => self.create_prefix_expression(Operator::Minus),
             Token::LParen => self.create_grouped_expression(),
             Token::If => self.parse_if_expression(),
+            Token::Func => self.parse_function_literal(),
             Token::True => Ok(Expression::BooleanLiteral(true)),
             Token::False => Ok(Expression::BooleanLiteral(false)),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
@@ -143,6 +146,45 @@ impl Parser {
         let grouped_expression = self.parse_expression(next_token, Precedence::Lowest);
         self.token_iter.expect_peek(Token::RParen)?;
         grouped_expression
+    }
+
+    fn parse_function_literal(&mut self) -> Result<Expression, ParseError> {
+        let parameters: Vec<Identifier> = self.parse_function_parameters()?;
+
+        self.token_iter.expect_peek(Token::Assign)?;
+
+        let body: BlockStatement = self.parse_blockstatement()?;
+        self.token_iter.expect_peek(Token::Lasagna)?;
+
+        Ok(Expression::FunctionLiteral { parameters, body })
+    }
+
+    fn parse_function_parameters(&mut self) -> Result<Vec<Identifier>, ParseError> {
+        let mut parameters: Vec<Identifier> = Vec::from([]);
+        while let Some(token) = self.token_iter.consume() {
+            match token {
+                Token::LParen | Token::Comma => match self.token_iter.peek() {
+                    Some(Token::RParen) => {
+                        self.token_iter.consume();
+                        return Ok(parameters);
+                    }
+                    Some(_) => parameters.push(self.parse_literal()?),
+                    None => return Err(ParseError::ExpectedToken),
+                },
+                Token::RParen => return Ok(parameters),
+                unexpected_token => {
+                    return Err(ParseError::UnexpectedToken {
+                        expected_token: TokenExpectation::MultipleExpectation(Vec::from([
+                            Token::Comma,
+                            Token::RParen,
+                        ])),
+                        found_token: Some(unexpected_token),
+                    })
+                }
+            }
+        }
+
+        Ok(parameters)
     }
 
     fn parse_if_expression(&mut self) -> Result<Expression, ParseError> {
@@ -200,6 +242,17 @@ impl Parser {
             operator,
         })
     }
+
+    fn parse_literal(&mut self) -> Result<Identifier, ParseError> {
+        match self.token_iter.consume() {
+            Some(Token::Ident(literal)) => Ok(Identifier(literal)),
+            Some(unexpected_token) => Err(ParseError::UnexpectedToken {
+                expected_token: TokenExpectation::SingleExpectation(Token::Ident("".to_string())),
+                found_token: Some(unexpected_token),
+            }),
+            None => Err(ParseError::ExpectedToken),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -208,8 +261,9 @@ mod tests {
     use crate::{
         ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
         test_util::{
-            create_identifierliteral, create_if_condition, create_infix_expression,
-            create_infix_test_case, create_prefix_test_case, has_parser_errors, parse_program,
+            create_function_expression, create_identifierliteral, create_if_condition,
+            create_infix_expression, create_infix_test_case, create_prefix_test_case,
+            has_parser_errors, parse_program,
         },
     };
 
@@ -504,6 +558,65 @@ mod tests {
                             create_identifierliteral("y"),
                         )]),
                     }),
+                ),
+            ),
+        ]
+        .map(|(input, expected)| TestCase {
+            input: input.to_string(),
+            expected,
+        });
+
+        for test_case in test_cases {
+            let program: Program = parse_program(&test_case.input);
+
+            if has_parser_errors(&program) {
+                let test_input = test_case.input;
+                println!("Program: {test_input}");
+                panic!("Failed due to parse errors");
+            }
+
+            let statement = program.statements.first().expect("Should be one statement");
+
+            assert_eq!(
+                statement, &test_case.expected,
+                "Parsed statement should match testcase"
+            );
+            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+        }
+    }
+
+    #[test]
+    fn test_function_expression() {
+        struct TestCase {
+            input: String,
+            expected: Statement,
+        }
+        let test_cases: [TestCase; 2] = [
+            (
+                "fn(x, y): x + y~",
+                create_function_expression(
+                    Vec::from(["x", "y"]),
+                    BlockStatement {
+                        statements: Vec::from([Statement::ExpressionStatement(
+                            create_infix_expression(
+                                create_identifierliteral("x"),
+                                create_identifierliteral("y"),
+                                Operator::Plus,
+                            ),
+                        )]),
+                    },
+                ),
+            ),
+            (
+                "fn(): x.y.~",
+                create_function_expression(
+                    Vec::from([]),
+                    BlockStatement {
+                        statements: Vec::from([
+                            Statement::ExpressionStatement(create_identifierliteral("x")),
+                            Statement::ExpressionStatement(create_identifierliteral("y")),
+                        ]),
+                    },
                 ),
             ),
         ]

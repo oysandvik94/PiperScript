@@ -42,6 +42,15 @@ pub fn create_infix_test_case(
     })
 }
 
+pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> Statement {
+    Statement::ExpressionStatement(Expression::FunctionLiteral {
+        parameters: parameters
+            .iter()
+            .map(|param| Identifier(param.to_string()))
+            .collect(),
+        body,
+    })
+}
 pub fn create_if_condition(
     condition: Expression,
     consequence: BlockStatement,

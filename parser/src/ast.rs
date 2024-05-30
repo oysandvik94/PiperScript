@@ -43,6 +43,10 @@ pub enum Expression {
         consequence: BlockStatement,
         alternative: Option<BlockStatement>,
     },
+    FunctionLiteral {
+        parameters: Vec<Identifier>,
+        body: BlockStatement,
+    },
 }
 
 #[derive(PartialEq, Debug)]
@@ -125,6 +129,11 @@ impl Display for Expression {
                     }
                     None => Ok(()),
                 }
+            }
+            Expression::FunctionLiteral { parameters, body } => {
+                let parameters: Vec<String> =
+                    parameters.iter().map(|ident| ident.0.clone()).collect();
+                write!(f, "fn({}): {}", parameters.join(","), body)
             }
         }
     }

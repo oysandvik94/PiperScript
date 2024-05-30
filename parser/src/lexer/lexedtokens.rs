@@ -7,6 +7,7 @@ use crate::{
 
 use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
 
+#[derive(Debug)]
 pub struct LexedTokens {
     token_iter: Peekable<IntoIter<Token>>,
 }
@@ -33,8 +34,9 @@ impl From<&str> for LexedTokens {
                     }
                 }
                 ParsedToken::AlphabeticStart => {
-                    let literal: String =
-                        read_literal(&mut code_iter, current_char, |char| char.is_alphabetic());
+                    let literal: String = read_literal(&mut code_iter, current_char, |char| {
+                        char.is_alphabetic() && char != &','
+                    });
 
                     Token::parse_keyword(&literal)
                 }
@@ -198,6 +200,34 @@ mod tests {
                 &found_tokens.token_iter.nth(idx).expect("Should have token"),
                 "Token in position {idx} was not parsed"
             )
+        });
+    }
+
+    #[test]
+    fn parse_comma_seperated_identifier() {
+        let source_code = "
+(foo, bar)
+        ";
+
+        let expected_tokens = [
+            Token::LParen,
+            Token::Ident("foo".to_string()),
+            Token::Comma,
+            Token::Ident("bar".to_string()),
+            Token::RParen,
+        ];
+
+        let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
+
+        assert_eq!(
+            found_tokens.token_iter.len(),
+            expected_tokens.len(),
+            "List of expected tokens should be the same as found tokens"
+        );
+
+        expected_tokens.iter().for_each(|token| {
+            let found = &found_tokens.consume().unwrap();
+            assert_eq!(token, found, "Expected {token:?}, but got {found:?}")
         });
     }
 

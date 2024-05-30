@@ -19,6 +19,7 @@ pub enum Token {
     Comma,
     Return,
     If,
+    Func,
     LessThan,
     GreaterThan,
     Slash,
@@ -73,6 +74,7 @@ impl Token {
             "false" => False,
             "else" => Else,
             "if" => If,
+            "fn" => Func,
             identifier_literal => Ident(identifier_literal.to_string()),
         }
     }
