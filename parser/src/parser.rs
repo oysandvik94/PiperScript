@@ -1,5 +1,3 @@
-use log::debug;
-
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::{
