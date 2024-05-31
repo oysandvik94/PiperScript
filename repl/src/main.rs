@@ -1,8 +1,16 @@
 use std::io::{stdin, stdout, Write};
+use tracing::Level;
 
 use parser::{ast::Program, lexer::lexedtokens::LexedTokens, parser::Parser};
+use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<(), std::io::Error> {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::INFO)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     println!("Welcome to lasagnalang, try and write some code:");
 
     loop {

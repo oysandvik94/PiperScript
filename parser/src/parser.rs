@@ -17,6 +17,8 @@ impl Parser {
     }
 
     pub fn parse_program(&mut self) -> Program {
+        tracing::info!("Parsing program");
+
         let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<ParseError> = Vec::new();
 
