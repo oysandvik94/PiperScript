@@ -47,6 +47,10 @@ pub enum Expression {
         parameters: Vec<Identifier>,
         body: BlockStatement,
     },
+    CallExpression {
+        function: Box<Expression>,
+        arguments: Vec<Expression>,
+    },
 }
 
 #[derive(PartialEq, Debug)]
@@ -134,6 +138,14 @@ impl Display for Expression {
                 let parameters: Vec<String> =
                     parameters.iter().map(|ident| ident.0.clone()).collect();
                 write!(f, "fn({}): {}", parameters.join(","), body)
+            }
+            Expression::CallExpression {
+                function,
+                arguments,
+            } => {
+                let arguments: Vec<String> =
+                    arguments.iter().map(|ident| ident.to_string()).collect();
+                write!(f, "{function}({})", arguments.join(", "))
             }
         }
     }

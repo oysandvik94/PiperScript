@@ -42,7 +42,8 @@ pub enum Precedence {
 }
 
 pub enum HasInfix {
-    Yes(Operator),
+    Arithmic(Operator),
+    Call(),
     No(Token),
 }
 
@@ -108,6 +109,7 @@ impl Token {
 
     pub fn get_precedence(&self) -> Precedence {
         match self {
+            LParen => Precedence::Call,
             Equal | NotEqual => Precedence::Equals,
             LessThan | GreaterThan => Precedence::LessGreater,
             Add | Minus => Precedence::Sum,
@@ -136,14 +138,15 @@ impl Token {
 
     pub fn has_infix(&self) -> HasInfix {
         match self {
-            Token::NotEqual => HasInfix::Yes(Operator::NotEquals),
-            Token::Add => HasInfix::Yes(Operator::Plus),
-            Token::Minus => HasInfix::Yes(Operator::Minus),
-            Token::Equal => HasInfix::Yes(Operator::Equals),
-            Token::LessThan => HasInfix::Yes(Operator::LessThan),
-            Token::GreaterThan => HasInfix::Yes(Operator::GreaterThan),
-            Token::Slash => HasInfix::Yes(Operator::DividedBy),
-            Token::Asterix => HasInfix::Yes(Operator::Multiply),
+            Token::NotEqual => HasInfix::Arithmic(Operator::NotEquals),
+            Token::Add => HasInfix::Arithmic(Operator::Plus),
+            Token::Minus => HasInfix::Arithmic(Operator::Minus),
+            Token::Equal => HasInfix::Arithmic(Operator::Equals),
+            Token::LessThan => HasInfix::Arithmic(Operator::LessThan),
+            Token::GreaterThan => HasInfix::Arithmic(Operator::GreaterThan),
+            Token::Slash => HasInfix::Arithmic(Operator::DividedBy),
+            Token::Asterix => HasInfix::Arithmic(Operator::Multiply),
+            Token::LParen => HasInfix::Call(),
             unexpected_token => HasInfix::No(unexpected_token.clone()),
         }
     }

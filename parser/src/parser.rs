@@ -1,4 +1,4 @@
-use tracing::{event, span, Level};
+use tracing::{debug, event, span, Level};
 
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
@@ -155,7 +155,7 @@ impl Parser {
             token
         );
         match token.has_infix() {
-            HasInfix::Yes(operator) => {
+            HasInfix::Arithmic(operator) => {
                 let precedence = token.get_precedence();
                 let next_token = self.token_iter.expect()?;
                 let right = self.parse_expression(next_token, precedence)?;
@@ -164,6 +164,15 @@ impl Parser {
                     left: Box::from(left),
                     right: Box::from(right),
                     operator,
+                })
+            }
+            HasInfix::Call() => {
+                let call_span = span!(Level::DEBUG, "Call");
+                let _enter = call_span.enter();
+
+                Ok(Expression::CallExpression {
+                    function: Box::from(left),
+                    arguments: self.parse_function_arguments()?,
                 })
             }
             HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
@@ -191,6 +200,32 @@ impl Parser {
         self.token_iter.expect_peek(Token::Lasagna)?;
 
         Ok(Expression::FunctionLiteral { parameters, body })
+    }
+
+    fn parse_function_arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
+        event!(Level::DEBUG, "Parsing function arguments");
+        let mut parameters: Vec<Expression> = Vec::from([]);
+        while let Some(token) = self.token_iter.peek() {
+            match token {
+                Token::RParen => {
+                    self.token_iter.consume();
+                    return Ok(parameters);
+                }
+                Token::Comma => {
+                    self.token_iter.consume();
+                }
+                _ => {
+                    let current_token = self
+                        .token_iter
+                        .consume()
+                        .expect("Expected a token after peeking");
+
+                    parameters.push(self.parse_expression(current_token, Precedence::Lowest)?);
+                }
+            }
+        }
+
+        Ok(parameters)
     }
 
     fn parse_function_parameters(&mut self) -> Result<Vec<Identifier>, ParseError> {
@@ -292,12 +327,15 @@ impl Parser {
 #[cfg(test)]
 mod tests {
 
+    use tracing_subscriber::FmtSubscriber;
+    use tracing_test::traced_test;
+
     use crate::{
         ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
         test_util::{
             create_function_expression, create_identifierliteral, create_if_condition,
             create_infix_expression, create_infix_test_case, create_prefix_test_case,
-            has_parser_errors, parse_program,
+            has_parser_errors, parse_program, setup_logger,
         },
     };
 
@@ -677,13 +715,55 @@ mod tests {
             assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
         }
     }
+
+    #[test]
+    fn test_call_expression() {
+        setup_logger();
+
+        let input = "add(1, 2 * 2, 4 + 5)";
+
+        let program = parse_program(input);
+        if has_parser_errors(&program) {
+            panic!("Failed due to parse errors");
+        }
+
+        let statement = program
+            .statements
+            .first()
+            .expect("Expected a statement to be parsed");
+
+        let expected_arguments = Vec::from([
+            Expression::IntegerLiteral(1),
+            create_infix_expression(
+                Expression::IntegerLiteral(2),
+                Expression::IntegerLiteral(2),
+                Operator::Multiply,
+            ),
+            create_infix_expression(
+                Expression::IntegerLiteral(4),
+                Expression::IntegerLiteral(5),
+                Operator::Plus,
+            ),
+        ]);
+        let expected_statement = Expression::CallExpression {
+            function: Box::from(create_identifierliteral("add")),
+            arguments: expected_arguments,
+        };
+        assert_eq!(
+            statement,
+            &Statement::ExpressionStatement(expected_statement),
+            "Parsed statement should match testcase"
+        );
+        assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
+    }
+
     #[test]
     fn test_operator_precedence() {
         struct TestCase {
             input: String,
             expected: String,
         }
-        let test_cases: [TestCase; 21] = [
+        let test_cases: [TestCase; 24] = [
             ("-a * b", "((-a) * b)"),
             ("!-a", "(!(-a))"),
             ("a + b + c", "((a + b) + c)"),
@@ -708,6 +788,15 @@ mod tests {
             ("2 / (5 + 5)", "(2 / (5 + 5))"),
             ("-(5 + 5)", "(-(5 + 5))"),
             ("!(true == true)", "(!(true == true))"),
+            ("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            (
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            ),
+            (
+                "add(a + b + c * d / f + g)",
+                "add((((a + b) + ((c * d) / f)) + g))",
+            ),
         ]
         .map(|(input, expected)| TestCase {
             input: input.to_string(),

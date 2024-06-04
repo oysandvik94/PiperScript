@@ -75,10 +75,7 @@ impl LexedTokens {
 
     pub fn next_token_has_infix(&mut self) -> bool {
         match self.token_iter.peek() {
-            Some(token) => match token.has_infix() {
-                HasInfix::Yes(_) => true,
-                HasInfix::No(_) => false,
-            },
+            Some(token) => !matches!(token.has_infix(), HasInfix::No(_)),
             None => false,
         }
     }

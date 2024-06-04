@@ -1,3 +1,5 @@
+use tracing_subscriber::FmtSubscriber;
+
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::lexedtokens::LexedTokens,
@@ -78,4 +80,12 @@ pub fn create_infix_expression(
 
 pub fn create_identifierliteral(literal: &str) -> Expression {
     Expression::IdentifierLiteral(Identifier(literal.to_string()))
+}
+
+pub fn setup_logger() {
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
