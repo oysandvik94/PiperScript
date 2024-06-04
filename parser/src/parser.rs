@@ -1,4 +1,4 @@
-use tracing::{debug, event, span, Level};
+use tracing::{event, span, Level};
 
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
@@ -63,7 +63,7 @@ impl Parser {
         let next_token = self.token_iter.expect()?;
         let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
-        self.token_iter.expect_peek(Token::Period)?;
+        self.token_iter.optional_expect_peek(Token::Period);
 
         let assign_statement = Statement::AssignStatement(Identifier(identifier), expression);
         Ok(assign_statement)
@@ -73,7 +73,7 @@ impl Parser {
         let next_token = self.token_iter.expect()?;
         let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
-        self.token_iter.expect_peek(Token::Period)?;
+        self.token_iter.optional_expect_peek(Token::Period);
 
         Ok(Statement::ReturnStatement(expression))
     }
@@ -359,10 +359,18 @@ mod tests {
             Identifier(String::from("foobar")),
         ];
 
+        let expected_expression: [Expression; 3] = [
+            Expression::IntegerLiteral(5),
+            Expression::IntegerLiteral(10),
+            Expression::IntegerLiteral(54456),
+        ];
+
         expected_identifiers
             .iter()
             .enumerate()
-            .for_each(|(idx, ident)| test_let_statement(&program.statements[idx], ident));
+            .for_each(|(idx, ident)| {
+                test_let_statement(&program.statements[idx], ident, &expected_expression[idx])
+            });
     }
 
     #[test]
@@ -381,10 +389,16 @@ mod tests {
             "Program should be parsed to 3 statements"
         );
 
-        program
-            .statements
-            .iter()
-            .for_each(|ident| assert!(matches!(ident, Statement::ReturnStatement(_))));
+        let first_statement = program.statements.first().expect("Should get statement");
+        assert_eq!(
+            first_statement,
+            &Statement::ReturnStatement(Expression::IntegerLiteral(5))
+        );
+        let second_statement = program.statements.get(1).expect("Should get statement");
+        assert_eq!(
+            second_statement,
+            &Statement::ReturnStatement(create_identifierliteral("foobar"))
+        );
     }
 
     #[test]
@@ -813,10 +827,15 @@ mod tests {
         }
     }
 
-    fn test_let_statement(found: &Statement, expected_identifier: &Identifier) {
+    fn test_let_statement(
+        found: &Statement,
+        expected_identifier: &Identifier,
+        expected_expression: &Expression,
+    ) {
         match found {
-            Statement::AssignStatement(found_identfier, _) => {
-                assert_eq!(found_identfier, expected_identifier)
+            Statement::AssignStatement(found_identfier, found_expression) => {
+                assert_eq!(found_identfier, expected_identifier);
+                assert_eq!(found_expression, expected_expression);
             }
             incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
         };
