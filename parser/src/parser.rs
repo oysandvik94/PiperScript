@@ -327,9 +327,6 @@ impl Parser {
 #[cfg(test)]
 mod tests {
 
-    use tracing_subscriber::FmtSubscriber;
-    use tracing_test::traced_test;
-
     use crate::{
         ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
         test_util::{
