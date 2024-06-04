@@ -30,7 +30,7 @@ pub enum Token {
     Asterix,
 }
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub enum Precedence {
     Lowest,
     Equals,

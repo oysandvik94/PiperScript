@@ -1,12 +1,11 @@
 use std::io::{stdin, stdout, Write};
-use tracing::Level;
 
 use parser::{ast::Program, lexer::lexedtokens::LexedTokens, parser::Parser};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<(), std::io::Error> {
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");

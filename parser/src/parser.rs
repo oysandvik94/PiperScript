@@ -1,3 +1,5 @@
+use tracing::{event, span, Level};
+
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::{
@@ -17,15 +19,19 @@ impl Parser {
     }
 
     pub fn parse_program(&mut self) -> Program {
-        tracing::info!("Parsing program");
-
         let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<ParseError> = Vec::new();
 
         while self.token_iter.peek().is_some() {
+            let statement_span = span!(Level::DEBUG, "Statement");
+            let _enter = statement_span.enter();
             match self.parse_statement() {
-                Ok(parsed_statement) => statements.push(parsed_statement),
+                Ok(parsed_statement) => {
+                    event!(Level::DEBUG, "Parsed statement: {parsed_statement:?}",);
+                    statements.push(parsed_statement)
+                }
                 Err(parse_error) => {
+                    event!(Level::DEBUG, "Error parsing statement: {parse_error:?}");
                     self.token_iter.iterate_to_next_statement();
                     parse_errors.push(parse_error)
                 }
@@ -76,6 +82,14 @@ impl Parser {
         &mut self,
         current_token: Token,
     ) -> Result<Statement, ParseError> {
+        event!(
+            Level::DEBUG,
+            "Parsing expression statement with starting token {current_token:?}"
+        );
+
+        let expression_statement_span = span!(Level::DEBUG, "Expression");
+        let _enter = expression_statement_span.enter();
+
         let expression = self.parse_expression(current_token, Precedence::Lowest)?;
 
         self.token_iter.optional_expect_peek(Token::Period);
@@ -88,7 +102,15 @@ impl Parser {
         current_token: Token,
         precedence: Precedence,
     ) -> Result<Expression, ParseError> {
+        event!(
+            Level::DEBUG,
+            "Parsing expression starting with token {:?} and precedence {:?}",
+            current_token,
+            precedence
+        );
+
         let mut left = self.parse_prefix_expression(&current_token)?;
+        event!(Level::DEBUG, "Found prefix expression {:?}", left);
 
         while self.token_iter.next_token_has_infix()
             && precedence < self.token_iter.next_token_precedence()
@@ -96,6 +118,8 @@ impl Parser {
             let next_token = self.token_iter.expect()?;
             left = self.parse_infix_expression(left, &next_token)?;
         }
+
+        event!(Level::DEBUG, "Completed parsing of expression: {:?}", left);
 
         Ok(left)
     }
@@ -125,6 +149,11 @@ impl Parser {
         left: Expression,
         token: &Token,
     ) -> Result<Expression, ParseError> {
+        event!(
+            Level::DEBUG,
+            "Parsing infix expression for token {:?}",
+            token
+        );
         match token.has_infix() {
             HasInfix::Yes(operator) => {
                 let precedence = token.get_precedence();
@@ -149,7 +178,12 @@ impl Parser {
     }
 
     fn parse_function_literal(&mut self) -> Result<Expression, ParseError> {
+        let function_span = span!(Level::DEBUG, "Function");
+        let _enter = function_span.enter();
+
+        event!(Level::DEBUG, "Parsing function");
         let parameters: Vec<Identifier> = self.parse_function_parameters()?;
+        event!(Level::DEBUG, "Found parameters {parameters:?}");
 
         self.token_iter.expect_peek(Token::Assign)?;
 
