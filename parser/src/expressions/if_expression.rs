@@ -1,7 +1,7 @@
 use crate::{
     ast::BlockStatement,
     lexer::token::{Precedence, Token},
-    parse_errors::{ParseError, TokenExpectation},
+    parse_errors::ParseError,
     parser::Parser,
 };
 

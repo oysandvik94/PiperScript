@@ -158,10 +158,9 @@ impl Expression {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{BlockStatement, Identifier, Operator, Program, Statement},
+        ast::{Identifier, Operator, Program, Statement},
         expressions::{expression::Expression, expression_statement::ExpressionStatement},
         test_util::{
-            create_identifierliteral, create_if_condition, create_infix_expression,
             create_infix_test_case, create_prefix_test_case, has_parser_errors, parse_program,
         },
     };
