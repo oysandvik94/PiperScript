@@ -46,28 +46,17 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
-        match self.tokens.consume() {
-            Some(Token::Return) => self.parse_return_statement(),
-            Some(Token::Ident(identifier)) => {
-                self.parse_statement_starting_with_identifier(identifier)
-            }
-            Some(token) => self.parse_expression_statement(token),
-            None => Err(ParseError::ExpectedToken),
-        }
-    }
-
-    fn parse_statement_starting_with_identifier(
-        &mut self,
-        identifier: String,
-    ) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
-            Some(Token::Assign) => self.parse_assign_statement(identifier),
-            Some(_) => self.parse_expression_statement(Token::Ident(identifier)),
+            Some(Token::Return) => self.parse_return_statement(),
+            Some(Token::Let) => self.parse_assign_statement(),
+            Some(_) => self.parse_expression_statement(),
             None => Err(ParseError::ExpectedToken),
         }
     }
 
-    fn parse_assign_statement(&mut self, identifier: String) -> Result<Statement, ParseError> {
+    fn parse_assign_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.expect_token(Token::Let)?;
+        let identifier = self.tokens.expected_identifier()?;
         self.tokens.expect_token(Token::Assign)?;
 
         let next_token = self.tokens.expect()?;
@@ -75,13 +64,11 @@ impl Parser {
 
         self.tokens.expect_optional_token(Token::Period);
 
-        Ok(Statement::AssignStatement(
-            Identifier(identifier),
-            expression,
-        ))
+        Ok(Statement::AssignStatement(identifier, expression))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.expect_token(Token::Return)?;
         let next_token = self.tokens.expect()?;
         let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
@@ -90,19 +77,17 @@ impl Parser {
         Ok(Statement::ReturnStatement(expression))
     }
 
-    fn parse_expression_statement(
-        &mut self,
-        current_token: Token,
-    ) -> Result<Statement, ParseError> {
+    fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {
+        let first_token = self.tokens.expect()?;
         event!(
             Level::DEBUG,
-            "Parsing expression statement with starting token {current_token:?}"
+            "Parsing expression statement with starting token {first_token:?}"
         );
 
         let expression_statement_span = span!(Level::DEBUG, "Expression");
         let _enter = expression_statement_span.enter();
 
-        let expression = self.parse_expression(current_token, Precedence::Lowest)?;
+        let expression = self.parse_expression(first_token, Precedence::Lowest)?;
 
         self.tokens.expect_optional_token(Token::Period);
 
@@ -350,9 +335,9 @@ mod tests {
     #[test]
     fn parse_assign_statement() {
         let source_code = "
-            x: 5.
-            y: 10.
-            foobar: 54456.
+            let x: 5.
+            let y: 10.
+            let foobar: 54456.
         ";
 
         let program: Program = parse_program(source_code);
@@ -409,28 +394,6 @@ mod tests {
         assert_eq!(
             second_statement,
             &Statement::ReturnStatement(create_identifierliteral("foobar"))
-        );
-    }
-
-    #[test]
-    fn test_return_statement() {
-        let return_statement = "return foo.";
-
-        let program: Program = parse_program(return_statement);
-
-        assert_eq!(
-            1,
-            program.statements.len(),
-            "Should only parse to 1 statement"
-        );
-        assert_eq!(
-            Statement::ReturnStatement(Expression::IdentifierLiteral(Identifier(
-                "foo".to_string()
-            ))),
-            *program
-                .statements
-                .first()
-                .expect("Should retrieve first and only statement")
         );
     }
 

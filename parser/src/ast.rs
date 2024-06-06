@@ -1,11 +1,6 @@
 use std::fmt::Display;
 
-use lexer::token::Token;
-
-use crate::{
-    lexer,
-    parse_errors::{ParseError, TokenExpectation},
-};
+use crate::{lexer::token::Token, parse_errors::ParseError};
 
 pub struct Program {
     pub statements: Vec<Statement>,

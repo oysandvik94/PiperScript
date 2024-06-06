@@ -1,5 +1,6 @@
 #[derive(PartialEq, Debug, Clone)]
 pub enum Token {
+    Let,
     Bang,
     Add,
     Minus,
@@ -71,6 +72,7 @@ impl Token {
     pub fn parse_keyword(literal_keyword: &str) -> Token {
         match literal_keyword {
             "return" => Return,
+            "let" => Let,
             "true" => True,
             "false" => False,
             "else" => Else,

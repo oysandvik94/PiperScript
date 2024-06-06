@@ -1,9 +1,6 @@
 use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
-use crate::{
-    ast::Identifier,
-    parse_errors::{ParseError, TokenExpectation},
-};
+use crate::{ast::Identifier, parse_errors::ParseError};
 
 use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
 
@@ -228,7 +225,7 @@ mod tests {
     #[test]
     fn parse_code() {
         let source_code = "
-            ~foo: 5~
+            let foo: 5~
             foo + 6
             ~fooFunc(x, y):
                 ~res x+y
@@ -248,7 +245,7 @@ mod tests {
         ";
 
         let expected_tokens = vec![
-            Token::Lasagna,
+            Token::Let,
             Token::Ident("foo".to_string()),
             Token::Assign,
             Token::Int("5".to_string()),
@@ -305,16 +302,5 @@ mod tests {
             let expected_token = expected_iter.next().unwrap();
             assert_eq!(token, expected_token);
         }
-        //    found_tokens.token_iter.len(),
-        //    "List of expected tokens should be the same as found tokens"
-        //);
-
-        //expected_tokens.iter().enumerate().for_each(|(idx, token)| {
-        //    let found_token = &found_tokens.token_iter.nth(idx).expect("Should be a token");
-        //    assert_eq!(
-        //        token, found_token,
-        //        "Expected {token:?} to be {found_token:?} at index {idx}"
-        //    )
-        //});
     }
 }
