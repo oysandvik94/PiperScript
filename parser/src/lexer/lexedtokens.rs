@@ -95,20 +95,17 @@ impl LexedTokens {
         }
     }
 
-    pub fn expect_peek(&mut self, expected_token_type: Token) -> Result<Token, ParseError> {
+    pub fn expect_token(&mut self, expected_token_type: Token) -> Result<Token, ParseError> {
         match self.token_iter.next_if_eq(&expected_token_type) {
             Some(token) => Ok(token),
-            None => {
-                let next_token = self.token_iter.peek().cloned();
-                Err(ParseError::UnexpectedToken {
-                    expected_token: TokenExpectation::SingleExpectation(expected_token_type),
-                    found_token: next_token,
-                })
-            }
+            None => Err(ParseError::single_unexpected(
+                &expected_token_type,
+                self.token_iter.peek(),
+            )),
         }
     }
 
-    pub fn optional_expect_peek(&mut self, expected_token_type: Token) {
+    pub fn expect_optional_token(&mut self, expected_token_type: Token) {
         self.token_iter.next_if_eq(&expected_token_type);
     }
 

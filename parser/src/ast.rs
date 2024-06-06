@@ -73,10 +73,10 @@ impl Identifier {
     pub fn parse_from_token(value: &Token) -> Result<Identifier, ParseError> {
         match value {
             Token::Ident(ident_literal) => Ok(Identifier(ident_literal.to_string())),
-            unexpected_token => Err(ParseError::UnexpectedToken {
-                expected_token: TokenExpectation::SingleExpectation(Token::Ident("".to_string())),
-                found_token: Some(unexpected_token.clone()),
-            }),
+            unexpected_token => Err(ParseError::single_unexpected(
+                &Token::Ident(String::from("")),
+                Some(unexpected_token),
+            )),
         }
     }
 }

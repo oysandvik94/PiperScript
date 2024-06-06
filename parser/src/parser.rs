@@ -10,21 +10,22 @@ use crate::{
 };
 
 pub struct Parser {
-    token_iter: LexedTokens,
+    tokens: LexedTokens,
 }
 
 impl Parser {
     pub fn new(tokens: LexedTokens) -> Parser {
-        Parser { token_iter: tokens }
+        Parser { tokens }
     }
 
     pub fn parse_program(&mut self) -> Program {
         let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<ParseError> = Vec::new();
 
-        while self.token_iter.peek().is_some() {
+        while self.tokens.peek().is_some() {
             let statement_span = span!(Level::DEBUG, "Statement");
             let _enter = statement_span.enter();
+
             match self.parse_statement() {
                 Ok(parsed_statement) => {
                     event!(Level::DEBUG, "Parsed statement: {parsed_statement:?}",);
@@ -32,7 +33,7 @@ impl Parser {
                 }
                 Err(parse_error) => {
                     event!(Level::DEBUG, "Error parsing statement: {parse_error:?}");
-                    self.token_iter.iterate_to_next_statement();
+                    self.tokens.iterate_to_next_statement();
                     parse_errors.push(parse_error)
                 }
             };
@@ -45,35 +46,46 @@ impl Parser {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
-        match self.token_iter.consume() {
+        match self.tokens.consume() {
             Some(Token::Return) => self.parse_return_statement(),
-            Some(Token::Ident(identifier)) => match self.token_iter.peek() {
-                Some(Token::Assign) => self.parse_assign_statement(identifier),
-                Some(_) => self.parse_expression_statement(Token::Ident(identifier)),
-                None => Err(ParseError::ExpectedToken),
-            },
+            Some(Token::Ident(identifier)) => {
+                self.parse_statement_starting_with_identifier(identifier)
+            }
             Some(token) => self.parse_expression_statement(token),
             None => Err(ParseError::ExpectedToken),
         }
     }
 
-    fn parse_assign_statement(&mut self, identifier: String) -> Result<Statement, ParseError> {
-        self.token_iter.expect_peek(Token::Assign)?;
+    fn parse_statement_starting_with_identifier(
+        &mut self,
+        identifier: String,
+    ) -> Result<Statement, ParseError> {
+        match self.tokens.peek() {
+            Some(Token::Assign) => self.parse_assign_statement(identifier),
+            Some(_) => self.parse_expression_statement(Token::Ident(identifier)),
+            None => Err(ParseError::ExpectedToken),
+        }
+    }
 
-        let next_token = self.token_iter.expect()?;
+    fn parse_assign_statement(&mut self, identifier: String) -> Result<Statement, ParseError> {
+        self.tokens.expect_token(Token::Assign)?;
+
+        let next_token = self.tokens.expect()?;
         let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
-        self.token_iter.optional_expect_peek(Token::Period);
+        self.tokens.expect_optional_token(Token::Period);
 
-        let assign_statement = Statement::AssignStatement(Identifier(identifier), expression);
-        Ok(assign_statement)
+        Ok(Statement::AssignStatement(
+            Identifier(identifier),
+            expression,
+        ))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
-        let next_token = self.token_iter.expect()?;
+        let next_token = self.tokens.expect()?;
         let expression = self.parse_expression(next_token, Precedence::Lowest)?;
 
-        self.token_iter.optional_expect_peek(Token::Period);
+        self.tokens.expect_optional_token(Token::Period);
 
         Ok(Statement::ReturnStatement(expression))
     }
@@ -92,7 +104,7 @@ impl Parser {
 
         let expression = self.parse_expression(current_token, Precedence::Lowest)?;
 
-        self.token_iter.optional_expect_peek(Token::Period);
+        self.tokens.expect_optional_token(Token::Period);
 
         Ok(Statement::ExpressionStatement(expression))
     }
@@ -112,10 +124,9 @@ impl Parser {
         let mut left = self.parse_prefix_expression(&current_token)?;
         event!(Level::DEBUG, "Found prefix expression {:?}", left);
 
-        while self.token_iter.next_token_has_infix()
-            && precedence < self.token_iter.next_token_precedence()
+        while self.tokens.next_token_has_infix() && precedence < self.tokens.next_token_precedence()
         {
-            let next_token = self.token_iter.expect()?;
+            let next_token = self.tokens.expect()?;
             left = self.parse_infix_expression(left, &next_token)?;
         }
 
@@ -157,7 +168,7 @@ impl Parser {
         match token.has_infix() {
             HasInfix::Arithmic(operator) => {
                 let precedence = token.get_precedence();
-                let next_token = self.token_iter.expect()?;
+                let next_token = self.tokens.expect()?;
                 let right = self.parse_expression(next_token, precedence)?;
 
                 Ok(Expression::InfixExpression {
@@ -180,9 +191,9 @@ impl Parser {
     }
 
     fn create_grouped_expression(&mut self) -> Result<Expression, ParseError> {
-        let next_token = self.token_iter.expect()?;
+        let next_token = self.tokens.expect()?;
         let grouped_expression = self.parse_expression(next_token, Precedence::Lowest);
-        self.token_iter.expect_peek(Token::RParen)?;
+        self.tokens.expect_token(Token::RParen)?;
         grouped_expression
     }
 
@@ -194,10 +205,10 @@ impl Parser {
         let parameters: Vec<Identifier> = self.parse_function_parameters()?;
         event!(Level::DEBUG, "Found parameters {parameters:?}");
 
-        self.token_iter.expect_peek(Token::Assign)?;
+        self.tokens.expect_token(Token::Assign)?;
 
         let body: BlockStatement = self.parse_blockstatement()?;
-        self.token_iter.expect_peek(Token::Lasagna)?;
+        self.tokens.expect_token(Token::Lasagna)?;
 
         Ok(Expression::FunctionLiteral { parameters, body })
     }
@@ -205,18 +216,18 @@ impl Parser {
     fn parse_function_arguments(&mut self) -> Result<Vec<Expression>, ParseError> {
         event!(Level::DEBUG, "Parsing function arguments");
         let mut parameters: Vec<Expression> = Vec::from([]);
-        while let Some(token) = self.token_iter.peek() {
+        while let Some(token) = self.tokens.peek() {
             match token {
                 Token::RParen => {
-                    self.token_iter.consume();
+                    self.tokens.consume();
                     return Ok(parameters);
                 }
                 Token::Comma => {
-                    self.token_iter.consume();
+                    self.tokens.consume();
                 }
                 _ => {
                     let current_token = self
-                        .token_iter
+                        .tokens
                         .consume()
                         .expect("Expected a token after peeking");
 
@@ -230,11 +241,11 @@ impl Parser {
 
     fn parse_function_parameters(&mut self) -> Result<Vec<Identifier>, ParseError> {
         let mut parameters: Vec<Identifier> = Vec::from([]);
-        while let Some(token) = self.token_iter.consume() {
+        while let Some(token) = self.tokens.consume() {
             match token {
-                Token::LParen | Token::Comma => match self.token_iter.peek() {
+                Token::LParen | Token::Comma => match self.tokens.peek() {
                     Some(Token::RParen) => {
-                        self.token_iter.consume();
+                        self.tokens.consume();
                         return Ok(parameters);
                     }
                     Some(_) => parameters.push(self.parse_literal()?),
@@ -257,19 +268,19 @@ impl Parser {
     }
 
     fn parse_if_expression(&mut self) -> Result<Expression, ParseError> {
-        let next_token = self.token_iter.expect()?;
+        let next_token = self.tokens.expect()?;
         let condition = self.parse_expression(next_token, Precedence::Lowest)?;
 
-        self.token_iter.expect_peek(Token::Assign)?;
+        self.tokens.expect_token(Token::Assign)?;
 
         let consequence = self.parse_blockstatement()?;
 
-        let alternative = match self.token_iter.consume() {
+        let alternative = match self.tokens.consume() {
             Some(Token::Lasagna) => Ok(None),
             Some(Token::Else) => {
-                self.token_iter.expect_peek(Token::Assign)?;
+                self.tokens.expect_token(Token::Assign)?;
                 let else_block = Some(self.parse_blockstatement()?);
-                self.token_iter.expect_peek(Token::Lasagna)?;
+                self.tokens.expect_token(Token::Lasagna)?;
                 Ok(else_block)
             }
             Some(unexpected_token) => Err(ParseError::UnexpectedToken {
@@ -290,8 +301,8 @@ impl Parser {
 
     fn parse_blockstatement(&mut self) -> Result<BlockStatement, ParseError> {
         let mut statements: Vec<Statement> = Vec::new();
-        while !self.token_iter.next_token_is(&Token::Lasagna)
-            && !self.token_iter.next_token_is(&Token::Else)
+        while !self.tokens.next_token_is(&Token::Lasagna)
+            && !self.tokens.next_token_is(&Token::Else)
         {
             statements.push(self.parse_statement()?);
         }
@@ -300,7 +311,7 @@ impl Parser {
     }
 
     fn create_prefix_expression(&mut self, operator: Operator) -> Result<Expression, ParseError> {
-        let token = match self.token_iter.consume() {
+        let token = match self.tokens.consume() {
             Some(token) => Ok(token),
             None => Err(ParseError::NoPrefixPartner),
         }?;
@@ -313,7 +324,7 @@ impl Parser {
     }
 
     fn parse_literal(&mut self) -> Result<Identifier, ParseError> {
-        match self.token_iter.consume() {
+        match self.tokens.consume() {
             Some(Token::Ident(literal)) => Ok(Identifier(literal)),
             Some(unexpected_token) => Err(ParseError::UnexpectedToken {
                 expected_token: TokenExpectation::SingleExpectation(Token::Ident("".to_string())),

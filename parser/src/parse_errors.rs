@@ -19,6 +19,26 @@ pub enum ParseError {
     NoPrefixPartner,
 }
 
+impl ParseError {
+    pub fn single_unexpected(expected_token: &Token, found_token: Option<&Token>) -> ParseError {
+        ParseError::UnexpectedToken {
+            expected_token: TokenExpectation::SingleExpectation(expected_token.clone()),
+            found_token: found_token.cloned(),
+        }
+    }
+
+    pub fn multiple_unexpected(
+        expected_tokens: Vec<Token>,
+        found_token: Option<&Token>,
+    ) -> ParseError {
+        let expected_tokens = TokenExpectation::MultipleExpectation(expected_tokens);
+        ParseError::UnexpectedToken {
+            expected_token: expected_tokens,
+            found_token: found_token.cloned(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum TokenExpectation {
     SingleExpectation(Token),
