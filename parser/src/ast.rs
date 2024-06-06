@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{lexer::token::Token, parse_errors::ParseError};
+use crate::{assign_statement::AssignStatement, lexer::token::Token, parse_errors::ParseError};
 
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -9,7 +9,7 @@ pub struct Program {
 
 #[derive(PartialEq, Debug)]
 pub enum Statement {
-    AssignStatement(Identifier, Expression),
+    Assign(AssignStatement),
     ReturnStatement(Expression),
     ExpressionStatement(Expression),
 }
@@ -89,7 +89,11 @@ impl Display for Program {
 impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::AssignStatement(ident, expression) => write!(f, "~{ident}: {expression}~"),
+            Statement::Assign(assign_statement) => write!(
+                f,
+                "let {}: {}.",
+                assign_statement.identifier, assign_statement.assignment
+            ),
             Statement::ReturnStatement(expression) => write!(f, "return {expression}"),
             Statement::ExpressionStatement(expression) => write!(f, "{expression}"),
         }
@@ -170,7 +174,10 @@ impl Display for Operator {
 
 #[cfg(test)]
 mod tests {
-    use crate::ast::{Expression, Identifier};
+    use crate::{
+        assign_statement::AssignStatement,
+        ast::{Expression, Identifier},
+    };
 
     use super::{Program, Statement};
 
@@ -178,10 +185,10 @@ mod tests {
     fn test_display() {
         let program: Program = Program {
             statements: Vec::from([
-                Statement::AssignStatement(
-                    Identifier("foo".to_string()),
-                    Expression::IdentifierLiteral(Identifier("bar".to_string())),
-                ),
+                Statement::Assign(AssignStatement {
+                    identifier: Identifier(String::from("foo")),
+                    assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
+                }),
                 Statement::ReturnStatement(Expression::IdentifierLiteral(Identifier(
                     "hey".to_string(),
                 ))),
@@ -189,7 +196,7 @@ mod tests {
             parse_errors: Vec::new(),
         };
 
-        let expected_program: &str = "~foo: bar~
+        let expected_program: &str = "let foo: bar.
 return hey
 ";
 

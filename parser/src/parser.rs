@@ -1,6 +1,7 @@
 use tracing::{event, span, Level};
 
 use crate::{
+    assign_statement::AssignStatement,
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
     lexer::{
         lexedtokens::LexedTokens,
@@ -10,7 +11,7 @@ use crate::{
 };
 
 pub struct Parser {
-    tokens: LexedTokens,
+    pub tokens: LexedTokens,
 }
 
 impl Parser {
@@ -48,23 +49,10 @@ impl Parser {
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
             Some(Token::Return) => self.parse_return_statement(),
-            Some(Token::Let) => self.parse_assign_statement(),
+            Some(Token::Let) => AssignStatement::parse(self),
             Some(_) => self.parse_expression_statement(),
             None => Err(ParseError::ExpectedToken),
         }
-    }
-
-    fn parse_assign_statement(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.expect_token(Token::Let)?;
-        let identifier = self.tokens.expected_identifier()?;
-        self.tokens.expect_token(Token::Assign)?;
-
-        let next_token = self.tokens.expect()?;
-        let expression = self.parse_expression(next_token, Precedence::Lowest)?;
-
-        self.tokens.expect_optional_token(Token::Period);
-
-        Ok(Statement::AssignStatement(identifier, expression))
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
@@ -94,7 +82,7 @@ impl Parser {
         Ok(Statement::ExpressionStatement(expression))
     }
 
-    fn parse_expression(
+    pub fn parse_expression(
         &mut self,
         current_token: Token,
         precedence: Precedence,
@@ -807,9 +795,9 @@ mod tests {
         expected_expression: &Expression,
     ) {
         match found {
-            Statement::AssignStatement(found_identfier, found_expression) => {
-                assert_eq!(found_identfier, expected_identifier);
-                assert_eq!(found_expression, expected_expression);
+            Statement::Assign(assign_statement) => {
+                assert_eq!(&assign_statement.identifier, expected_identifier);
+                assert_eq!(&assign_statement.assignment, expected_expression);
             }
             incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
         };
