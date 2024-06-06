@@ -2,6 +2,7 @@ use tracing_subscriber::FmtSubscriber;
 
 use crate::{
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
+    expressions::expression_statement::ExpressionStatement,
     lexer::lexedtokens::LexedTokens,
     parser::Parser,
 };
@@ -26,9 +27,11 @@ pub fn parse_program(source_code: &str) -> Program {
 }
 
 pub fn create_prefix_test_case(right_expression: Expression, operator: Operator) -> Statement {
-    Statement::ExpressionStatement(Expression::PrefixExpression {
-        right: Box::new(right_expression),
-        operator,
+    Statement::Expression(ExpressionStatement {
+        expression: Expression::PrefixExpression {
+            right: Box::new(right_expression),
+            operator,
+        },
     })
 }
 
@@ -37,20 +40,24 @@ pub fn create_infix_test_case(
     right_expression: Expression,
     operator: Operator,
 ) -> Statement {
-    Statement::ExpressionStatement(Expression::InfixExpression {
-        left: Box::new(left_expression),
-        right: Box::new(right_expression),
-        operator,
+    Statement::Expression(ExpressionStatement {
+        expression: Expression::InfixExpression {
+            left: Box::new(left_expression),
+            right: Box::new(right_expression),
+            operator,
+        },
     })
 }
 
 pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> Statement {
-    Statement::ExpressionStatement(Expression::FunctionLiteral {
-        parameters: parameters
-            .iter()
-            .map(|param| Identifier(param.to_string()))
-            .collect(),
-        body,
+    Statement::Expression(ExpressionStatement {
+        expression: Expression::FunctionLiteral {
+            parameters: parameters
+                .iter()
+                .map(|param| Identifier(param.to_string()))
+                .collect(),
+            body,
+        },
     })
 }
 pub fn create_if_condition(
@@ -59,10 +66,12 @@ pub fn create_if_condition(
     alternative: Option<BlockStatement>,
 ) -> Statement {
     use Expression::*;
-    Statement::ExpressionStatement(IfExpression {
-        condition: Box::from(condition),
-        consequence,
-        alternative,
+    Statement::Expression(ExpressionStatement {
+        expression: IfExpression {
+            condition: Box::from(condition),
+            consequence,
+            alternative,
+        },
     })
 }
 

@@ -3,6 +3,7 @@ use tracing::{event, span, Level};
 use crate::{
     assign_statement::AssignStatement,
     ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
+    expressions::expression_statement::ExpressionStatement,
     lexer::{
         lexedtokens::LexedTokens,
         token::{HasInfix, Precedence, Token},
@@ -51,26 +52,9 @@ impl Parser {
         match self.tokens.peek() {
             Some(Token::Return) => ReturnStatement::parse_return_statement(self),
             Some(Token::Let) => AssignStatement::parse(self),
-            Some(_) => self.parse_expression_statement(),
+            Some(_) => ExpressionStatement::parse(self),
             None => Err(ParseError::ExpectedToken),
         }
-    }
-
-    fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {
-        let first_token = self.tokens.expect()?;
-        event!(
-            Level::DEBUG,
-            "Parsing expression statement with starting token {first_token:?}"
-        );
-
-        let expression_statement_span = span!(Level::DEBUG, "Expression");
-        let _enter = expression_statement_span.enter();
-
-        let expression = self.parse_expression(first_token, Precedence::Lowest)?;
-
-        self.tokens.expect_optional_token(Token::Period);
-
-        Ok(Statement::ExpressionStatement(expression))
     }
 
     pub fn parse_expression(
@@ -304,6 +288,7 @@ mod tests {
 
     use crate::{
         ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
+        expressions::expression_statement::ExpressionStatement,
         test_util::{
             create_function_expression, create_identifierliteral, create_if_condition,
             create_infix_expression, create_infix_test_case, create_prefix_test_case,
@@ -325,7 +310,9 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::IntegerLiteral(5))
+            Statement::Expression(ExpressionStatement {
+                expression: Expression::IntegerLiteral(5)
+            })
         ));
     }
 
@@ -346,9 +333,9 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::IdentifierLiteral(
-                Identifier(ident)
-            )) if ident == "foobar"
+            Statement::Expression(ExpressionStatement { expression: Expression::IdentifierLiteral(
+                    Identifier(ident)
+                        ) }) if ident == "foobar"
         ));
     }
 
@@ -369,11 +356,15 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::ExpressionStatement(Expression::BooleanLiteral(true))
+            Statement::Expression(ExpressionStatement {
+                expression: Expression::BooleanLiteral(true)
+            })
         ));
         assert!(matches!(
             program.statements.get(1).unwrap(),
-            Statement::ExpressionStatement(Expression::BooleanLiteral(false))
+            Statement::Expression(ExpressionStatement {
+                expression: Expression::BooleanLiteral(false)
+            })
         ));
     }
 
@@ -504,9 +495,9 @@ mod tests {
                         Operator::LessThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::ExpressionStatement(
-                            create_identifierliteral("x"),
-                        )]),
+                        statements: Vec::from([Statement::Expression(ExpressionStatement {
+                            expression: create_identifierliteral("x"),
+                        })]),
                     },
                     None,
                 ),
@@ -520,14 +511,14 @@ mod tests {
                         Operator::GreaterThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::ExpressionStatement(
-                            create_identifierliteral("x"),
-                        )]),
+                        statements: Vec::from([Statement::Expression(ExpressionStatement {
+                            expression: create_identifierliteral("x"),
+                        })]),
                     },
                     Some(BlockStatement {
-                        statements: Vec::from([Statement::ExpressionStatement(
-                            create_identifierliteral("y"),
-                        )]),
+                        statements: Vec::from([Statement::Expression(ExpressionStatement {
+                            expression: create_identifierliteral("y"),
+                        })]),
                     }),
                 ),
             ),
@@ -568,13 +559,13 @@ mod tests {
                 create_function_expression(
                     Vec::from(["x", "y"]),
                     BlockStatement {
-                        statements: Vec::from([Statement::ExpressionStatement(
-                            create_infix_expression(
+                        statements: Vec::from([Statement::Expression(ExpressionStatement {
+                            expression: create_infix_expression(
                                 create_identifierliteral("x"),
                                 create_identifierliteral("y"),
                                 Operator::Plus,
                             ),
-                        )]),
+                        })]),
                     },
                 ),
             ),
@@ -584,8 +575,12 @@ mod tests {
                     Vec::from([]),
                     BlockStatement {
                         statements: Vec::from([
-                            Statement::ExpressionStatement(create_identifierliteral("x")),
-                            Statement::ExpressionStatement(create_identifierliteral("y")),
+                            Statement::Expression(ExpressionStatement {
+                                expression: create_identifierliteral("x"),
+                            }),
+                            Statement::Expression(ExpressionStatement {
+                                expression: create_identifierliteral("y"),
+                            }),
                         ]),
                     },
                 ),
@@ -650,7 +645,9 @@ mod tests {
         };
         assert_eq!(
             statement,
-            &Statement::ExpressionStatement(expected_statement),
+            &Statement::Expression(ExpressionStatement {
+                expression: expected_statement
+            }),
             "Parsed statement should match testcase"
         );
         assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");

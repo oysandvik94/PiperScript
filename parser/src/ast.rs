@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
 use crate::{
-    assign_statement::AssignStatement, lexer::token::Token, parse_errors::ParseError,
-    return_statement::ReturnStatement,
+    assign_statement::AssignStatement, expressions::expression_statement::ExpressionStatement,
+    lexer::token::Token, parse_errors::ParseError, return_statement::ReturnStatement,
 };
 
 pub struct Program {
@@ -14,7 +14,7 @@ pub struct Program {
 pub enum Statement {
     Assign(AssignStatement),
     Return(ReturnStatement),
-    ExpressionStatement(Expression),
+    Expression(ExpressionStatement),
 }
 
 #[derive(PartialEq, Debug)]
@@ -94,7 +94,7 @@ impl Display for Statement {
         match self {
             Statement::Assign(assign_statement) => write!(f, "{assign_statement}"),
             Statement::Return(expression) => write!(f, "{expression}"),
-            Statement::ExpressionStatement(expression) => write!(f, "{expression}"),
+            Statement::Expression(expression) => write!(f, "{expression}"),
         }
     }
 }
