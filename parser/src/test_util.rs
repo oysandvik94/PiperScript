@@ -4,7 +4,7 @@ use crate::{
     ast::{BlockStatement, Identifier, Operator, Program, Statement},
     expressions::{
         expression::Expression, expression_statement::ExpressionStatement,
-        functions::FunctionLiteral,
+        functions::FunctionLiteral, if_expression::IfExpression,
     },
     lexer::lexedtokens::LexedTokens,
     parser::Parser,
@@ -70,11 +70,11 @@ pub fn create_if_condition(
 ) -> Statement {
     use Expression::*;
     Statement::Expression(ExpressionStatement {
-        expression: IfExpression {
+        expression: If(IfExpression {
             condition: Box::from(condition),
             consequence,
             alternative,
-        },
+        }),
     })
 }
 

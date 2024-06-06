@@ -4,7 +4,7 @@ use crate::{
     assign_statement::AssignStatement,
     expressions::{
         expression::Expression, expression_statement::ExpressionStatement,
-        functions::CallExpression,
+        functions::CallExpression, if_expression::IfExpression,
     },
     lexer::token::Token,
     parse_errors::ParseError,
@@ -96,11 +96,11 @@ impl Display for Expression {
                 operator,
             } => write!(f, "({left} {operator} {right})"),
             Expression::BooleanLiteral(boolean) => write!(f, "{boolean}"),
-            Expression::IfExpression {
+            Expression::If(IfExpression {
                 condition,
                 consequence,
                 alternative,
-            } => {
+            }) => {
                 write!(f, "if {condition}: {consequence}")?;
                 match alternative {
                     Some(found_alternative) => {
