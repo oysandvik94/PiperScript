@@ -2,7 +2,10 @@ use std::fmt::Display;
 
 use crate::{
     assign_statement::AssignStatement,
-    expressions::{expression::Expression, expression_statement::ExpressionStatement},
+    expressions::{
+        expression::Expression, expression_statement::ExpressionStatement,
+        functions::CallExpression,
+    },
     lexer::token::Token,
     parse_errors::ParseError,
     return_statement::ReturnStatement,
@@ -106,15 +109,13 @@ impl Display for Expression {
                     None => Ok(()),
                 }
             }
-            Expression::FunctionLiteral { parameters, body } => {
-                let parameters: Vec<String> =
-                    parameters.iter().map(|ident| ident.0.clone()).collect();
-                write!(f, "fn({}): {}", parameters.join(","), body)
+            Expression::Function(function_literal) => {
+                write!(f, "{function_literal}")
             }
-            Expression::CallExpression {
+            Expression::Call(CallExpression {
                 function,
                 arguments,
-            } => {
+            }) => {
                 let arguments: Vec<String> =
                     arguments.iter().map(|ident| ident.to_string()).collect();
                 write!(f, "{function}({})", arguments.join(", "))

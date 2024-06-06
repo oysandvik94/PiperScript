@@ -2,7 +2,10 @@ use tracing_subscriber::FmtSubscriber;
 
 use crate::{
     ast::{BlockStatement, Identifier, Operator, Program, Statement},
-    expressions::{expression::Expression, expression_statement::ExpressionStatement},
+    expressions::{
+        expression::Expression, expression_statement::ExpressionStatement,
+        functions::FunctionLiteral,
+    },
     lexer::lexedtokens::LexedTokens,
     parser::Parser,
 };
@@ -51,13 +54,13 @@ pub fn create_infix_test_case(
 
 pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> Statement {
     Statement::Expression(ExpressionStatement {
-        expression: Expression::FunctionLiteral {
+        expression: Expression::Function(FunctionLiteral {
             parameters: parameters
                 .iter()
                 .map(|param| Identifier(param.to_string()))
                 .collect(),
             body,
-        },
+        }),
     })
 }
 pub fn create_if_condition(
