@@ -1,8 +1,8 @@
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
-    ast::{BlockStatement, Expression, Identifier, Operator, Program, Statement},
-    expressions::expression_statement::ExpressionStatement,
+    ast::{BlockStatement, Identifier, Operator, Program, Statement},
+    expressions::{expression::Expression, expression_statement::ExpressionStatement},
     lexer::lexedtokens::LexedTokens,
     parser::Parser,
 };

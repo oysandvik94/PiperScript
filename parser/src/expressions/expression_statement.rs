@@ -3,11 +3,13 @@ use std::fmt::Display;
 use tracing::{event, span, Level};
 
 use crate::{
-    ast::{Expression, Statement},
+    ast::Statement,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
     parser::Parser,
 };
+
+use super::expression::Expression;
 
 #[derive(PartialEq, Debug)]
 pub struct ExpressionStatement {
@@ -31,7 +33,7 @@ impl ExpressionStatement {
         let expression_statement_span = span!(Level::DEBUG, "Expression");
         let _enter = expression_statement_span.enter();
 
-        let expression = parser.parse_expression(first_token, Precedence::Lowest)?;
+        let expression = Expression::parse(parser, first_token, Precedence::Lowest)?;
 
         parser.tokens.expect_optional_token(Token::Period);
 

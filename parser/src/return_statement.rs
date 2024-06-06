@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
 use crate::{
-    ast::{Expression, Statement},
+    ast::Statement,
+    expressions::expression::Expression,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
     parser::Parser,
@@ -16,7 +17,7 @@ impl ReturnStatement {
     pub fn parse_return_statement(parser: &mut Parser) -> Result<Statement, ParseError> {
         parser.tokens.expect_token(Token::Return)?;
         let next_token = parser.tokens.expect()?;
-        let expression = parser.parse_expression(next_token, Precedence::Lowest)?;
+        let expression = Expression::parse(parser, next_token, Precedence::Lowest)?;
 
         parser.tokens.expect_optional_token(Token::Period);
 
@@ -35,7 +36,8 @@ impl Display for ReturnStatement {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{Expression, Program, Statement},
+        ast::{Program, Statement},
+        expressions::expression::Expression,
         return_statement::ReturnStatement,
         test_util::*,
     };

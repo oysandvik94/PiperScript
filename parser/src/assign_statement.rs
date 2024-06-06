@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
 use crate::{
-    ast::{Expression, Identifier, Statement},
+    ast::{Identifier, Statement},
+    expressions::expression::Expression,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
     parser::Parser,
@@ -20,7 +21,7 @@ impl AssignStatement {
         parser.tokens.expect_token(Token::Assign)?;
 
         let next_token = parser.tokens.expect()?;
-        let expression = parser.parse_expression(next_token, Precedence::Lowest)?;
+        let expression = Expression::parse(parser, next_token, Precedence::Lowest)?;
 
         parser.tokens.expect_optional_token(Token::Period);
 
@@ -40,7 +41,8 @@ impl Display for AssignStatement {
 #[cfg(test)]
 mod tests {
     use crate::{
-        ast::{Expression, Identifier, Program, Statement},
+        ast::{Identifier, Program, Statement},
+        expressions::expression::Expression,
         test_util::{has_parser_errors, parse_program},
     };
 

@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
 use crate::{
-    assign_statement::AssignStatement, expressions::expression_statement::ExpressionStatement,
-    lexer::token::Token, parse_errors::ParseError, return_statement::ReturnStatement,
+    assign_statement::AssignStatement,
+    expressions::{expression::Expression, expression_statement::ExpressionStatement},
+    lexer::token::Token,
+    parse_errors::ParseError,
+    return_statement::ReturnStatement,
 };
 
 pub struct Program {
@@ -20,35 +23,6 @@ pub enum Statement {
 #[derive(PartialEq, Debug)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Expression {
-    IdentifierLiteral(Identifier),
-    IntegerLiteral(i32),
-    BooleanLiteral(bool),
-    PrefixExpression {
-        right: Box<Expression>,
-        operator: Operator,
-    },
-    InfixExpression {
-        left: Box<Expression>,
-        right: Box<Expression>,
-        operator: Operator,
-    },
-    IfExpression {
-        condition: Box<Expression>,
-        consequence: BlockStatement,
-        alternative: Option<BlockStatement>,
-    },
-    FunctionLiteral {
-        parameters: Vec<Identifier>,
-        body: BlockStatement,
-    },
-    CallExpression {
-        function: Box<Expression>,
-        arguments: Vec<Expression>,
-    },
 }
 
 #[derive(PartialEq, Debug)]
