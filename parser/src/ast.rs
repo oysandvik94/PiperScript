@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::{assign_statement::AssignStatement, lexer::token::Token, parse_errors::ParseError};
+use crate::{
+    assign_statement::AssignStatement, lexer::token::Token, parse_errors::ParseError,
+    return_statement::ReturnStatement,
+};
 
 pub struct Program {
     pub statements: Vec<Statement>,
@@ -10,7 +13,7 @@ pub struct Program {
 #[derive(PartialEq, Debug)]
 pub enum Statement {
     Assign(AssignStatement),
-    ReturnStatement(Expression),
+    Return(ReturnStatement),
     ExpressionStatement(Expression),
 }
 
@@ -89,12 +92,8 @@ impl Display for Program {
 impl Display for Statement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Statement::Assign(assign_statement) => write!(
-                f,
-                "let {}: {}.",
-                assign_statement.identifier, assign_statement.assignment
-            ),
-            Statement::ReturnStatement(expression) => write!(f, "return {expression}"),
+            Statement::Assign(assign_statement) => write!(f, "{assign_statement}"),
+            Statement::Return(expression) => write!(f, "{expression}"),
             Statement::ExpressionStatement(expression) => write!(f, "{expression}"),
         }
     }
@@ -177,6 +176,8 @@ mod tests {
     use crate::{
         assign_statement::AssignStatement,
         ast::{Expression, Identifier},
+        return_statement::ReturnStatement,
+        test_util::create_identifierliteral,
     };
 
     use super::{Program, Statement};
@@ -189,9 +190,9 @@ mod tests {
                     identifier: Identifier(String::from("foo")),
                     assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
                 }),
-                Statement::ReturnStatement(Expression::IdentifierLiteral(Identifier(
-                    "hey".to_string(),
-                ))),
+                Statement::Return(ReturnStatement {
+                    return_value: create_identifierliteral("hey"),
+                }),
             ]),
             parse_errors: Vec::new(),
         };

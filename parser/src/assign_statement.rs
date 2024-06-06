@@ -1,9 +1,8 @@
+use std::fmt::Display;
+
 use crate::{
     ast::{Expression, Identifier, Statement},
-    lexer::{
-        lexedtokens::LexedTokens,
-        token::{Precedence, Token},
-    },
+    lexer::token::{Precedence, Token},
     parse_errors::ParseError,
     parser::Parser,
 };
@@ -29,5 +28,70 @@ impl AssignStatement {
             identifier,
             assignment: expression,
         }))
+    }
+}
+
+impl Display for AssignStatement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "let {}: {}.", self.identifier, self.assignment)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        ast::{Expression, Identifier, Program, Statement},
+        test_util::{has_parser_errors, parse_program},
+    };
+
+    #[test]
+    fn parse_assign_statement() {
+        let source_code = "
+            let x: 5.
+            let y: 10.
+            let foobar: 54456.
+        ";
+
+        let program: Program = parse_program(source_code);
+
+        has_parser_errors(&program);
+        assert_eq!(
+            program.statements.len(),
+            3,
+            "Program should be parsed to 3 statements"
+        );
+
+        let expected_identifiers: [Identifier; 3] = [
+            Identifier(String::from("x")),
+            Identifier(String::from("y")),
+            Identifier(String::from("foobar")),
+        ];
+
+        let expected_expression: [Expression; 3] = [
+            Expression::IntegerLiteral(5),
+            Expression::IntegerLiteral(10),
+            Expression::IntegerLiteral(54456),
+        ];
+
+        expected_identifiers
+            .iter()
+            .enumerate()
+            .for_each(|(idx, ident)| {
+                assert_let_statement(&program.statements[idx], ident, &expected_expression[idx])
+            });
+    }
+
+    fn assert_let_statement(
+        found: &Statement,
+        expected_identifier: &Identifier,
+        expected_expression: &Expression,
+    ) {
+        match found {
+            Statement::Assign(assign_statement) => {
+                assert_eq!(&assign_statement.identifier, expected_identifier);
+                assert_eq!(&assign_statement.assignment, expected_expression);
+            }
+            incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
+        };
     }
 }

@@ -8,6 +8,7 @@ use crate::{
         token::{HasInfix, Precedence, Token},
     },
     parse_errors::{ParseError, TokenExpectation},
+    return_statement::ReturnStatement,
 };
 
 pub struct Parser {
@@ -48,21 +49,11 @@ impl Parser {
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
-            Some(Token::Return) => self.parse_return_statement(),
+            Some(Token::Return) => ReturnStatement::parse_return_statement(self),
             Some(Token::Let) => AssignStatement::parse(self),
             Some(_) => self.parse_expression_statement(),
             None => Err(ParseError::ExpectedToken),
         }
-    }
-
-    fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.expect_token(Token::Return)?;
-        let next_token = self.tokens.expect()?;
-        let expression = self.parse_expression(next_token, Precedence::Lowest)?;
-
-        self.tokens.expect_optional_token(Token::Period);
-
-        Ok(Statement::ReturnStatement(expression))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {
@@ -319,71 +310,6 @@ mod tests {
             has_parser_errors, parse_program, setup_logger,
         },
     };
-
-    #[test]
-    fn parse_assign_statement() {
-        let source_code = "
-            let x: 5.
-            let y: 10.
-            let foobar: 54456.
-        ";
-
-        let program: Program = parse_program(source_code);
-
-        has_parser_errors(&program);
-        assert_eq!(
-            program.statements.len(),
-            3,
-            "Program should be parsed to 3 statements"
-        );
-
-        let expected_identifiers: [Identifier; 3] = [
-            Identifier(String::from("x")),
-            Identifier(String::from("y")),
-            Identifier(String::from("foobar")),
-        ];
-
-        let expected_expression: [Expression; 3] = [
-            Expression::IntegerLiteral(5),
-            Expression::IntegerLiteral(10),
-            Expression::IntegerLiteral(54456),
-        ];
-
-        expected_identifiers
-            .iter()
-            .enumerate()
-            .for_each(|(idx, ident)| {
-                test_let_statement(&program.statements[idx], ident, &expected_expression[idx])
-            });
-    }
-
-    #[test]
-    fn parse_return_statement() {
-        let source_code = "
-            return 5.
-            return foobar.
-        ";
-
-        let program: Program = parse_program(source_code);
-
-        has_parser_errors(&program);
-        assert_eq!(
-            program.statements.len(),
-            2,
-            "Program should be parsed to 3 statements"
-        );
-
-        let first_statement = program.statements.first().expect("Should get statement");
-        assert_eq!(
-            first_statement,
-            &Statement::ReturnStatement(Expression::IntegerLiteral(5))
-        );
-        let second_statement = program.statements.get(1).expect("Should get statement");
-        assert_eq!(
-            second_statement,
-            &Statement::ReturnStatement(create_identifierliteral("foobar"))
-        );
-    }
 
     #[test]
     fn test_integer_expression() {
@@ -787,19 +713,5 @@ mod tests {
 
             assert_eq!(actual.to_string().replace('\n', ""), testcase.expected);
         }
-    }
-
-    fn test_let_statement(
-        found: &Statement,
-        expected_identifier: &Identifier,
-        expected_expression: &Expression,
-    ) {
-        match found {
-            Statement::Assign(assign_statement) => {
-                assert_eq!(&assign_statement.identifier, expected_identifier);
-                assert_eq!(&assign_statement.assignment, expected_expression);
-            }
-            incorrect => panic!("Expected let-statement, but got {incorrect:?}"),
-        };
     }
 }
