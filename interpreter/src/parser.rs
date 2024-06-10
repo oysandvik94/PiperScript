@@ -1,12 +1,12 @@
 mod assign_statement;
-mod ast;
-mod expressions;
-mod lexer;
+pub(crate) mod ast;
+pub(crate) mod expressions;
+pub(crate) mod lexer;
 mod parse_errors;
 mod return_statement;
 
 #[cfg(test)]
-mod test_util;
+pub(crate) mod test_util;
 
 use tracing::{event, span, Level};
 
@@ -24,11 +24,13 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: LexedTokens) -> Parser {
-        Parser { tokens }
+    pub fn parse_tokens(tokens: LexedTokens) -> Program {
+        let mut parser = Parser { tokens };
+
+        parser.parse_program()
     }
 
-    pub fn parse_program(&mut self) -> Program {
+    fn parse_program(&mut self) -> Program {
         let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<ParseError> = Vec::new();
 
@@ -55,7 +57,7 @@ impl Parser {
         }
     }
 
-    pub fn parse_statement(&mut self) -> Result<Statement, ParseError> {
+    fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         match self.tokens.peek() {
             Some(Token::Return) => ReturnStatement::parse_return_statement(self),
             Some(Token::Let) => AssignStatement::parse(self),

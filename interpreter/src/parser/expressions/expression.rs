@@ -273,33 +273,28 @@ mod tests {
 
     #[test]
     fn test_parse_infix() {
-        struct TestCase {
-            input: String,
-            statement: Statement,
-        }
-
         use Expression::*;
         use Operator::*;
 
-        let test_cases: [TestCase; 11] = [
+        let test_cases: Vec<(String, Statement)> = vec![
             (
-                "5 + 5",
+                "5 + 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
             ),
             (
-                "5 - 5",
+                "5 - 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Minus),
             ),
             (
-                "5 * 5",
+                "5 * 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Multiply),
             ),
             (
-                "5 / 5",
+                "5 / 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), DividedBy),
             ),
             (
-                "5 > 5",
+                "5 > 5".to_string(),
                 test_util::create_infix_test_case(
                     IntegerLiteral(5),
                     IntegerLiteral(5),
@@ -307,19 +302,19 @@ mod tests {
                 ),
             ),
             (
-                "5 < 5",
+                "5 < 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), LessThan),
             ),
             (
-                "5 == 5",
+                "5 == 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Equals),
             ),
             (
-                "5 != 5",
+                "5 != 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
             ),
             (
-                "true == true",
+                "true == true".to_string(),
                 test_util::create_infix_test_case(
                     BooleanLiteral(true),
                     BooleanLiteral(true),
@@ -327,7 +322,7 @@ mod tests {
                 ),
             ),
             (
-                "true != false",
+                "true != false".to_string(),
                 test_util::create_infix_test_case(
                     BooleanLiteral(true),
                     BooleanLiteral(false),
@@ -335,30 +330,25 @@ mod tests {
                 ),
             ),
             (
-                "false == false",
+                "false == false".to_string(),
                 test_util::create_infix_test_case(
                     BooleanLiteral(false),
                     BooleanLiteral(false),
                     Equals,
                 ),
             ),
-        ]
-        .map(|(input, statement)| TestCase {
-            input: input.to_string(),
-            statement,
-        });
+        ];
 
-        for test_case in test_cases {
-            let program: Program = test_util::parse_program(&test_case.input);
+        let asserter = |expected: &Statement, input: &String| {
+            let program: Program = test_util::parse_program(input);
+
             test_util::has_parser_errors(&program);
 
-            let statement = program.statements.first().expect("Should be one statement");
+            let actual_statement = program.statements.first().expect("Should be one statement");
 
-            assert_eq!(
-                statement, &test_case.statement,
-                "Parsed statement should match testcase"
-            );
-            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
-        }
+            assert_eq!(actual_statement, expected);
+        };
+
+        test_util::assert_list(test_cases, asserter);
     }
 }

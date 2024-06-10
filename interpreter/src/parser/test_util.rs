@@ -11,6 +11,16 @@ use crate::{
 
 use super::Parser;
 
+pub fn assert_list<T, K, F>(test_cases: Vec<(T, K)>, mut asserter: F)
+where
+    F: FnMut(&K, &T),
+    K: PartialEq + std::fmt::Debug,
+{
+    test_cases.iter().for_each(|(input, expected)| {
+        asserter(expected, input);
+    });
+}
+
 pub fn has_parser_errors(program: &Program) -> bool {
     if program.parse_errors.is_empty() {
         return false;
@@ -26,8 +36,7 @@ pub fn has_parser_errors(program: &Program) -> bool {
 
 pub fn parse_program(source_code: &str) -> Program {
     let tokens = LexedTokens::from(source_code);
-    let mut parser: Parser = Parser::new(tokens);
-    parser.parse_program()
+    Parser::parse_tokens(tokens)
 }
 
 pub fn create_prefix_test_case(right_expression: Expression, operator: Operator) -> Statement {
