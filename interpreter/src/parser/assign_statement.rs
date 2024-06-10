@@ -1,11 +1,11 @@
 use std::fmt::Display;
 
-use crate::{
+use super::{
     ast::{Identifier, Statement},
     expressions::expression::Expression,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
-    parser::Parser,
+    Parser,
 };
 
 #[derive(PartialEq, Debug)]
@@ -40,7 +40,7 @@ impl Display for AssignStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::parser::{
         ast::{Identifier, Program, Statement},
         expressions::expression::Expression,
         test_util::{has_parser_errors, parse_program},

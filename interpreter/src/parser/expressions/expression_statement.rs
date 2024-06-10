@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use tracing::{event, span, Level};
 
-use crate::{
+use crate::parser::{
     ast::Statement,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
-    parser::Parser,
+    Parser,
 };
 
 use super::expression::Expression;

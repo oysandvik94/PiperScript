@@ -1,14 +1,15 @@
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
-    ast::{BlockStatement, Identifier, Operator, Program, Statement},
-    expressions::{
+    parser::ast::{BlockStatement, Identifier, Operator, Program, Statement},
+    parser::expressions::{
         expression::Expression, expression_statement::ExpressionStatement,
         functions::FunctionLiteral, if_expression::IfExpression,
     },
-    lexer::lexedtokens::LexedTokens,
-    parser::Parser,
+    parser::lexer::lexedtokens::LexedTokens,
 };
+
+use super::Parser;
 
 pub fn has_parser_errors(program: &Program) -> bool {
     if program.parse_errors.is_empty() {
@@ -31,7 +32,7 @@ pub fn parse_program(source_code: &str) -> Program {
 
 pub fn create_prefix_test_case(right_expression: Expression, operator: Operator) -> Statement {
     Statement::Expression(ExpressionStatement {
-        expression: Expression::PrefixExpression {
+        expression: Expression::Prefix {
             right: Box::new(right_expression),
             operator,
         },
@@ -44,7 +45,7 @@ pub fn create_infix_test_case(
     operator: Operator,
 ) -> Statement {
     Statement::Expression(ExpressionStatement {
-        expression: Expression::InfixExpression {
+        expression: Expression::Infix {
             left: Box::new(left_expression),
             right: Box::new(right_expression),
             operator,
@@ -83,7 +84,7 @@ pub fn create_infix_expression(
     right_expression: Expression,
     operator: Operator,
 ) -> Expression {
-    Expression::InfixExpression {
+    Expression::Infix {
         right: Box::from(right_expression),
         left: Box::from(left),
         operator,

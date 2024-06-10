@@ -2,11 +2,11 @@ use std::fmt::Display;
 
 use tracing::{event, span, Level};
 
-use crate::{
+use crate::parser::{
     ast::{BlockStatement, Identifier},
     lexer::token::{Precedence, Token},
     parse_errors::{ParseError, TokenExpectation},
-    parser::Parser,
+    Parser,
 };
 
 use super::expression::Expression;
@@ -124,26 +124,23 @@ impl CallExpression {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::parser::{
         ast::{BlockStatement, Operator, Program, Statement},
         expressions::{
             expression::Expression, expression_statement::ExpressionStatement,
             functions::CallExpression,
         },
-        test_util::{
-            create_function_expression, create_identifierliteral, create_infix_expression,
-            has_parser_errors, parse_program, setup_logger,
-        },
+        test_util,
     };
 
     #[test]
     fn test_call_expression() {
-        setup_logger();
+        test_util::setup_logger();
 
         let input = "add(1, 2 * 2, 4 + 5)";
 
-        let program = parse_program(input);
-        if has_parser_errors(&program) {
+        let program = test_util::parse_program(input);
+        if test_util::has_parser_errors(&program) {
             panic!("Failed due to parse errors");
         }
 
@@ -154,19 +151,19 @@ mod tests {
 
         let expected_arguments = Vec::from([
             Expression::IntegerLiteral(1),
-            create_infix_expression(
+            test_util::create_infix_expression(
                 Expression::IntegerLiteral(2),
                 Expression::IntegerLiteral(2),
                 Operator::Multiply,
             ),
-            create_infix_expression(
+            test_util::create_infix_expression(
                 Expression::IntegerLiteral(4),
                 Expression::IntegerLiteral(5),
                 Operator::Plus,
             ),
         ]);
         let expected_statement = Expression::Call(CallExpression {
-            function: Box::from(create_identifierliteral("add")),
+            function: Box::from(test_util::create_identifierliteral("add")),
             arguments: expected_arguments,
         });
         assert_eq!(
@@ -188,13 +185,13 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "fn(x, y): x + y~",
-                create_function_expression(
+                test_util::create_function_expression(
                     Vec::from(["x", "y"]),
                     BlockStatement {
                         statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: create_infix_expression(
-                                create_identifierliteral("x"),
-                                create_identifierliteral("y"),
+                            expression: test_util::create_infix_expression(
+                                test_util::create_identifierliteral("x"),
+                                test_util::create_identifierliteral("y"),
                                 Operator::Plus,
                             ),
                         })]),
@@ -203,15 +200,15 @@ mod tests {
             ),
             (
                 "fn(): x.y.~",
-                create_function_expression(
+                test_util::create_function_expression(
                     Vec::from([]),
                     BlockStatement {
                         statements: Vec::from([
                             Statement::Expression(ExpressionStatement {
-                                expression: create_identifierliteral("x"),
+                                expression: test_util::create_identifierliteral("x"),
                             }),
                             Statement::Expression(ExpressionStatement {
-                                expression: create_identifierliteral("y"),
+                                expression: test_util::create_identifierliteral("y"),
                             }),
                         ]),
                     },
@@ -224,9 +221,9 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = parse_program(&test_case.input);
+            let program: Program = test_util::parse_program(&test_case.input);
 
-            if has_parser_errors(&program) {
+            if test_util::has_parser_errors(&program) {
                 let test_input = test_case.input;
                 println!("Program: {test_input}");
                 panic!("Failed due to parse errors");

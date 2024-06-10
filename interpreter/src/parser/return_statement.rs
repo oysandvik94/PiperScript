@@ -1,12 +1,13 @@
 use std::fmt::Display;
 
 use crate::{
-    ast::Statement,
-    expressions::expression::Expression,
-    lexer::token::{Precedence, Token},
-    parse_errors::ParseError,
-    parser::Parser,
+    parser::ast::Statement,
+    parser::expressions::expression::Expression,
+    parser::lexer::token::{Precedence, Token},
+    parser::parse_errors::ParseError,
 };
+
+use super::Parser;
 
 #[derive(PartialEq, Debug)]
 pub struct ReturnStatement {
@@ -35,11 +36,11 @@ impl Display for ReturnStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::parser::{
         ast::{Program, Statement},
         expressions::expression::Expression,
         return_statement::ReturnStatement,
-        test_util::*,
+        test_util,
     };
 
     #[test]
@@ -49,9 +50,9 @@ mod tests {
             return foobar.
         ";
 
-        let program: Program = parse_program(source_code);
+        let program: Program = test_util::parse_program(source_code);
 
-        has_parser_errors(&program);
+        test_util::has_parser_errors(&program);
         assert_eq!(
             program.statements.len(),
             2,
@@ -69,7 +70,7 @@ mod tests {
         assert_eq!(
             second_statement,
             &Statement::Return(ReturnStatement {
-                return_value: create_identifierliteral("foobar")
+                return_value: test_util::create_identifierliteral("foobar")
             })
         );
     }

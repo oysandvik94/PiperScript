@@ -1,10 +1,10 @@
 use tracing::{event, Level};
 
-use crate::{
+use crate::parser::{
     ast::{BlockStatement, Identifier, Operator, Statement},
     lexer::token::{HasInfix, Precedence, Token},
     parse_errors::{ParseError, TokenExpectation},
-    parser::Parser,
+    Parser,
 };
 
 use super::{
@@ -17,11 +17,11 @@ pub enum Expression {
     IdentifierLiteral(Identifier),
     IntegerLiteral(i32),
     BooleanLiteral(bool),
-    PrefixExpression {
+    Prefix {
         right: Box<Expression>,
         operator: Operator,
     },
-    InfixExpression {
+    Infix {
         left: Box<Expression>,
         right: Box<Expression>,
         operator: Operator,
@@ -103,7 +103,7 @@ impl Expression {
         }?;
 
         let right = Self::parse(parser, token, Precedence::Prefix)?;
-        Ok(Expression::PrefixExpression {
+        Ok(Expression::Prefix {
             right: Box::new(right),
             operator,
         })
@@ -143,7 +143,7 @@ impl Expression {
                 let next_token = parser.tokens.expect()?;
                 let right = Self::parse(parser, next_token, precedence)?;
 
-                Ok(Expression::InfixExpression {
+                Ok(Expression::Infix {
                     left: Box::from(left),
                     right: Box::from(right),
                     operator,
@@ -157,20 +157,18 @@ impl Expression {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::parser::{
         ast::{Identifier, Operator, Program, Statement},
         expressions::{expression::Expression, expression_statement::ExpressionStatement},
-        test_util::{
-            create_infix_test_case, create_prefix_test_case, has_parser_errors, parse_program,
-        },
+        test_util,
     };
 
     #[test]
     fn test_integer_expression() {
         let input: &str = "5.";
 
-        let program: Program = parse_program(input);
-        has_parser_errors(&program);
+        let program: Program = test_util::parse_program(input);
+        test_util::has_parser_errors(&program);
 
         let parsed_statement = program
             .statements
@@ -189,8 +187,8 @@ mod tests {
     fn test_identifier_expression() {
         let input: &str = "foobar.";
 
-        let program: Program = parse_program(input);
-        has_parser_errors(&program);
+        let program: Program = test_util::parse_program(input);
+        test_util::has_parser_errors(&program);
 
         assert_eq!(
             1,
@@ -212,8 +210,8 @@ mod tests {
     fn test_boolean_expression() {
         let input: &str = "true.false.";
 
-        let program: Program = parse_program(input);
-        has_parser_errors(&program);
+        let program: Program = test_util::parse_program(input);
+        test_util::has_parser_errors(&program);
 
         assert_eq!(
             2,
@@ -247,11 +245,11 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "!5.",
-                create_prefix_test_case(Expression::IntegerLiteral(5), Operator::Bang),
+                test_util::create_prefix_test_case(Expression::IntegerLiteral(5), Operator::Bang),
             ),
             (
                 "-15.",
-                create_prefix_test_case(Expression::IntegerLiteral(15), Operator::Minus),
+                test_util::create_prefix_test_case(Expression::IntegerLiteral(15), Operator::Minus),
             ),
         ]
         .map(|(input, statement)| TestCase {
@@ -260,8 +258,8 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = parse_program(&test_case.input);
-            has_parser_errors(&program);
+            let program: Program = test_util::parse_program(&test_case.input);
+            test_util::has_parser_errors(&program);
 
             assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
             let statement = program.statements.first().expect("Should be one statement");
@@ -286,47 +284,63 @@ mod tests {
         let test_cases: [TestCase; 11] = [
             (
                 "5 + 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
             ),
             (
                 "5 - 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Minus),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Minus),
             ),
             (
                 "5 * 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Multiply),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Multiply),
             ),
             (
                 "5 / 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), DividedBy),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), DividedBy),
             ),
             (
                 "5 > 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), GreaterThan),
+                test_util::create_infix_test_case(
+                    IntegerLiteral(5),
+                    IntegerLiteral(5),
+                    GreaterThan,
+                ),
             ),
             (
                 "5 < 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), LessThan),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), LessThan),
             ),
             (
                 "5 == 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Equals),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Equals),
             ),
             (
                 "5 != 5",
-                create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
+                test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
             ),
             (
                 "true == true",
-                create_infix_test_case(BooleanLiteral(true), BooleanLiteral(true), Equals),
+                test_util::create_infix_test_case(
+                    BooleanLiteral(true),
+                    BooleanLiteral(true),
+                    Equals,
+                ),
             ),
             (
                 "true != false",
-                create_infix_test_case(BooleanLiteral(true), BooleanLiteral(false), NotEquals),
+                test_util::create_infix_test_case(
+                    BooleanLiteral(true),
+                    BooleanLiteral(false),
+                    NotEquals,
+                ),
             ),
             (
                 "false == false",
-                create_infix_test_case(BooleanLiteral(false), BooleanLiteral(false), Equals),
+                test_util::create_infix_test_case(
+                    BooleanLiteral(false),
+                    BooleanLiteral(false),
+                    Equals,
+                ),
             ),
         ]
         .map(|(input, statement)| TestCase {
@@ -335,8 +349,8 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = parse_program(&test_case.input);
-            has_parser_errors(&program);
+            let program: Program = test_util::parse_program(&test_case.input);
+            test_util::has_parser_errors(&program);
 
             let statement = program.statements.first().expect("Should be one statement");
 

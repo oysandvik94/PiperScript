@@ -1,6 +1,6 @@
 use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
-use crate::{ast::Identifier, parse_errors::ParseError};
+use crate::{parser::ast::Identifier, parser::parse_errors::ParseError};
 
 use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
 
@@ -141,7 +141,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::lexer::{lexedtokens::LexedTokens, token::Token};
+    use crate::parser::lexer::{lexedtokens::LexedTokens, token::Token};
 
     #[test]
     fn parse_sympols() {

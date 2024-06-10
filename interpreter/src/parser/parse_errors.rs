@@ -2,7 +2,7 @@ use std::{fmt::Display, num::ParseIntError};
 
 use lexer::token::Token;
 
-use crate::lexer;
+use crate::parser::lexer;
 
 #[derive(Debug)]
 pub enum ParseError {
@@ -80,7 +80,9 @@ impl Display for ParseError {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ast::Program, parse_errors::ParseError, test_util::parse_program};
+    use crate::{
+        parser::ast::Program, parser::parse_errors::ParseError, parser::test_util::parse_program,
+    };
 
     #[test]
     fn test_parse_errors() {

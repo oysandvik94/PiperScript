@@ -1,8 +1,8 @@
-use crate::{
+use crate::parser::{
     ast::BlockStatement,
     lexer::token::{Precedence, Token},
     parse_errors::ParseError,
-    parser::Parser,
+    Parser,
 };
 
 use super::expression::Expression;
@@ -53,13 +53,10 @@ impl IfExpression {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
+    use crate::parser::{
         ast::{BlockStatement, Operator, Program, Statement},
         expressions::expression_statement::ExpressionStatement,
-        test_util::{
-            create_identifierliteral, create_if_condition, create_infix_expression,
-            has_parser_errors, parse_program,
-        },
+        test_util,
     };
 
     #[test]
@@ -71,15 +68,15 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "if x < y: x.~",
-                create_if_condition(
-                    create_infix_expression(
-                        create_identifierliteral("x"),
-                        create_identifierliteral("y"),
+                test_util::create_if_condition(
+                    test_util::create_infix_expression(
+                        test_util::create_identifierliteral("x"),
+                        test_util::create_identifierliteral("y"),
                         Operator::LessThan,
                     ),
                     BlockStatement {
                         statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: create_identifierliteral("x"),
+                            expression: test_util::create_identifierliteral("x"),
                         })]),
                     },
                     None,
@@ -87,20 +84,20 @@ mod tests {
             ),
             (
                 "if x > y: x. else: y.~",
-                create_if_condition(
-                    create_infix_expression(
-                        create_identifierliteral("x"),
-                        create_identifierliteral("y"),
+                test_util::create_if_condition(
+                    test_util::create_infix_expression(
+                        test_util::create_identifierliteral("x"),
+                        test_util::create_identifierliteral("y"),
                         Operator::GreaterThan,
                     ),
                     BlockStatement {
                         statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: create_identifierliteral("x"),
+                            expression: test_util::create_identifierliteral("x"),
                         })]),
                     },
                     Some(BlockStatement {
                         statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: create_identifierliteral("y"),
+                            expression: test_util::create_identifierliteral("y"),
                         })]),
                     }),
                 ),
@@ -112,9 +109,9 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = parse_program(&test_case.input);
+            let program: Program = test_util::parse_program(&test_case.input);
 
-            if has_parser_errors(&program) {
+            if test_util::has_parser_errors(&program) {
                 let test_input = test_case.input;
                 println!("Program: {test_input}");
                 panic!("Failed due to parse errors");

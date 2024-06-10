@@ -66,7 +66,7 @@ pub enum ParsedMultipartToken {
 
 use Token::*;
 
-use crate::ast::Operator;
+use crate::parser::ast::Operator;
 
 impl Token {
     pub fn parse_keyword(literal_keyword: &str) -> Token {

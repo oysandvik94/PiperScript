@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{
+use super::{
     assign_statement::AssignStatement,
     expressions::{
         expression::Expression, expression_statement::ExpressionStatement,
@@ -89,8 +89,8 @@ impl Display for Expression {
         match self {
             Expression::IdentifierLiteral(ident) => write!(f, "{ident}"),
             Expression::IntegerLiteral(integerd_literal) => write!(f, "{integerd_literal}"),
-            Expression::PrefixExpression { right, operator } => write!(f, "({operator}{right})"),
-            Expression::InfixExpression {
+            Expression::Prefix { right, operator } => write!(f, "({operator}{right})"),
+            Expression::Infix {
                 left,
                 right,
                 operator,
@@ -148,11 +148,10 @@ impl Display for Operator {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        assign_statement::AssignStatement,
-        ast::{Expression, Identifier},
-        return_statement::ReturnStatement,
-        test_util::create_identifierliteral,
+
+    use crate::parser::{
+        assign_statement::AssignStatement, ast::Identifier, expressions::expression::Expression,
+        return_statement::ReturnStatement, test_util,
     };
 
     use super::{Program, Statement};
@@ -166,7 +165,7 @@ mod tests {
                     assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
                 }),
                 Statement::Return(ReturnStatement {
-                    return_value: create_identifierliteral("hey"),
+                    return_value: test_util::create_identifierliteral("hey"),
                 }),
             ]),
             parse_errors: Vec::new(),

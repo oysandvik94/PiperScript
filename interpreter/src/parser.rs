@@ -1,12 +1,22 @@
+mod assign_statement;
+mod ast;
+mod expressions;
+mod lexer;
+mod parse_errors;
+mod return_statement;
+
+#[cfg(test)]
+mod test_util;
+
 use tracing::{event, span, Level};
 
 use crate::{
-    assign_statement::AssignStatement,
-    ast::{Program, Statement},
-    expressions::expression_statement::ExpressionStatement,
-    lexer::{lexedtokens::LexedTokens, token::Token},
-    parse_errors::ParseError,
-    return_statement::ReturnStatement,
+    parser::assign_statement::AssignStatement,
+    parser::ast::{Program, Statement},
+    parser::expressions::expression_statement::ExpressionStatement,
+    parser::lexer::{lexedtokens::LexedTokens, token::Token},
+    parser::parse_errors::ParseError,
+    parser::return_statement::ReturnStatement,
 };
 
 pub struct Parser {
@@ -57,8 +67,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::test_util::{has_parser_errors, parse_program};
+    use crate::parser::test_util;
 
     #[test]
     fn test_operator_precedence() {
@@ -107,9 +116,9 @@ mod tests {
         });
 
         for testcase in test_cases {
-            let actual = parse_program(&testcase.input);
+            let actual = test_util::parse_program(&testcase.input);
 
-            if has_parser_errors(&actual) {
+            if test_util::has_parser_errors(&actual) {
                 let expected = testcase.expected;
                 println!("{expected}");
                 panic!("Found parser errors");
