@@ -59,12 +59,17 @@ fn eval_prefix_expression(
     right: &Expression,
     operator: &PrefixOperator,
 ) -> Result<Object, EvalError> {
+    let right = right.eval()?;
     match operator {
-        PrefixOperator::Bang => {
-            let right = right.eval()?;
-            eval_bang_operator_expression(&right)
-        }
-        PrefixOperator::Minus => todo!(),
+        PrefixOperator::Bang => eval_bang_operator_expression(&right),
+        PrefixOperator::Minus => eval_minus_operator_expression(&right),
+    }
+}
+
+fn eval_minus_operator_expression(right: &Object) -> Result<Object, EvalError> {
+    match right {
+        Object::Integer(integer_value) => Ok(Object::Integer(-integer_value)),
+        unexpected_object => Err(EvalError::IncorrectBangSuffix(unexpected_object.clone())),
     }
 }
 
@@ -84,7 +89,7 @@ mod tests {
 
     #[test]
     fn eval_integer_expression_test() {
-        let input_expected: Vec<(&str, i32)> = vec![("5", 5), ("10", 10)];
+        let input_expected: Vec<(&str, i32)> = vec![("5", 5), ("10", 10), ("-5", -5), ("-10", -10)];
 
         let asserter = |expected: &i32, input: &&str| {
             let object = eval::eval(input).expect("Eval failed");
