@@ -64,12 +64,37 @@ fn eval_infix_expression(
     left: Object,
     right: Object,
 ) -> Result<Object, EvalError> {
+    use Object::*;
     match (left, right) {
-        (Object::Integer(left_integer), Object::Integer(right_integer)) => {
+        (Integer(left_integer), Integer(right_integer)) => {
             eval_integer_infix_expression(left_integer, right_integer, operator)
         }
-        _ => todo!(),
+        (Boolean(left_boolean), Boolean(right_boolean)) => {
+            eval_boolean_infix_expression(left_boolean, right_boolean, operator)
+        }
+        (unexpected_left, unexpected_right) => Err(EvalError::InfixRightLeft(
+            unexpected_left.clone(),
+            unexpected_right.clone(),
+        )),
     }
+}
+
+fn eval_boolean_infix_expression(
+    left_boolean: bool,
+    right_boolean: bool,
+    operator: &Operator,
+) -> Result<Object, EvalError> {
+    use Object::*;
+
+    Ok(match operator {
+        Operator::Equals => Boolean(left_boolean == right_boolean),
+        Operator::NotEquals => Boolean(left_boolean != right_boolean),
+        unsupported_operator => {
+            return Err(EvalError::BooleanInfixOperator(
+                unsupported_operator.clone(),
+            ))
+        }
+    })
 }
 
 fn eval_integer_infix_expression(
@@ -77,17 +102,23 @@ fn eval_integer_infix_expression(
     right_integer: i32,
     operator: &crate::parser::ast::Operator,
 ) -> Result<Object, EvalError> {
-    Ok(Object::Integer(match operator {
-        Operator::Minus => left_integer - right_integer,
-        Operator::Plus => left_integer + right_integer,
-        Operator::Multiply => left_integer * right_integer,
-        Operator::DividedBy => left_integer / right_integer,
+    use Object::*;
+
+    Ok(match operator {
+        Operator::Minus => Integer(left_integer - right_integer),
+        Operator::Plus => Integer(left_integer + right_integer),
+        Operator::Multiply => Integer(left_integer * right_integer),
+        Operator::DividedBy => Integer(left_integer / right_integer),
+        Operator::LessThan => Boolean(left_integer < right_integer),
+        Operator::GreaterThan => Boolean(left_integer > right_integer),
+        Operator::Equals => Boolean(left_integer == right_integer),
+        Operator::NotEquals => Boolean(left_integer != right_integer),
         unexpected_operator => {
             return Err(EvalError::IntegerInfixOperatorError(
                 unexpected_operator.clone(),
             ));
         }
-    }))
+    })
 }
 
 fn eval_prefix_expression(
@@ -158,7 +189,27 @@ mod tests {
 
     #[test]
     fn eval_boolean_expression_test() {
-        let input_expected: Vec<(&str, bool)> = vec![("true", true), ("false", false)];
+        let input_expected: Vec<(&str, bool)> = vec![
+            ("true", true),
+            ("false", false),
+            ("1 < 2", true),
+            ("1 > 2", false),
+            ("1 < 1", false),
+            ("1 > 1", false),
+            ("1 == 1", true),
+            ("1 != 1", false),
+            ("1 == 2", false),
+            ("1 != 2", true),
+            ("true == true", true),
+            ("false == false", true),
+            ("true == false", false),
+            ("true != false", true),
+            ("false != true", true),
+            ("(1 < 2) == true", true),
+            ("(1 < 2) == false", false),
+            ("(1 > 2) == true", false),
+            ("(1 > 2) == false", true),
+        ];
 
         let asserter = |expected: &bool, input: &&str| {
             let object = eval::eval(input).expect("Eval failed");
