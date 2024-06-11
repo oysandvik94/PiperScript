@@ -29,6 +29,12 @@ pub struct BlockStatement {
 }
 
 #[derive(PartialEq, Debug)]
+pub enum PrefixOperator {
+    Bang,
+    Minus,
+}
+
+#[derive(PartialEq, Debug)]
 pub enum Operator {
     Bang,
     Minus,
@@ -88,7 +94,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Expression::IdentifierLiteral(ident) => write!(f, "{ident}"),
-            Expression::IntegerLiteral(integerd_literal) => write!(f, "{integerd_literal}"),
+            Expression::IntegerLiteral(integer_literal) => write!(f, "{integer_literal}"),
             Expression::Prefix { right, operator } => write!(f, "({operator}{right})"),
             Expression::Infix {
                 left,
@@ -127,6 +133,15 @@ impl Display for Expression {
 impl Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+impl Display for PrefixOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrefixOperator::Bang => write!(f, "!"),
+            PrefixOperator::Minus => write!(f, "-"),
+        }
     }
 }
 

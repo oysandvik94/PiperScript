@@ -1,5 +1,5 @@
 use crate::parser::{
-    ast::{Program, Statement},
+    ast::{PrefixOperator, Program, Statement},
     expressions::{expression::Expression, expression_statement::ExpressionStatement},
 };
 
@@ -42,10 +42,7 @@ impl Evaluable for Expression {
             Expression::IntegerLiteral(number) => Ok(Integer(*number)),
             Expression::IdentifierLiteral(_) => todo!(),
             Expression::BooleanLiteral(boolean) => Ok(Boolean(*boolean)),
-            Expression::Prefix {
-                right: _,
-                operator: _,
-            } => todo!(),
+            Expression::Prefix { right, operator } => eval_prefix_expression(right, operator),
             Expression::Infix {
                 left: _,
                 right: _,
@@ -55,6 +52,26 @@ impl Evaluable for Expression {
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
         }
+    }
+}
+
+fn eval_prefix_expression(
+    right: &Expression,
+    operator: &PrefixOperator,
+) -> Result<Object, EvalError> {
+    match operator {
+        PrefixOperator::Bang => {
+            let right = right.eval()?;
+            eval_bang_operator_expression(&right)
+        }
+        PrefixOperator::Minus => todo!(),
+    }
+}
+
+fn eval_bang_operator_expression(right: &Object) -> Result<Object, EvalError> {
+    match right {
+        Object::Boolean(boolean_value) => Ok(Object::Boolean(!boolean_value)),
+        unexpected_object => Err(EvalError::IncorrectBangSuffix(unexpected_object.clone())),
     }
 }
 
@@ -97,5 +114,24 @@ mod tests {
         };
 
         test_util::assert_list(input_expected, asserter);
+    }
+
+    #[test]
+    fn eval_bang_operator_test() {
+        let input_expected: Vec<(&str, bool)> = vec![
+            ("!true", false),
+            ("!false", true),
+            ("!!true", true),
+            ("!!false", false),
+        ];
+
+        test_util::assert_list(input_expected, |expected: &bool, input: &&str| {
+            let object = eval::eval(input).expect("Eval failed");
+
+            match object {
+                Object::Boolean(boolean) => assert_eq!(expected, &boolean),
+                something_else => panic!("Expected boolean, got {something_else}"),
+            }
+        });
     }
 }

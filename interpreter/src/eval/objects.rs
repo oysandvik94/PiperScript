@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[derive(Debug, Clone)]
 pub enum Object {
     Integer(i32),
     Boolean(bool),

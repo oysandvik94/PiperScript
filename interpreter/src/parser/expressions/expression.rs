@@ -1,7 +1,7 @@
 use tracing::{event, Level};
 
 use crate::parser::{
-    ast::{BlockStatement, Identifier, Operator, Statement},
+    ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
     lexer::token::{HasInfix, Precedence, Token},
     parse_errors::{ParseError, TokenExpectation},
     Parser,
@@ -19,7 +19,7 @@ pub enum Expression {
     BooleanLiteral(bool),
     Prefix {
         right: Box<Expression>,
-        operator: Operator,
+        operator: PrefixOperator,
     },
     Infix {
         left: Box<Expression>,
@@ -71,8 +71,8 @@ impl Expression {
                 Ok(parsed_number) => Ok(Expression::IntegerLiteral(parsed_number)),
                 Err(error) => Err(ParseError::ParseIntegerError(token.clone(), error)),
             },
-            Token::Bang => Self::create_prefix_expression(parser, Operator::Bang),
-            Token::Minus => Self::create_prefix_expression(parser, Operator::Minus),
+            Token::Bang => Self::create_prefix_expression(parser, PrefixOperator::Bang),
+            Token::Minus => Self::create_prefix_expression(parser, PrefixOperator::Minus),
             Token::LParen => Self::create_grouped_expression(parser),
             Token::If => IfExpression::parse_if_expression(parser),
             Token::Func => FunctionLiteral::parse(parser),
@@ -95,7 +95,7 @@ impl Expression {
 
     fn create_prefix_expression(
         parser: &mut Parser,
-        operator: Operator,
+        operator: PrefixOperator,
     ) -> Result<Expression, ParseError> {
         let token = match parser.tokens.consume() {
             Some(token) => Ok(token),
@@ -158,7 +158,7 @@ impl Expression {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{Identifier, Operator, Program, Statement},
+        ast::{Identifier, Operator, PrefixOperator, Program, Statement},
         expressions::{expression::Expression, expression_statement::ExpressionStatement},
         test_util,
     };
@@ -245,11 +245,17 @@ mod tests {
         let test_cases: [TestCase; 2] = [
             (
                 "!5.",
-                test_util::create_prefix_test_case(Expression::IntegerLiteral(5), Operator::Bang),
+                test_util::create_prefix_test_case(
+                    Expression::IntegerLiteral(5),
+                    PrefixOperator::Bang,
+                ),
             ),
             (
                 "-15.",
-                test_util::create_prefix_test_case(Expression::IntegerLiteral(15), Operator::Minus),
+                test_util::create_prefix_test_case(
+                    Expression::IntegerLiteral(15),
+                    PrefixOperator::Minus,
+                ),
             ),
         ]
         .map(|(input, statement)| TestCase {

@@ -9,7 +9,7 @@ use crate::{
     parser::lexer::lexedtokens::LexedTokens,
 };
 
-use super::Parser;
+use super::{ast::PrefixOperator, Parser};
 
 pub fn assert_list<T, K, F>(test_cases: Vec<(T, K)>, mut asserter: F)
 where
@@ -39,7 +39,10 @@ pub fn parse_program(source_code: &str) -> Program {
     Parser::parse_tokens(tokens)
 }
 
-pub fn create_prefix_test_case(right_expression: Expression, operator: Operator) -> Statement {
+pub fn create_prefix_test_case(
+    right_expression: Expression,
+    operator: PrefixOperator,
+) -> Statement {
     Statement::Expression(ExpressionStatement {
         expression: Expression::Prefix {
             right: Box::new(right_expression),
