@@ -1,11 +1,14 @@
 use std::fmt::Display;
 
+use crate::parser::ast::Operator;
+
 use super::objects::Object;
 
 #[derive(Debug)]
 pub enum EvalError {
     EmptyProgram,
     IncorrectBangSuffix(Object),
+    IntegerInfixOperatorError(Operator),
 }
 
 impl Display for EvalError {
@@ -14,6 +17,9 @@ impl Display for EvalError {
             EvalError::EmptyProgram => write!(f, "Program contained no code"),
             EvalError::IncorrectBangSuffix(object) => {
                 write!(f, "! can not be followed by {object}")
+            }
+            EvalError::IntegerInfixOperatorError(operator) => {
+                write!(f, "Operator {operator} is not supported for numbers")
             }
         }
     }

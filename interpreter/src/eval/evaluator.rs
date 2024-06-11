@@ -1,5 +1,5 @@
 use crate::parser::{
-    ast::{PrefixOperator, Program, Statement},
+    ast::{Operator, PrefixOperator, Program, Statement},
     expressions::{expression::Expression, expression_statement::ExpressionStatement},
 };
 
@@ -44,15 +44,50 @@ impl Evaluable for Expression {
             Expression::BooleanLiteral(boolean) => Ok(Boolean(*boolean)),
             Expression::Prefix { right, operator } => eval_prefix_expression(right, operator),
             Expression::Infix {
-                left: _,
-                right: _,
-                operator: _,
-            } => todo!(),
+                left,
+                right,
+                operator,
+            } => {
+                let left = left.eval()?;
+                let right = right.eval()?;
+                eval_infix_expression(operator, left, right)
+            }
             Expression::If(_) => todo!(),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
         }
     }
+}
+
+fn eval_infix_expression(
+    operator: &crate::parser::ast::Operator,
+    left: Object,
+    right: Object,
+) -> Result<Object, EvalError> {
+    match (left, right) {
+        (Object::Integer(left_integer), Object::Integer(right_integer)) => {
+            eval_integer_infix_expression(left_integer, right_integer, operator)
+        }
+        _ => todo!(),
+    }
+}
+
+fn eval_integer_infix_expression(
+    left_integer: i32,
+    right_integer: i32,
+    operator: &crate::parser::ast::Operator,
+) -> Result<Object, EvalError> {
+    Ok(Object::Integer(match operator {
+        Operator::Minus => left_integer - right_integer,
+        Operator::Plus => left_integer + right_integer,
+        Operator::Multiply => left_integer * right_integer,
+        Operator::DividedBy => left_integer / right_integer,
+        unexpected_operator => {
+            return Err(EvalError::IntegerInfixOperatorError(
+                unexpected_operator.clone(),
+            ));
+        }
+    }))
 }
 
 fn eval_prefix_expression(
@@ -89,7 +124,23 @@ mod tests {
 
     #[test]
     fn eval_integer_expression_test() {
-        let input_expected: Vec<(&str, i32)> = vec![("5", 5), ("10", 10), ("-5", -5), ("-10", -10)];
+        let input_expected: Vec<(&str, i32)> = vec![
+            ("5", 5),
+            ("10", 10),
+            ("-5", -5),
+            ("-10", -10),
+            ("5 + 5 + 5 + 5 - 10", 10),
+            ("2 * 2 * 2 * 2 * 2", 32),
+            ("-50 + 100 + -50", 0),
+            ("5 * 2 + 10", 20),
+            ("5 + 2 * 10", 25),
+            ("20 + 2 * -10", 0),
+            ("50 / 2 * 2 + 10", 60),
+            ("2 * (5 + 10)", 30),
+            ("3 * 3 * 3 + 10", 37),
+            ("3 * (3 * 3) + 10", 37),
+            ("(5 + 10 * 2 + 15 / 3) * 2 + -10", 50),
+        ];
 
         let asserter = |expected: &i32, input: &&str| {
             let object = eval::eval(input).expect("Eval failed");

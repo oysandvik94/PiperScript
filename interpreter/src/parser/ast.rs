@@ -34,7 +34,7 @@ pub enum PrefixOperator {
     Minus,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Operator {
     Bang,
     Minus,
