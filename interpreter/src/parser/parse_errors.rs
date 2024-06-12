@@ -80,9 +80,7 @@ impl Display for ParseError {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        parser::ast::Program, parser::parse_errors::ParseError, parser::test_util::parse_program,
-    };
+    use crate::parser::{parse_errors::ParseError, test_util::parse_program, ParsedProgram};
 
     #[test]
     fn test_parse_errors() {
@@ -90,10 +88,15 @@ mod tests {
             foo: .
         ";
 
-        let program: Program = parse_program(source_code);
+        let program = parse_program(source_code);
 
-        program.parse_errors.iter().for_each(|parse_error| {
-            assert!(matches!(parse_error, ParseError::NoPrefixExpression(_)))
-        });
+        match program {
+            ParsedProgram::ValidProgram(_) => panic!("Program did not fail"),
+            ParsedProgram::InvalidProgram(parse_errors) => {
+                parse_errors.iter().for_each(|parse_error| {
+                    assert!(matches!(parse_error, ParseError::NoPrefixExpression(_)))
+                });
+            }
+        }
     }
 }

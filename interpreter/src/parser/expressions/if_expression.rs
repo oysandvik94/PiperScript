@@ -54,7 +54,7 @@ impl IfExpression {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{BlockStatement, Operator, Program, Statement},
+        ast::{BlockStatement, Operator, Statement},
         expressions::expression_statement::ExpressionStatement,
         test_util,
     };
@@ -109,21 +109,14 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = test_util::parse_program(&test_case.input);
+            let statements = test_util::expect_parsed_program(&test_case.input);
 
-            if test_util::has_parser_errors(&program) {
-                let test_input = test_case.input;
-                println!("Program: {test_input}");
-                panic!("Failed due to parse errors");
-            }
-
-            let statement = program.statements.first().expect("Should be one statement");
+            let statement = statements.first().expect("Should be one statement");
 
             assert_eq!(
                 statement, &test_case.expected,
                 "Parsed statement should match testcase"
             );
-            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
         }
     }
 }

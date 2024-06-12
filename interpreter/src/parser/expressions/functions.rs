@@ -125,7 +125,7 @@ impl CallExpression {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{BlockStatement, Operator, Program, Statement},
+        ast::{BlockStatement, Operator, Statement},
         expressions::{
             expression::Expression, expression_statement::ExpressionStatement,
             functions::CallExpression,
@@ -144,10 +144,8 @@ mod tests {
             panic!("Failed due to parse errors");
         }
 
-        let statement = program
-            .statements
-            .first()
-            .expect("Expected a statement to be parsed");
+        let binding = test_util::expect_parsed_program(input);
+        let statement = binding.first().expect("Should parse one statement");
 
         let expected_arguments = Vec::from([
             Expression::IntegerLiteral(1),
@@ -173,7 +171,6 @@ mod tests {
             }),
             "Parsed statement should match testcase"
         );
-        assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
     }
 
     #[test]
@@ -221,21 +218,13 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = test_util::parse_program(&test_case.input);
-
-            if test_util::has_parser_errors(&program) {
-                let test_input = test_case.input;
-                println!("Program: {test_input}");
-                panic!("Failed due to parse errors");
-            }
-
-            let statement = program.statements.first().expect("Should be one statement");
+            let binding = test_util::expect_parsed_program(&test_case.input);
+            let statement = binding.first().expect("Should parse one statement");
 
             assert_eq!(
                 statement, &test_case.expected,
                 "Parsed statement should match testcase"
             );
-            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
         }
     }
 }

@@ -2,7 +2,7 @@ mod assign_statement;
 pub(crate) mod ast;
 pub(crate) mod expressions;
 pub(crate) mod lexer;
-mod parse_errors;
+pub(crate) mod parse_errors;
 mod return_statement;
 
 #[cfg(test)]
@@ -12,7 +12,7 @@ use tracing::{event, span, Level};
 
 use crate::{
     parser::assign_statement::AssignStatement,
-    parser::ast::{Program, Statement},
+    parser::ast::Statement,
     parser::expressions::expression_statement::ExpressionStatement,
     parser::lexer::{lexedtokens::LexedTokens, token::Token},
     parser::parse_errors::ParseError,
@@ -23,14 +23,19 @@ pub struct Parser {
     pub tokens: LexedTokens,
 }
 
+pub enum ParsedProgram {
+    ValidProgram(Vec<Statement>),
+    InvalidProgram(Vec<ParseError>),
+}
+
 impl Parser {
-    pub fn parse_tokens(tokens: LexedTokens) -> Program {
+    pub fn parse_tokens(tokens: LexedTokens) -> ParsedProgram {
         let mut parser = Parser { tokens };
 
         parser.parse_program()
     }
 
-    fn parse_program(&mut self) -> Program {
+    fn parse_program(&mut self) -> ParsedProgram {
         let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<ParseError> = Vec::new();
 
@@ -51,10 +56,11 @@ impl Parser {
             };
         }
 
-        Program {
-            statements,
-            parse_errors,
+        if !parse_errors.is_empty() {
+            return ParsedProgram::InvalidProgram(parse_errors);
         }
+
+        ParsedProgram::ValidProgram(statements)
     }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {

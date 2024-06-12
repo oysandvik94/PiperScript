@@ -1,15 +1,19 @@
+use tracing::error;
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
-    parser::ast::{BlockStatement, Identifier, Operator, Program, Statement},
-    parser::expressions::{
-        expression::Expression, expression_statement::ExpressionStatement,
-        functions::FunctionLiteral, if_expression::IfExpression,
+    eval::{self, objects::Object, EvaledProgram},
+    parser::{
+        ast::{BlockStatement, Identifier, Operator, Statement},
+        expressions::{
+            expression::Expression, expression_statement::ExpressionStatement,
+            functions::FunctionLiteral, if_expression::IfExpression,
+        },
+        lexer::lexedtokens::LexedTokens,
     },
-    parser::lexer::lexedtokens::LexedTokens,
 };
 
-use super::{ast::PrefixOperator, Parser};
+use super::{ast::PrefixOperator, ParsedProgram, Parser};
 
 pub fn assert_list<T, K, F>(test_cases: Vec<(T, K)>, mut asserter: F)
 where
@@ -21,22 +25,52 @@ where
     });
 }
 
-pub fn has_parser_errors(program: &Program) -> bool {
-    if program.parse_errors.is_empty() {
-        return false;
-    }
+pub fn has_parser_errors(program: &ParsedProgram) -> bool {
+    match program {
+        ParsedProgram::ValidProgram(_) => false,
+        ParsedProgram::InvalidProgram(parse_errors) => {
+            eprintln!("Found parser errors:");
+            for parse_error in parse_errors {
+                eprintln!("parser error: {parse_error}");
+            }
 
-    eprintln!("Found parser errors:");
-    for parse_error in &program.parse_errors {
-        eprintln!("parser error: {parse_error}");
+            true
+        }
     }
-
-    true
 }
 
-pub fn parse_program(source_code: &str) -> Program {
+pub fn parse_program(source_code: &str) -> ParsedProgram {
     let tokens = LexedTokens::from(source_code);
     Parser::parse_tokens(tokens)
+}
+
+pub fn expect_evaled_program(source_code: &str) -> Object {
+    match eval::eval(source_code) {
+        EvaledProgram::ParseError(parse_errors) => {
+            parse_errors.into_iter().for_each(|ele| {
+                error!("{ele}");
+            });
+            panic!("Eval failed with parse errors")
+        }
+        EvaledProgram::EvalError(eval_errors) => {
+            error!("{eval_errors}");
+            panic!("Eval failed with runtime errors")
+        }
+        EvaledProgram::Valid(valid_program) => valid_program,
+    }
+}
+
+pub fn expect_parsed_program(source_code: &str) -> Vec<Statement> {
+    let tokens = LexedTokens::from(source_code);
+    match Parser::parse_tokens(tokens) {
+        ParsedProgram::ValidProgram(valid_statements) => valid_statements,
+        ParsedProgram::InvalidProgram(parse_errors) => {
+            parse_errors.into_iter().for_each(|ele| {
+                error!("{ele}");
+            });
+            panic!("Eval failed with parse errors")
+        }
+    }
 }
 
 pub fn create_prefix_test_case(

@@ -37,9 +37,7 @@ impl Display for ReturnStatement {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{Program, Statement},
-        expressions::expression::Expression,
-        return_statement::ReturnStatement,
+        ast::Statement, expressions::expression::Expression, return_statement::ReturnStatement,
         test_util,
     };
 
@@ -50,23 +48,22 @@ mod tests {
             return foobar.
         ";
 
-        let program: Program = test_util::parse_program(source_code);
+        let statements = test_util::expect_parsed_program(source_code);
 
-        test_util::has_parser_errors(&program);
         assert_eq!(
-            program.statements.len(),
+            statements.len(),
             2,
             "Program should be parsed to 3 statements"
         );
 
-        let first_statement = program.statements.first().expect("Should get statement");
+        let first_statement = statements.first().expect("Should get statement");
         assert_eq!(
             first_statement,
             &Statement::Return(ReturnStatement {
                 return_value: Expression::IntegerLiteral(5)
             })
         );
-        let second_statement = program.statements.get(1).expect("Should get statement");
+        let second_statement = statements.get(1).expect("Should get statement");
         assert_eq!(
             second_statement,
             &Statement::Return(ReturnStatement {

@@ -9,12 +9,8 @@ use super::{
     lexer::token::Token,
     parse_errors::ParseError,
     return_statement::ReturnStatement,
+    ParsedProgram,
 };
-
-pub struct Program {
-    pub statements: Vec<Statement>,
-    pub parse_errors: Vec<ParseError>,
-}
 
 #[derive(PartialEq, Debug)]
 pub enum Statement {
@@ -62,10 +58,19 @@ impl Identifier {
     }
 }
 
-impl Display for Program {
+impl Display for ParsedProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for statement in &self.statements {
-            writeln!(f, "{}", statement)?;
+        match self {
+            ParsedProgram::ValidProgram(statements) => {
+                for statement in statements {
+                    writeln!(f, "{}", statement)?;
+                }
+            }
+            ParsedProgram::InvalidProgram(errors) => {
+                for error in errors {
+                    writeln!(f, "{}", error)?;
+                }
+            }
         }
 
         Ok(())
@@ -166,25 +171,22 @@ mod tests {
 
     use crate::parser::{
         assign_statement::AssignStatement, ast::Identifier, expressions::expression::Expression,
-        return_statement::ReturnStatement, test_util,
+        return_statement::ReturnStatement, test_util, ParsedProgram,
     };
 
-    use super::{Program, Statement};
+    use super::Statement;
 
     #[test]
     fn test_display() {
-        let program: Program = Program {
-            statements: Vec::from([
-                Statement::Assign(AssignStatement {
-                    identifier: Identifier(String::from("foo")),
-                    assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
-                }),
-                Statement::Return(ReturnStatement {
-                    return_value: test_util::create_identifierliteral("hey"),
-                }),
-            ]),
-            parse_errors: Vec::new(),
-        };
+        let program: ParsedProgram = ParsedProgram::ValidProgram(Vec::from([
+            Statement::Assign(AssignStatement {
+                identifier: Identifier(String::from("foo")),
+                assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
+            }),
+            Statement::Return(ReturnStatement {
+                return_value: test_util::create_identifierliteral("hey"),
+            }),
+        ]));
 
         let expected_program: &str = "let foo: bar.
 return hey

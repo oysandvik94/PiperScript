@@ -41,9 +41,9 @@ impl Display for AssignStatement {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{Identifier, Program, Statement},
+        ast::{Identifier, Statement},
         expressions::expression::Expression,
-        test_util::{has_parser_errors, parse_program},
+        test_util::{self},
     };
 
     #[test]
@@ -54,11 +54,10 @@ mod tests {
             let foobar: 54456.
         ";
 
-        let program: Program = parse_program(source_code);
+        let statements = test_util::expect_parsed_program(source_code);
 
-        has_parser_errors(&program);
         assert_eq!(
-            program.statements.len(),
+            statements.len(),
             3,
             "Program should be parsed to 3 statements"
         );
@@ -79,7 +78,7 @@ mod tests {
             .iter()
             .enumerate()
             .for_each(|(idx, ident)| {
-                assert_let_statement(&program.statements[idx], ident, &expected_expression[idx])
+                assert_let_statement(&statements[idx], ident, &expected_expression[idx])
             });
     }
 

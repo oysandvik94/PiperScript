@@ -1,5 +1,5 @@
 use crate::parser::{
-    ast::{Operator, PrefixOperator, Program, Statement},
+    ast::{Operator, PrefixOperator, Statement},
     expressions::{expression::Expression, expression_statement::ExpressionStatement},
 };
 
@@ -7,21 +7,6 @@ use super::{eval_error::EvalError, objects::Object};
 
 pub(crate) trait Evaluable {
     fn eval(&self) -> Result<Object, EvalError>;
-}
-
-impl Evaluable for Program {
-    fn eval(&self) -> Result<Object, EvalError> {
-        let mut object: Option<Object> = None;
-
-        for statement in &self.statements {
-            object = Some(statement.eval()?);
-        }
-
-        match object {
-            Some(object) => Ok(object),
-            None => Err(EvalError::EmptyProgram),
-        }
-    }
 }
 
 impl Evaluable for Statement {
@@ -148,10 +133,7 @@ fn eval_bang_operator_expression(right: &Object) -> Result<Object, EvalError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        eval::{self, objects::Object},
-        parser::test_util,
-    };
+    use crate::{eval::objects::Object, parser::test_util};
 
     #[test]
     fn eval_integer_expression_test() {
@@ -174,7 +156,7 @@ mod tests {
         ];
 
         let asserter = |expected: &i32, input: &&str| {
-            let object = eval::eval(input).expect("Eval failed");
+            let object = test_util::expect_evaled_program(input);
 
             match object {
                 Object::Integer(number) => assert_eq!(&number, expected),
@@ -212,7 +194,7 @@ mod tests {
         ];
 
         let asserter = |expected: &bool, input: &&str| {
-            let object = eval::eval(input).expect("Eval failed");
+            let object = test_util::expect_evaled_program(input);
 
             match object {
                 Object::Boolean(boolean) => assert_eq!(expected, &boolean),
@@ -233,7 +215,7 @@ mod tests {
         ];
 
         test_util::assert_list(input_expected, |expected: &bool, input: &&str| {
-            let object = eval::eval(input).expect("Eval failed");
+            let object = test_util::expect_evaled_program(input);
 
             match object {
                 Object::Boolean(boolean) => assert_eq!(expected, &boolean),

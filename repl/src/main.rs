@@ -1,6 +1,6 @@
 use std::io::{stdin, stdout, Write};
 
-use interpreter::eval::{self};
+use interpreter::eval::{self, EvaledProgram};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<(), std::io::Error> {
@@ -24,10 +24,15 @@ fn main() -> Result<(), std::io::Error> {
                 let evaluated_output = eval::eval(input);
 
                 match evaluated_output {
-                    Ok(output) => println!("{output}"),
-                    Err(error) => {
-                        println!("Runtime error:");
-                        println!("{error}");
+                    EvaledProgram::Valid(object) => println!("{object}"),
+                    EvaledProgram::ParseError(parse_errors) => {
+                        eprintln!("Found parse errors:");
+                        parse_errors.into_iter().for_each(|error| {
+                            eprintln!("{error}");
+                        });
+                    }
+                    EvaledProgram::EvalError(runtime_error) => {
+                        eprintln!("Runtime error: {runtime_error}")
                     }
                 }
             }

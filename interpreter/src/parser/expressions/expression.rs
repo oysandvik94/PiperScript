@@ -158,7 +158,7 @@ impl Expression {
 #[cfg(test)]
 mod tests {
     use crate::parser::{
-        ast::{Identifier, Operator, PrefixOperator, Program, Statement},
+        ast::{Identifier, Operator, PrefixOperator, Statement},
         expressions::{expression::Expression, expression_statement::ExpressionStatement},
         test_util,
     };
@@ -167,13 +167,9 @@ mod tests {
     fn test_integer_expression() {
         let input: &str = "5.";
 
-        let program: Program = test_util::parse_program(input);
-        test_util::has_parser_errors(&program);
+        let statements = test_util::expect_parsed_program(input);
 
-        let parsed_statement = program
-            .statements
-            .first()
-            .expect("Should only have one statement");
+        let parsed_statement = statements.first().expect("Should only have one statement");
 
         assert!(matches!(
             parsed_statement,
@@ -187,16 +183,15 @@ mod tests {
     fn test_identifier_expression() {
         let input: &str = "foobar.";
 
-        let program: Program = test_util::parse_program(input);
-        test_util::has_parser_errors(&program);
+        let statements = test_util::expect_parsed_program(input);
 
         assert_eq!(
             1,
-            program.statements.len(),
+            statements.len(),
             "Should only have parsed one expression statement"
         );
 
-        let parsed_statement = program.statements.first().expect("Already checked length");
+        let parsed_statement = statements.first().expect("Already checked length");
 
         assert!(matches!(
             parsed_statement,
@@ -210,16 +205,15 @@ mod tests {
     fn test_boolean_expression() {
         let input: &str = "true.false.";
 
-        let program: Program = test_util::parse_program(input);
-        test_util::has_parser_errors(&program);
+        let statements = test_util::expect_parsed_program(input);
 
         assert_eq!(
             2,
-            program.statements.len(),
+            statements.len(),
             "Should only have parsed one expression statement"
         );
 
-        let parsed_statement = program.statements.first().expect("Already checked length");
+        let parsed_statement = statements.first().expect("Already checked length");
 
         assert!(matches!(
             parsed_statement,
@@ -228,7 +222,7 @@ mod tests {
             })
         ));
         assert!(matches!(
-            program.statements.get(1).unwrap(),
+            statements.get(1).unwrap(),
             Statement::Expression(ExpressionStatement {
                 expression: Expression::BooleanLiteral(false)
             })
@@ -264,11 +258,10 @@ mod tests {
         });
 
         for test_case in test_cases {
-            let program: Program = test_util::parse_program(&test_case.input);
-            test_util::has_parser_errors(&program);
+            let statements = test_util::expect_parsed_program(&test_case.input);
 
-            assert_eq!(program.statements.len(), 1, "Should only parse 1 statement");
-            let statement = program.statements.first().expect("Should be one statement");
+            assert_eq!(statements.len(), 1, "Should only parse 1 statement");
+            let statement = statements.first().expect("Should be one statement");
 
             assert_eq!(
                 statement, &test_case.statement,
@@ -346,11 +339,9 @@ mod tests {
         ];
 
         let asserter = |expected: &Statement, input: &String| {
-            let program: Program = test_util::parse_program(input);
+            let statements = test_util::expect_parsed_program(input);
 
-            test_util::has_parser_errors(&program);
-
-            let actual_statement = program.statements.first().expect("Should be one statement");
+            let actual_statement = statements.first().expect("Should be one statement");
 
             assert_eq!(actual_statement, expected);
         };
