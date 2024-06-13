@@ -1,5 +1,4 @@
 use eval_error::EvalError;
-use evaluator::Evaluable;
 use objects::Object;
 
 use crate::parser::{
@@ -23,18 +22,11 @@ pub fn eval(input: &str) -> EvaledProgram {
     match program {
         ParsedProgram::InvalidProgram(parse_errors) => EvaledProgram::ParseError(parse_errors),
         ParsedProgram::ValidProgram(valid_program) => {
-            let mut object: Option<Object> = None;
+            let evaled = evaluator::eval_statements(&valid_program);
 
-            for statement in valid_program {
-                object = match statement.eval() {
-                    Ok(evaled_object) => Some(evaled_object),
-                    Err(eval_error) => return EvaledProgram::EvalError(eval_error),
-                }
-            }
-
-            match object {
-                Some(object) => EvaledProgram::Valid(object),
-                None => EvaledProgram::EvalError(EvalError::EmptyProgram),
+            match evaled {
+                Ok(evaled) => EvaledProgram::Valid(evaled),
+                Err(errored) => EvaledProgram::EvalError(errored),
             }
         }
     }

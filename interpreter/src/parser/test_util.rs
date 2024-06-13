@@ -1,3 +1,5 @@
+use std::sync::Once;
+
 use tracing::error;
 use tracing_subscriber::FmtSubscriber;
 
@@ -48,9 +50,9 @@ pub fn expect_evaled_program(source_code: &str) -> Object {
     match eval::eval(source_code) {
         EvaledProgram::ParseError(parse_errors) => {
             parse_errors.into_iter().for_each(|ele| {
-                error!("{ele}");
+                eprintln!("{ele}");
             });
-            panic!("Eval failed with parse errors")
+            panic!("Eval failed with parse errors");
         }
         EvaledProgram::EvalError(eval_errors) => {
             error!("{eval_errors}");
@@ -141,10 +143,14 @@ pub fn create_identifierliteral(literal: &str) -> Expression {
     Expression::IdentifierLiteral(Identifier(literal.to_string()))
 }
 
+static TRACING: Once = Once::new();
 pub fn setup_logger() {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    TRACING.call_once(|| {
+        tracing::subscriber::set_global_default(subscriber)
+            .expect("setting default subscriber failed");
+    })
 }

@@ -1,6 +1,11 @@
+use tracing::{event, span, Level};
+
 use crate::parser::{
-    ast::{Operator, PrefixOperator, Statement},
-    expressions::{expression::Expression, expression_statement::ExpressionStatement},
+    ast::{BlockStatement, Operator, PrefixOperator, Statement},
+    expressions::{
+        expression::Expression, expression_statement::ExpressionStatement,
+        if_expression::IfExpression,
+    },
 };
 
 use super::{eval_error::EvalError, objects::Object};
@@ -9,8 +14,21 @@ pub(crate) trait Evaluable {
     fn eval(&self) -> Result<Object, EvalError>;
 }
 
+pub fn eval_statements(statements: &Vec<Statement>) -> Result<Object, EvalError> {
+    let mut object: Object = Object::Void;
+
+    for statement in statements {
+        object = statement.eval()?;
+    }
+
+    Ok(object)
+}
+
 impl Evaluable for Statement {
     fn eval(&self) -> Result<Object, EvalError> {
+        let expression_statement_span = span!(Level::DEBUG, "Eval");
+        let _enter = expression_statement_span.enter();
+
         match self {
             Statement::Expression(ExpressionStatement { expression }) => expression.eval(),
             Statement::Assign(_) => todo!(),
@@ -24,9 +42,15 @@ impl Evaluable for Expression {
         use Object::*;
 
         match self {
-            Expression::IntegerLiteral(number) => Ok(Integer(*number)),
+            Expression::IntegerLiteral(number) => {
+                event!(Level::DEBUG, "Evaluated to number {number}");
+                Ok(Integer(*number))
+            }
             Expression::IdentifierLiteral(_) => todo!(),
-            Expression::BooleanLiteral(boolean) => Ok(Boolean(*boolean)),
+            Expression::BooleanLiteral(boolean) => {
+                event!(Level::DEBUG, "Evaluated to boolean {boolean}");
+                Ok(Boolean(*boolean))
+            }
             Expression::Prefix { right, operator } => eval_prefix_expression(right, operator),
             Expression::Infix {
                 left,
@@ -37,10 +61,39 @@ impl Evaluable for Expression {
                 let right = right.eval()?;
                 eval_infix_expression(operator, left, right)
             }
-            Expression::If(_) => todo!(),
+            Expression::If(if_expression) => if_expression.eval(),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
         }
+    }
+}
+
+impl Evaluable for IfExpression {
+    fn eval(&self) -> Result<Object, EvalError> {
+        let expression_statement_span = span!(Level::DEBUG, "If");
+        let _enter = expression_statement_span.enter();
+        event!(Level::DEBUG, "Evaluating if condition");
+
+        let evaluated_condition = match self.condition.eval()? {
+            Object::Boolean(boolean) => boolean,
+            unexpected_condition => {
+                return Err(EvalError::NonBooleanConditional(unexpected_condition))
+            }
+        };
+
+        match evaluated_condition {
+            true => Ok(self.consequence.eval()?),
+            false => match &self.alternative {
+                Some(alternative) => Ok(alternative.eval()?),
+                None => Ok(Object::Void),
+            },
+        }
+    }
+}
+
+impl Evaluable for BlockStatement {
+    fn eval(&self) -> Result<Object, EvalError> {
+        eval_statements(&self.statements)
     }
 }
 
@@ -160,8 +213,8 @@ mod tests {
 
             match object {
                 Object::Integer(number) => assert_eq!(&number, expected),
-                Object::Boolean(boolean) => {
-                    panic!("Should have returned a number, instead got {boolean}")
+                unexpected_type => {
+                    panic!("Should have returned a number, instead got {unexpected_type}")
                 }
             }
         };
@@ -220,6 +273,31 @@ mod tests {
             match object {
                 Object::Boolean(boolean) => assert_eq!(expected, &boolean),
                 something_else => panic!("Expected boolean, got {something_else}"),
+            }
+        });
+    }
+
+    #[test]
+    fn eval_if_else_expression_test() {
+        test_util::setup_logger();
+
+        let input_expected: Vec<(&str, i32)> = vec![
+            ("if true: 10~", 10),
+            ("if false: 10 else: 5~", 5),
+            ("if 1 < 2: 10~", 10),
+            ("if 1 > 2: 10 else: 5~", 5),
+            ("if 1 == 2: 10 else: 5~", 5),
+            ("if 1 != 2: 10 else: 5~", 10),
+        ];
+
+        test_util::assert_list(input_expected, |expected: &i32, input: &&str| {
+            let object = test_util::expect_evaled_program(input);
+
+            match object {
+                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                something_else => {
+                    panic!("Expected correct integer, got {something_else} for input '{input}'")
+                }
             }
         });
     }

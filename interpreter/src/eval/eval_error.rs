@@ -11,6 +11,7 @@ pub enum EvalError {
     IntegerInfixOperatorError(Operator),
     InfixRightLeft(Object, Object),
     BooleanInfixOperator(Operator),
+    NonBooleanConditional(Object),
 }
 
 impl Display for EvalError {
@@ -28,6 +29,9 @@ impl Display for EvalError {
             }
             EvalError::BooleanInfixOperator(operator) => {
                 writeln!(f, "Operator {operator} is not supported for booleans")
+            }
+            EvalError::NonBooleanConditional(object) => {
+                writeln!(f, "Expected boolean in for conditional, but got {object}")
             }
         }
     }
