@@ -6,8 +6,9 @@ use crate::parser::{
 };
 
 mod eval_error;
-mod evaluator;
+mod expression_evaluator;
 pub mod objects;
+mod statement_evaluator;
 
 pub enum EvaledProgram {
     ParseError(Vec<ParseError>),
@@ -22,7 +23,7 @@ pub fn eval(input: &str) -> EvaledProgram {
     match program {
         ParsedProgram::InvalidProgram(parse_errors) => EvaledProgram::ParseError(parse_errors),
         ParsedProgram::ValidProgram(valid_program) => {
-            let evaled = evaluator::eval_statements(&valid_program);
+            let evaled = statement_evaluator::eval_statements(&valid_program);
 
             match evaled {
                 Ok(evaled) => EvaledProgram::Valid(evaled),
