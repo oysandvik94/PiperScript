@@ -1,9 +1,9 @@
-mod assign_statement;
+pub(crate) mod assign_statement;
 pub(crate) mod ast;
 pub(crate) mod expressions;
 pub(crate) mod lexer;
 pub(crate) mod parse_errors;
-mod return_statement;
+pub(crate) mod return_statement;
 
 #[cfg(test)]
 pub(crate) mod test_util;

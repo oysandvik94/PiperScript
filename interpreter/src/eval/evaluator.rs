@@ -6,6 +6,7 @@ use crate::parser::{
         expression::Expression, expression_statement::ExpressionStatement,
         if_expression::IfExpression,
     },
+    return_statement::ReturnStatement,
 };
 
 use super::{eval_error::EvalError, objects::Object};
@@ -19,6 +20,10 @@ pub fn eval_statements(statements: &Vec<Statement>) -> Result<Object, EvalError>
 
     for statement in statements {
         object = statement.eval()?;
+
+        if let Object::ReturnValue(value) = object {
+            return Ok(*value);
+        }
     }
 
     Ok(object)
@@ -31,9 +36,15 @@ impl Evaluable for Statement {
 
         match self {
             Statement::Expression(ExpressionStatement { expression }) => expression.eval(),
+            Statement::Return(return_statement) => return_statement.eval(),
             Statement::Assign(_) => todo!(),
-            Statement::Return(_) => todo!(),
         }
+    }
+}
+
+impl Evaluable for ReturnStatement {
+    fn eval(&self) -> Result<Object, EvalError> {
+        Ok(Object::ReturnValue(Box::new(self.return_value.eval()?)))
     }
 }
 
@@ -93,7 +104,17 @@ impl Evaluable for IfExpression {
 
 impl Evaluable for BlockStatement {
     fn eval(&self) -> Result<Object, EvalError> {
-        eval_statements(&self.statements)
+        let mut object: Object = Object::Void;
+
+        for statement in &self.statements {
+            object = statement.eval()?;
+
+            if let Object::ReturnValue(_) = object {
+                return Ok(object);
+            }
+        }
+
+        Ok(object)
     }
 }
 
@@ -288,6 +309,37 @@ mod tests {
             ("if 1 > 2: 10 else: 5~", 5),
             ("if 1 == 2: 10 else: 5~", 5),
             ("if 1 != 2: 10 else: 5~", 10),
+        ];
+
+        test_util::assert_list(input_expected, |expected: &i32, input: &&str| {
+            let object = test_util::expect_evaled_program(input);
+
+            match object {
+                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                something_else => {
+                    panic!("Expected correct integer, got {something_else} for input '{input}'")
+                }
+            }
+        });
+    }
+    #[test]
+    fn eval_return_statement_test() {
+        let input_expected: Vec<(&str, i32)> = vec![
+            ("return 10", 10),
+            ("return 10. 9.", 10),
+            ("return 2 * 5. 9.", 10),
+            ("9. return 2 * 5. 9.", 10),
+            (
+                "
+             if 10 > 1: 
+                if 10 > 1:
+                    return 10
+                ~
+               return 1
+             ~
+             ",
+                10,
+            ),
         ];
 
         test_util::assert_list(input_expected, |expected: &i32, input: &&str| {

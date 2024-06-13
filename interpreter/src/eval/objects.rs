@@ -5,6 +5,7 @@ pub enum Object {
     Integer(i32),
     Boolean(bool),
     Void,
+    ReturnValue(Box<Object>),
 }
 
 impl Display for Object {
@@ -15,6 +16,7 @@ impl Display for Object {
             Integer(number) => write!(f, "{number}"),
             Boolean(boolean) => write!(f, "{boolean}"),
             Void => write!(f, ""),
+            ReturnValue(object) => write!(f, "{object}"),
         }
     }
 }
