@@ -12,19 +12,19 @@ use super::{
     ParsedProgram,
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Statement {
     Assign(AssignStatement),
     Return(ReturnStatement),
     Expression(ExpressionStatement),
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct BlockStatement {
     pub statements: Vec<Statement>,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum PrefixOperator {
     Bang,
     Minus,

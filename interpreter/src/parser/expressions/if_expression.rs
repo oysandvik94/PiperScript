@@ -7,7 +7,7 @@ use crate::parser::{
 
 use super::expression::Expression;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct IfExpression {
     pub condition: Box<Expression>,
     pub consequence: BlockStatement,

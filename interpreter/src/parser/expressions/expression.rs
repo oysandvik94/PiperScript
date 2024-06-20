@@ -12,7 +12,7 @@ use super::{
     if_expression::IfExpression,
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
     IdentifierLiteral(Identifier),
     IntegerLiteral(i32),

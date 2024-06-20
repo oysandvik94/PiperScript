@@ -8,7 +8,7 @@ use super::{
     Parser,
 };
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct AssignStatement {
     pub identifier: Identifier,
     pub assignment: Expression,

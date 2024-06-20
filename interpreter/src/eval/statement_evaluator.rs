@@ -46,6 +46,11 @@ impl Evaluable for Statement {
 impl Evaluable for AssignStatement {
     fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
         let value = self.assignment.eval(env)?;
+
+        if let Object::Void = value {
+            return Err(EvalError::VoidAssignment(self.assignment.clone()));
+        }
+
         env.set_identifier(&self.identifier.0, value);
         Ok(Object::Void)
     }
@@ -125,6 +130,8 @@ mod tests {
             ("let a: 5 * 5. a.", 25),
             ("let a: 5. let b: a. b.", 5),
             ("let a: 5. let b: a. let c: a + b + 5. c.", 15),
+            ("let a: if true: 15 else: 2~ a.", 15),
+            ("let a: if false: 15 else: 2~ a.", 2),
         ];
 
         test_util::assert_list(input_expected, |expected: &i32, input: &&str| {

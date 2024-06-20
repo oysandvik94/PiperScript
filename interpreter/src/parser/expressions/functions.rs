@@ -11,13 +11,13 @@ use crate::parser::{
 
 use super::expression::Expression;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct FunctionLiteral {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct CallExpression {
     pub function: Box<Expression>,
     pub arguments: Vec<Expression>,

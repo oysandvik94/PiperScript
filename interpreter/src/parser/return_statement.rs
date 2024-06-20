@@ -9,7 +9,7 @@ use crate::{
 
 use super::Parser;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
     pub return_value: Expression,
 }

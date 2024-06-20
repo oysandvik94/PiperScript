@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
-use crate::parser::ast::{Identifier, Operator};
+use crate::parser::{
+    ast::{Identifier, Operator},
+    expressions::expression::Expression,
+};
 
 use super::objects::Object;
 
@@ -13,6 +16,7 @@ pub enum EvalError {
     BooleanInfixOperator(Operator),
     NonBooleanConditional(Object),
     IdentifierNotFound(Identifier),
+    VoidAssignment(Expression),
 }
 
 impl Display for EvalError {
@@ -37,6 +41,12 @@ impl Display for EvalError {
             EvalError::IdentifierNotFound(identifier) => {
                 writeln!(f, "Identifier {identifier} not found in scope")
             }
+            EvalError::VoidAssignment(_) => {
+                writeln!(
+                    f,
+                    "Tried to assign an expression that doesn't return a value to an identifier"
+                )
+            }
         }
     }
 }
@@ -48,6 +58,8 @@ mod tests {
         eval::{self, objects::Environment, EvaledProgram},
         parser::test_util,
     };
+
+    use super::EvalError;
 
     #[test]
     fn test_error_handling() {
@@ -87,5 +99,18 @@ mod tests {
                 EvaledProgram::Valid(_) => panic!("Got valid program when expecting eval error"),
             }
         });
+    }
+
+    #[test]
+    fn void_assignment_should_fail_test() {
+        let invalid_output = "let a: if false: 5~";
+        let evaled_program = eval::eval(invalid_output, &mut Environment::new());
+
+        match evaled_program {
+            EvaledProgram::EvalError(eval_error) => {
+                matches!(eval_error, EvalError::VoidAssignment(_))
+            }
+            _ => panic!("Code was supposed to return an error"),
+        };
     }
 }
