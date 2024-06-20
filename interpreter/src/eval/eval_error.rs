@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::parser::ast::Operator;
+use crate::parser::ast::{Identifier, Operator};
 
 use super::objects::Object;
 
@@ -12,6 +12,7 @@ pub enum EvalError {
     InfixRightLeft(Object, Object),
     BooleanInfixOperator(Operator),
     NonBooleanConditional(Object),
+    IdentifierNotFound(Identifier),
 }
 
 impl Display for EvalError {
@@ -33,6 +34,9 @@ impl Display for EvalError {
             EvalError::NonBooleanConditional(object) => {
                 writeln!(f, "Expected boolean in for conditional, but got {object}")
             }
+            EvalError::IdentifierNotFound(identifier) => {
+                writeln!(f, "Identifier {identifier} not found in scope")
+            }
         }
     }
 }
@@ -41,7 +45,7 @@ impl Display for EvalError {
 mod tests {
 
     use crate::{
-        eval::{self, EvaledProgram},
+        eval::{self, objects::Environment, EvaledProgram},
         parser::test_util,
     };
 
@@ -73,9 +77,9 @@ mod tests {
         ];
 
         test_util::assert_list(input_expected, |expected: &&str, input: &&str| {
-            let hehe = eval::eval(input);
+            let evaled_program = eval::eval(input, &mut Environment::new());
 
-            match hehe {
+            match evaled_program {
                 EvaledProgram::EvalError(eval_error) => {
                     assert_eq!(expected, &eval_error.to_string().trim())
                 }

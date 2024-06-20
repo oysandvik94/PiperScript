@@ -4,7 +4,11 @@ use tracing::error;
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
-    eval::{self, objects::Object, EvaledProgram},
+    eval::{
+        self,
+        objects::{Environment, Object},
+        EvaledProgram,
+    },
     parser::{
         ast::{BlockStatement, Identifier, Operator, Statement},
         expressions::{
@@ -47,7 +51,7 @@ pub fn parse_program(source_code: &str) -> ParsedProgram {
 }
 
 pub fn expect_evaled_program(source_code: &str) -> Object {
-    match eval::eval(source_code) {
+    match eval::eval(source_code, &mut Environment::new()) {
         EvaledProgram::ParseError(parse_errors) => {
             parse_errors.into_iter().for_each(|ele| {
                 eprintln!("{ele}");

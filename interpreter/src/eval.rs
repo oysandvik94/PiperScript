@@ -1,5 +1,5 @@
 use eval_error::EvalError;
-use objects::Object;
+use objects::{Environment, Object};
 
 use crate::parser::{
     lexer::lexedtokens::LexedTokens, parse_errors::ParseError, ParsedProgram, Parser,
@@ -16,14 +16,14 @@ pub enum EvaledProgram {
     Valid(Object),
 }
 
-pub fn eval(input: &str) -> EvaledProgram {
+pub fn eval(input: &str, env: &mut Environment) -> EvaledProgram {
     let lexed_tokens = LexedTokens::from(input);
     let program = Parser::parse_tokens(lexed_tokens);
 
     match program {
         ParsedProgram::InvalidProgram(parse_errors) => EvaledProgram::ParseError(parse_errors),
         ParsedProgram::ValidProgram(valid_program) => {
-            let evaled = statement_evaluator::eval_statements(&valid_program);
+            let evaled = statement_evaluator::eval_statements(&valid_program, env);
 
             match evaled {
                 Ok(evaled) => EvaledProgram::Valid(evaled),

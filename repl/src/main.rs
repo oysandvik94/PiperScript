@@ -1,6 +1,6 @@
 use std::io::{stdin, stdout, Write};
 
-use interpreter::eval::{self, EvaledProgram};
+use interpreter::eval::{self, objects::Environment, EvaledProgram};
 use tracing_subscriber::FmtSubscriber;
 
 fn main() -> Result<(), std::io::Error> {
@@ -11,6 +11,7 @@ fn main() -> Result<(), std::io::Error> {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     println!("Welcome to lasagnalang, try and write some code:");
+    let repl_scope = &mut Environment::new();
 
     loop {
         let mut buffer = String::new();
@@ -21,7 +22,7 @@ fn main() -> Result<(), std::io::Error> {
         match stdin().read_line(&mut buffer) {
             Ok(_) => {
                 let input = buffer.trim_end();
-                let evaluated_output = eval::eval(input);
+                let evaluated_output = eval::eval(input, repl_scope);
 
                 match evaluated_output {
                     EvaledProgram::Valid(object) => println!("{object}"),

@@ -1,18 +1,21 @@
 use tracing::{event, span, Level};
 
 use crate::parser::{
-    ast::{Operator, PrefixOperator},
+    ast::{Identifier, Operator, PrefixOperator},
     expressions::{expression::Expression, if_expression::IfExpression},
 };
 
-use super::{eval_error::EvalError, objects::Object};
+use super::{
+    eval_error::EvalError,
+    objects::{Environment, Object},
+};
 
 pub(crate) trait Evaluable {
-    fn eval(&self) -> Result<Object, EvalError>;
+    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError>;
 }
 
 impl Evaluable for Expression {
-    fn eval(&self) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
         use Object::*;
 
         match self {
@@ -20,35 +23,46 @@ impl Evaluable for Expression {
                 event!(Level::DEBUG, "Evaluated to number {number}");
                 Ok(Integer(*number))
             }
-            Expression::IdentifierLiteral(_) => todo!(),
+            Expression::IdentifierLiteral(identifier) => {
+                eval_identifier_expression(identifier, env)
+            }
             Expression::BooleanLiteral(boolean) => {
                 event!(Level::DEBUG, "Evaluated to boolean {boolean}");
                 Ok(Boolean(*boolean))
             }
-            Expression::Prefix { right, operator } => eval_prefix_expression(right, operator),
+            Expression::Prefix { right, operator } => eval_prefix_expression(right, operator, env),
             Expression::Infix {
                 left,
                 right,
                 operator,
             } => {
-                let left = left.eval()?;
-                let right = right.eval()?;
+                let left = left.eval(env)?;
+                let right = right.eval(env)?;
                 eval_infix_expression(operator, left, right)
             }
-            Expression::If(if_expression) => if_expression.eval(),
+            Expression::If(if_expression) => if_expression.eval(env),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
         }
     }
 }
+fn eval_identifier_expression(
+    identifier: &Identifier,
+    env: &Environment,
+) -> Result<Object, EvalError> {
+    match env.get_identifier(&identifier.0) {
+        Some(object) => Ok(object),
+        None => Err(EvalError::IdentifierNotFound(identifier.clone())),
+    }
+}
 
 impl Evaluable for IfExpression {
-    fn eval(&self) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
         let expression_statement_span = span!(Level::DEBUG, "If");
         let _enter = expression_statement_span.enter();
         event!(Level::DEBUG, "Evaluating if condition");
 
-        let evaluated_condition = match self.condition.eval()? {
+        let evaluated_condition = match self.condition.eval(env)? {
             Object::Boolean(boolean) => boolean,
             unexpected_condition => {
                 return Err(EvalError::NonBooleanConditional(unexpected_condition))
@@ -56,9 +70,9 @@ impl Evaluable for IfExpression {
         };
 
         match evaluated_condition {
-            true => Ok(self.consequence.eval()?),
+            true => Ok(self.consequence.eval(env)?),
             false => match &self.alternative {
-                Some(alternative) => Ok(alternative.eval()?),
+                Some(alternative) => Ok(alternative.eval(env)?),
                 None => Ok(Object::Void),
             },
         }
@@ -130,8 +144,9 @@ fn eval_integer_infix_expression(
 fn eval_prefix_expression(
     right: &Expression,
     operator: &PrefixOperator,
+    env: &mut Environment,
 ) -> Result<Object, EvalError> {
-    let right = right.eval()?;
+    let right = right.eval(env)?;
     match operator {
         PrefixOperator::Bang => eval_bang_operator_expression(&right),
         PrefixOperator::Minus => eval_minus_operator_expression(&right),
