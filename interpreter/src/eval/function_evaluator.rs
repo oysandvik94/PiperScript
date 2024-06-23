@@ -73,6 +73,25 @@ mod tests {
     };
 
     #[test]
+    fn closure_test() {
+        let input = "
+            let newAdder: fn(x):
+                fn(y): x + y~
+            ~
+
+             let addTwo: newAdder(2)
+
+            addTwo(2)
+
+            ";
+        let object = test_util::expect_evaled_program(input);
+        match object {
+            Object::Integer(integer) => assert_eq!(4, integer, "Function should evaluate to 4"),
+            unexpected_object => panic!("expected integer, but got {unexpected_object}"),
+        }
+    }
+
+    #[test]
     fn function_object_test() {
         let input = "fn(x): x + 2~ ";
 
