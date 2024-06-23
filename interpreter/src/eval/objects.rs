@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
-use crate::parser::ast::{BlockStatement, Identifier};
+use crate::parser::ast::Identifier;
 
-use super::{eval_error::EvalError, expression_evaluator::Evaluable};
+use super::{eval_error::EvalError, function_evaluator::FunctionObject};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -11,27 +11,6 @@ pub enum Object {
     Void,
     ReturnValue(Box<Object>),
     Function(FunctionObject),
-}
-
-#[derive(Debug, Clone)]
-pub struct FunctionObject {
-    pub parameters: Vec<Identifier>,
-    pub body: BlockStatement,
-    pub scope: EnvReference,
-}
-
-impl FunctionObject {
-    pub fn call(&self, args: &[Object]) -> Result<Object, EvalError> {
-        let mut extended_env = Environment::new_from_enclosing(&self.scope);
-        extended_env
-            .borrow_mut()
-            .fill_from_params_and_arguments(&self.parameters, args)?;
-
-        match self.body.eval(&mut extended_env)? {
-            Object::ReturnValue(return_value) => Ok(*return_value),
-            obj => Ok(obj),
-        }
-    }
 }
 
 pub type EnvReference = Rc<RefCell<Environment>>;

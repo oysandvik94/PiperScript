@@ -1,12 +1,36 @@
 use std::rc::Rc;
 
-use crate::parser::expressions::functions::{CallExpression, FunctionLiteral};
+use crate::parser::{
+    ast::{BlockStatement, Identifier},
+    expressions::functions::{CallExpression, FunctionLiteral},
+};
 
 use super::{
     eval_error::EvalError,
     expression_evaluator::Evaluable,
-    objects::{EnvReference, FunctionObject, Object},
+    objects::{EnvReference, Environment, Object},
 };
+
+#[derive(Debug, Clone)]
+pub struct FunctionObject {
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+    pub scope: EnvReference,
+}
+
+impl FunctionObject {
+    pub fn call(&self, args: &[Object]) -> Result<Object, EvalError> {
+        let mut extended_env = Environment::new_from_enclosing(&self.scope);
+        extended_env
+            .borrow_mut()
+            .fill_from_params_and_arguments(&self.parameters, args)?;
+
+        match self.body.eval(&mut extended_env)? {
+            Object::ReturnValue(return_value) => Ok(*return_value),
+            obj => Ok(obj),
+        }
+    }
+}
 
 impl Evaluable for FunctionLiteral {
     fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
