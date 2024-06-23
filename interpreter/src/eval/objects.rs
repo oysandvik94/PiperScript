@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
+
+use crate::parser::ast::{BlockStatement, Identifier};
+
+use super::{eval_error::EvalError, expression_evaluator::Evaluable};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -6,31 +10,112 @@ pub enum Object {
     Boolean(bool),
     Void,
     ReturnValue(Box<Object>),
+    Function(FunctionObject),
 }
 
+#[derive(Debug, Clone)]
+pub struct FunctionObject {
+    pub parameters: Vec<Identifier>,
+    pub body: BlockStatement,
+    pub scope: EnvReference,
+}
+
+impl FunctionObject {
+    pub fn call(&self, args: &[Object]) -> Result<Object, EvalError> {
+        let mut extended_env = Environment::new_from_enclosing(&self.scope);
+        extended_env
+            .borrow_mut()
+            .fill_from_params_and_arguments(&self.parameters, args)?;
+
+        match self.body.eval(&mut extended_env)? {
+            Object::ReturnValue(return_value) => Ok(*return_value),
+            obj => Ok(obj),
+        }
+    }
+}
+
+pub type EnvReference = Rc<RefCell<Environment>>;
+
+#[derive(Debug, Clone)]
 pub struct Environment {
     scope: HashMap<String, Object>,
+    outer_scopes: Option<EnvReference>,
 }
 
 impl Environment {
     pub fn new() -> Environment {
         Environment {
             scope: HashMap::new(),
+            outer_scopes: None,
         }
     }
 
+    pub fn new_env_reference() -> EnvReference {
+        Rc::new(RefCell::new(Environment::new()))
+    }
+
+    pub fn new_from_enclosing(env: &EnvReference) -> EnvReference {
+        let env = Environment {
+            scope: HashMap::new(),
+            outer_scopes: Some(Rc::clone(env)),
+        };
+
+        Rc::new(RefCell::new(env))
+    }
+
     pub fn get_identifier(&self, identifier: &str) -> Option<Object> {
-        self.scope.get(identifier).cloned()
+        match self.scope.get(identifier) {
+            Some(object) => Some(object.clone()),
+            None => match &self.outer_scopes {
+                Some(outer_scope) => outer_scope.borrow().get_identifier(identifier),
+                None => None,
+            },
+        }
     }
 
     pub fn set_identifier(&mut self, identifier: &str, object: Object) {
         self.scope.insert(String::from(identifier), object);
+    }
+
+    pub fn fill_from_params_and_arguments(
+        &mut self,
+        parameters: &[Identifier],
+        arguments: &[Object],
+    ) -> Result<(), EvalError> {
+        if parameters.len() != arguments.len() {
+            return Err(EvalError::ArgumentMismatch(
+                parameters.to_vec(),
+                arguments.to_vec(),
+            ));
+        }
+
+        parameters
+            .iter()
+            .zip(arguments.iter())
+            .for_each(|(param, argument)| {
+                self.set_identifier(&param.0, argument.clone());
+            });
+
+        Ok(())
     }
 }
 
 impl Default for Environment {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub trait FunctionListable {
+    fn to_function_string(&self) -> String;
+}
+
+impl<T: ToString> FunctionListable for Vec<T> {
+    fn to_function_string(&self) -> String {
+        self.iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 }
 
@@ -43,6 +128,7 @@ impl Display for Object {
             Boolean(boolean) => write!(f, "{boolean}"),
             Void => write!(f, ""),
             ReturnValue(object) => write!(f, "{object}"),
+            Function(function) => write!(f, "fn ({})", function.parameters.to_function_string()),
         }
     }
 }

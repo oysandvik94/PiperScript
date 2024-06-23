@@ -2,11 +2,14 @@ use std::fmt::Display;
 
 use tracing::{event, span, Level};
 
-use crate::parser::{
-    ast::{BlockStatement, Identifier},
-    lexer::token::{Precedence, Token},
-    parse_errors::{ParseError, TokenExpectation},
-    Parser,
+use crate::{
+    eval::objects::FunctionListable,
+    parser::{
+        ast::{BlockStatement, Identifier},
+        lexer::token::{Precedence, Token},
+        parse_errors::{ParseError, TokenExpectation},
+        Parser,
+    },
 };
 
 use super::expression::Expression;
@@ -25,12 +28,12 @@ pub struct CallExpression {
 
 impl Display for FunctionLiteral {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let parameters: Vec<String> = self
-            .parameters
-            .iter()
-            .map(|ident| ident.0.clone())
-            .collect();
-        write!(f, "fn({}): {}", parameters.join(","), self.body)
+        write!(
+            f,
+            "fn({}): {}",
+            self.parameters.to_function_string(),
+            self.body
+        )
     }
 }
 

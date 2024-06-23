@@ -1,5 +1,5 @@
 use eval_error::EvalError;
-use objects::{Environment, Object};
+use objects::{EnvReference, Object};
 
 use crate::parser::{
     lexer::lexedtokens::LexedTokens, parse_errors::ParseError, ParsedProgram, Parser,
@@ -7,6 +7,7 @@ use crate::parser::{
 
 mod eval_error;
 mod expression_evaluator;
+pub mod function_evaluator;
 pub mod objects;
 mod statement_evaluator;
 
@@ -16,7 +17,7 @@ pub enum EvaledProgram {
     Valid(Object),
 }
 
-pub fn eval(input: &str, env: &mut Environment) -> EvaledProgram {
+pub fn eval(input: &str, env: &mut EnvReference) -> EvaledProgram {
     let lexed_tokens = LexedTokens::from(input);
     let program = Parser::parse_tokens(lexed_tokens);
 

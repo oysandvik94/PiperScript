@@ -1,21 +1,22 @@
 use tracing::{event, span, Level};
 
+use crate::parser::expressions::if_expression::IfExpression;
 use crate::parser::{
     ast::{Identifier, Operator, PrefixOperator},
-    expressions::{expression::Expression, if_expression::IfExpression},
+    expressions::expression::Expression,
 };
 
 use super::{
     eval_error::EvalError,
-    objects::{Environment, Object},
+    objects::{EnvReference, Object},
 };
 
 pub(crate) trait Evaluable {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError>;
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError>;
 }
 
 impl Evaluable for Expression {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         use Object::*;
 
         match self {
@@ -41,23 +42,24 @@ impl Evaluable for Expression {
                 eval_infix_expression(operator, left, right)
             }
             Expression::If(if_expression) => if_expression.eval(env),
-            Expression::Function(_) => todo!(),
-            Expression::Call(_) => todo!(),
+            Expression::Function(function_literal) => function_literal.eval(env),
+            Expression::Call(call_expression) => call_expression.eval(env),
         }
     }
 }
+
 fn eval_identifier_expression(
     identifier: &Identifier,
-    env: &Environment,
+    env: &EnvReference,
 ) -> Result<Object, EvalError> {
-    match env.get_identifier(&identifier.0) {
+    match env.borrow().get_identifier(&identifier.0) {
         Some(object) => Ok(object),
         None => Err(EvalError::IdentifierNotFound(identifier.clone())),
     }
 }
 
 impl Evaluable for IfExpression {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let expression_statement_span = span!(Level::DEBUG, "If");
         let _enter = expression_statement_span.enter();
         event!(Level::DEBUG, "Evaluating if condition");
@@ -144,7 +146,7 @@ fn eval_integer_infix_expression(
 fn eval_prefix_expression(
     right: &Expression,
     operator: &PrefixOperator,
-    env: &mut Environment,
+    env: &mut EnvReference,
 ) -> Result<Object, EvalError> {
     let right = right.eval(env)?;
     match operator {

@@ -1,8 +1,11 @@
 use std::fmt::Display;
 
-use crate::parser::{
-    ast::{Identifier, Operator},
-    expressions::expression::Expression,
+use crate::{
+    eval::objects::FunctionListable,
+    parser::{
+        ast::{Identifier, Operator},
+        expressions::expression::Expression,
+    },
 };
 
 use super::objects::Object;
@@ -17,6 +20,8 @@ pub enum EvalError {
     NonBooleanConditional(Object),
     IdentifierNotFound(Identifier),
     VoidAssignment(Expression),
+    UnexpectedFunctionExpression(Object),
+    ArgumentMismatch(Vec<Identifier>, Vec<Object>),
 }
 
 impl Display for EvalError {
@@ -46,6 +51,12 @@ impl Display for EvalError {
                     f,
                     "Tried to assign an expression that doesn't return a value to an identifier"
                 )
+            }
+            EvalError::UnexpectedFunctionExpression(object) => {
+                writeln!(f, "Can only call a function on an identifier representing a function, or an actual function literal. Instead tried to call on {object}")
+            }
+            EvalError::ArgumentMismatch(params, args) => {
+                writeln!(f, "Passed in arguments to no matche function parameters. Parameters: {} Arguments: {}", params.to_function_string(), args.to_function_string())
             }
         }
     }
@@ -89,7 +100,7 @@ mod tests {
         ];
 
         test_util::assert_list(input_expected, |expected: &&str, input: &&str| {
-            let evaled_program = eval::eval(input, &mut Environment::new());
+            let evaled_program = eval::eval(input, &mut Environment::new_env_reference());
 
             match evaled_program {
                 EvaledProgram::EvalError(eval_error) => {
@@ -104,7 +115,7 @@ mod tests {
     #[test]
     fn void_assignment_should_fail_test() {
         let invalid_output = "let a: if false: 5~";
-        let evaled_program = eval::eval(invalid_output, &mut Environment::new());
+        let evaled_program = eval::eval(invalid_output, &mut Environment::new_env_reference());
 
         match evaled_program {
             EvaledProgram::EvalError(eval_error) => {

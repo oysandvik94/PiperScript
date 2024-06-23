@@ -11,7 +11,7 @@ fn main() -> Result<(), std::io::Error> {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     println!("Welcome to lasagnalang, try and write some code:");
-    let repl_scope = &mut Environment::new();
+    let repl_scope = &mut Environment::new_env_reference();
 
     loop {
         let mut buffer = String::new();

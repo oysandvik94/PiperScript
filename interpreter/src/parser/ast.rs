@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::eval::objects::FunctionListable;
+
 use super::{
     assign_statement::AssignStatement,
     expressions::{
@@ -127,9 +129,7 @@ impl Display for Expression {
                 function,
                 arguments,
             }) => {
-                let arguments: Vec<String> =
-                    arguments.iter().map(|ident| ident.to_string()).collect();
-                write!(f, "{function}({})", arguments.join(", "))
+                write!(f, "{function}({})", arguments.to_function_string())
             }
         }
     }

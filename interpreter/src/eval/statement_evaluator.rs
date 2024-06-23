@@ -10,12 +10,12 @@ use crate::parser::{
 use super::{
     eval_error::EvalError,
     expression_evaluator::Evaluable,
-    objects::{Environment, Object},
+    objects::{EnvReference, Object},
 };
 
 pub fn eval_statements(
     statements: &Vec<Statement>,
-    env: &mut Environment,
+    env: &mut EnvReference,
 ) -> Result<Object, EvalError> {
     let mut object: Object = Object::Void;
 
@@ -31,7 +31,7 @@ pub fn eval_statements(
 }
 
 impl Evaluable for Statement {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let expression_statement_span = span!(Level::DEBUG, "Eval");
         let _enter = expression_statement_span.enter();
 
@@ -44,21 +44,21 @@ impl Evaluable for Statement {
 }
 
 impl Evaluable for AssignStatement {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let value = self.assignment.eval(env)?;
 
         if let Object::Void = value {
             return Err(EvalError::VoidAssignment(self.assignment.clone()));
         }
 
-        env.set_identifier(&self.identifier.0, value);
+        env.borrow_mut().set_identifier(&self.identifier.0, value);
         Ok(Object::Void)
     }
 }
 
 impl Evaluable for Identifier {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
-        match env.get_identifier(&self.0) {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
+        match env.borrow().get_identifier(&self.0) {
             Some(object) => Ok(object),
             None => Err(EvalError::IdentifierNotFound(self.clone())),
         }
@@ -66,13 +66,13 @@ impl Evaluable for Identifier {
 }
 
 impl Evaluable for ReturnStatement {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         Ok(Object::ReturnValue(Box::new(self.return_value.eval(env)?)))
     }
 }
 
 impl Evaluable for BlockStatement {
-    fn eval(&self, env: &mut Environment) -> Result<Object, EvalError> {
+    fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let mut object: Object = Object::Void;
 
         for statement in &self.statements {
