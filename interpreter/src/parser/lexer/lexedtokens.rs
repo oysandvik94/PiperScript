@@ -1,8 +1,8 @@
 use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
-use crate::{parser::ast::Identifier, parser::parse_errors::ParseError};
+use crate::parser::{ast::Identifier, lexer::token::FirstPart, parse_errors::ParseError};
 
-use super::token::{HasInfix, ParsedMultipartToken, ParsedToken, Precedence, Token};
+use super::token::{HasInfix, Precedence, Token};
 
 #[derive(Debug)]
 pub struct LexedTokens {
@@ -19,32 +19,7 @@ impl From<&str> for LexedTokens {
                 continue;
             }
 
-            let lexed_token: Token = match Token::from(current_char) {
-                ParsedToken::CompleteToken(token) => token,
-                ParsedToken::PossibleMultipart(first_part) => {
-                    match Token::lex_second_part(first_part, code_iter.peek().cloned()) {
-                        ParsedMultipartToken::Multipart(token) => {
-                            code_iter.next();
-                            token
-                        }
-                        ParsedMultipartToken::OnlyOnePart(token) => token,
-                    }
-                }
-                ParsedToken::AlphabeticStart => {
-                    let literal: String = read_literal(&mut code_iter, current_char, |char| {
-                        char.is_alphabetic() && char != &','
-                    });
-
-                    Token::parse_keyword(&literal)
-                }
-                ParsedToken::NumericStart => {
-                    let literal: String =
-                        read_literal(&mut code_iter, current_char, |char| char.is_numeric());
-
-                    Token::Int(literal)
-                }
-            };
-
+            let lexed_token: Token = parse(current_char, &mut code_iter);
             tokens.push(lexed_token);
         }
 
@@ -125,6 +100,67 @@ impl LexedTokens {
     }
 }
 
+fn parse(char: char, token_iter: &mut Peekable<Chars>) -> Token {
+    match char {
+        '!' => lex_multipart_token(FirstPart::Bang, token_iter),
+        '=' => lex_multipart_token(FirstPart::Equal, token_iter),
+        '+' => Token::Add,
+        '-' => Token::Minus,
+        ':' => Token::Assign,
+        '}' => Token::RBrace,
+        '{' => Token::LBrace,
+        ')' => Token::RParen,
+        '(' => Token::LParen,
+        ']' => Token::RBracket,
+        '[' => Token::LBracket,
+        '<' => Token::LessThan,
+        '>' => Token::GreaterThan,
+        ',' => Token::Comma,
+        '.' => Token::Period,
+        '~' => Token::Lasagna,
+        '/' => Token::Slash,
+        '*' => Token::Asterix,
+        '"' => {
+            let first_char = token_iter.next().expect("Malformed string");
+            let literal: String = read_literal(token_iter, first_char, |char| char != &'"');
+            token_iter.next();
+            Token::Str(literal)
+        }
+        numeric_char if numeric_char.is_numeric() => {
+            let literal: String = read_literal(token_iter, char, |char| char.is_numeric());
+
+            Token::Int(literal)
+        }
+        alphabetic_char if alphabetic_char.is_alphabetic() => {
+            let literal: String = read_literal(token_iter, char, |char| {
+                char.is_alphabetic() && char != &','
+            });
+
+            Token::parse_keyword(&literal)
+        }
+        _ => Token::Illegal,
+    }
+}
+
+fn lex_multipart_token(first_char: FirstPart, token_iter: &mut Peekable<Chars>) -> Token {
+    use FirstPart::*;
+    match first_char {
+        Bang => match token_iter.peek() {
+            Some('=') => {
+                token_iter.next();
+                Token::NotEqual
+            }
+            _ => Token::Bang,
+        },
+        Equal => match token_iter.peek() {
+            Some('=') => {
+                token_iter.next();
+                Token::Equal
+            }
+            _ => Token::Illegal,
+        },
+    }
+}
 fn read_literal<F>(iterator: &mut Peekable<Chars>, first_char: char, read_until: F) -> String
 where
     F: Fn(&char) -> bool,
@@ -242,6 +278,7 @@ mod tests {
             ~
             ==
             !=
+            \"foo\" + \"bar hei\"
         ";
 
         let expected_tokens = vec![
@@ -294,6 +331,9 @@ mod tests {
             Token::Lasagna,
             Token::Equal,
             Token::NotEqual,
+            Token::Str("foo".to_string()),
+            Token::Add,
+            Token::Str("bar hei".to_string()),
         ];
 
         let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
