@@ -53,10 +53,6 @@ pub enum FirstPart {
     Bang,
     Equal,
 }
-pub enum ParsedMultipartToken {
-    OnlyOnePart(Token),
-    Multipart(Token),
-}
 
 use Token::*;
 
