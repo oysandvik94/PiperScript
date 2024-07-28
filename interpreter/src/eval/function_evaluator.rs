@@ -68,8 +68,8 @@ mod tests {
         parser::{
             ast::{BlockStatement, Identifier, Operator},
             expressions::expression::Expression,
-            test_util,
         },
+        test_util,
     };
 
     #[test]

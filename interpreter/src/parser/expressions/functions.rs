@@ -127,11 +127,13 @@ impl CallExpression {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        ast::{BlockStatement, Operator, Statement},
-        expressions::{
-            expression::Expression, expression_statement::ExpressionStatement,
-            functions::CallExpression,
+    use crate::{
+        parser::{
+            ast::{BlockStatement, Operator, Statement},
+            expressions::{
+                expression::Expression, expression_statement::ExpressionStatement,
+                functions::CallExpression,
+            },
         },
         test_util,
     };

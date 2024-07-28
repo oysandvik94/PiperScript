@@ -67,7 +67,7 @@ mod tests {
 
     use crate::{
         eval::{self, objects::Environment, EvaledProgram},
-        parser::test_util,
+        test_util,
     };
 
     use super::EvalError;

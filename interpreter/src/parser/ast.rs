@@ -170,9 +170,12 @@ impl Display for Operator {
 #[cfg(test)]
 mod tests {
 
-    use crate::parser::{
-        assign_statement::AssignStatement, ast::Identifier, expressions::expression::Expression,
-        return_statement::ReturnStatement, test_util, ParsedProgram,
+    use crate::{
+        parser::{
+            assign_statement::AssignStatement, ast::Identifier,
+            expressions::expression::Expression, return_statement::ReturnStatement, ParsedProgram,
+        },
+        test_util,
     };
 
     use super::Statement;

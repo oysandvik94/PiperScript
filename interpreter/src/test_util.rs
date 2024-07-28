@@ -10,16 +10,15 @@ use crate::{
         EvaledProgram,
     },
     parser::{
-        ast::{BlockStatement, Identifier, Operator, Statement},
+        ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
         expressions::{
             expression::Expression, expression_statement::ExpressionStatement,
             functions::FunctionLiteral, if_expression::IfExpression,
         },
         lexer::lexedtokens::LexedTokens,
+        ParsedProgram, Parser,
     },
 };
-
-use super::{ast::PrefixOperator, ParsedProgram, Parser};
 
 pub fn assert_list<T, K, F>(test_cases: Vec<(T, K)>, mut asserter: F)
 where

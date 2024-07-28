@@ -80,7 +80,10 @@ impl Display for ParseError {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{parse_errors::ParseError, test_util::parse_program, ParsedProgram};
+    use crate::{
+        parser::{parse_errors::ParseError, ParsedProgram},
+        test_util,
+    };
 
     #[test]
     fn test_parse_errors() {
@@ -88,7 +91,7 @@ mod tests {
             foo: .
         ";
 
-        let program = parse_program(source_code);
+        let program = test_util::parse_program(source_code);
 
         match program {
             ParsedProgram::ValidProgram(_) => panic!("Program did not fail"),

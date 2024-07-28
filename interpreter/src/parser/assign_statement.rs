@@ -40,10 +40,12 @@ impl Display for AssignStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        ast::{Identifier, Statement},
-        expressions::expression::Expression,
-        test_util::{self},
+    use crate::{
+        parser::{
+            ast::{Identifier, Statement},
+            expressions::expression::Expression,
+        },
+        test_util,
     };
 
     #[test]

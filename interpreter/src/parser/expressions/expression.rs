@@ -159,9 +159,11 @@ impl Expression {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        ast::{Identifier, Operator, PrefixOperator, Statement},
-        expressions::{expression::Expression, expression_statement::ExpressionStatement},
+    use crate::{
+        parser::{
+            ast::{Identifier, Operator, PrefixOperator, Statement},
+            expressions::{expression::Expression, expression_statement::ExpressionStatement},
+        },
         test_util,
     };
 

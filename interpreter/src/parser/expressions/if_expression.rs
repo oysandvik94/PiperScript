@@ -53,9 +53,11 @@ impl IfExpression {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        ast::{BlockStatement, Operator, Statement},
-        expressions::expression_statement::ExpressionStatement,
+    use crate::{
+        parser::{
+            ast::{BlockStatement, Operator, Statement},
+            expressions::expression_statement::ExpressionStatement,
+        },
         test_util,
     };
 

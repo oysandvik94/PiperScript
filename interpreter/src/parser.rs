@@ -5,9 +5,6 @@ pub(crate) mod lexer;
 pub(crate) mod parse_errors;
 pub(crate) mod return_statement;
 
-#[cfg(test)]
-pub(crate) mod test_util;
-
 use tracing::{event, span, Level};
 
 use crate::{
@@ -75,7 +72,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::test_util;
+    use crate::test_util;
 
     #[test]
     fn test_operator_precedence() {

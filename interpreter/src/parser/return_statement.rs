@@ -36,8 +36,10 @@ impl Display for ReturnStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::{
-        ast::Statement, expressions::expression::Expression, return_statement::ReturnStatement,
+    use crate::{
+        parser::{
+            ast::Statement, expressions::expression::Expression, return_statement::ReturnStatement,
+        },
         test_util,
     };
 

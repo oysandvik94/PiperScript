@@ -89,7 +89,7 @@ impl Evaluable for BlockStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::{eval::objects::Object, parser::test_util};
+    use crate::{eval::objects::Object, test_util};
 
     #[test]
     fn eval_return_statement_test() {
