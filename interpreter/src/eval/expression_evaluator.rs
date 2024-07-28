@@ -6,6 +6,7 @@ use crate::parser::{
     expressions::expression::Expression,
 };
 
+use super::builtin;
 use super::{
     eval_error::EvalError,
     objects::{EnvReference, Object},
@@ -56,12 +57,16 @@ fn eval_identifier_expression(
     identifier: &Identifier,
     env: &EnvReference,
 ) -> Result<Object, EvalError> {
-    match env.borrow().get_identifier(&identifier.0) {
-        Some(object) => Ok(object),
-        None => Err(EvalError::IdentifierNotFound(identifier.clone())),
+    if let Some(object) = env.borrow().get_identifier(&identifier.0) {
+        return Ok(object);
     }
-}
 
+    if let Some(object) = builtin::lookup_builtins(&identifier.0) {
+        return Ok(object);
+    }
+
+    Err(EvalError::IdentifierNotFound(identifier.clone()))
+}
 impl Evaluable for IfExpression {
     fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let expression_statement_span = span!(Level::DEBUG, "If");

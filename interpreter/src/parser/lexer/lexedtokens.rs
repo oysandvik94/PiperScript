@@ -122,6 +122,11 @@ fn parse(char: char, token_iter: &mut Peekable<Chars>) -> Token {
         '*' => Token::Asterix,
         '"' => {
             let first_char = token_iter.next().expect("Malformed string");
+
+            if first_char == '"' {
+                return Token::Str("".to_string());
+            }
+
             let literal: String = read_literal(token_iter, first_char, |char| char != &'"');
             token_iter.next();
             Token::Str(literal)
@@ -279,6 +284,7 @@ mod tests {
             ==
             !=
             \"foo\" + \"bar hei\"
+            \"\"
         ";
 
         let expected_tokens = vec![
@@ -334,6 +340,7 @@ mod tests {
             Token::Str("foo".to_string()),
             Token::Add,
             Token::Str("bar hei".to_string()),
+            Token::Str("".to_string()),
         ];
 
         let mut found_tokens: LexedTokens = LexedTokens::from(source_code);

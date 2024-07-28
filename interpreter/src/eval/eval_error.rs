@@ -23,6 +23,7 @@ pub enum EvalError {
     VoidAssignment(Expression),
     UnexpectedFunctionExpression(Object),
     ArgumentMismatch(Vec<Identifier>, Vec<Object>),
+    BuiltInInvalidArguments(String, String),
 }
 
 impl Display for EvalError {
@@ -61,6 +62,12 @@ impl Display for EvalError {
             }
             EvalError::StringInfixOperatorError(operator) => {
                 writeln!(f, "Operator {operator} is not supported for strings")
+            }
+            EvalError::BuiltInInvalidArguments(func_name, error_msg) => {
+                writeln!(
+                    f,
+                    "Error calling built-in function {func_name}: {error_msg}"
+                )
             }
         }
     }

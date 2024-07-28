@@ -2,7 +2,9 @@ use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
 
 use crate::parser::ast::Identifier;
 
-use super::{eval_error::EvalError, function_evaluator::FunctionObject};
+use super::{
+    builtin::BuiltInFunctionObject, eval_error::EvalError, function_evaluator::FunctionObject,
+};
 
 #[derive(Debug, Clone)]
 pub enum Object {
@@ -12,6 +14,7 @@ pub enum Object {
     Void,
     ReturnValue(Box<Object>),
     Function(FunctionObject),
+    BuiltInFunction(BuiltInFunctionObject),
 }
 
 pub type EnvReference = Rc<RefCell<Environment>>;
@@ -110,6 +113,7 @@ impl Display for Object {
             Void => write!(f, ""),
             ReturnValue(object) => write!(f, "{object}"),
             Function(function) => write!(f, "fn ({})", function.parameters.to_function_string()),
+            BuiltInFunction(builtin) => write!(f, "builtin fn: {}", builtin.name),
         }
     }
 }

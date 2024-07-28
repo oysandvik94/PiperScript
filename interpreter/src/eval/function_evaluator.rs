@@ -44,20 +44,17 @@ impl Evaluable for FunctionLiteral {
 
 impl Evaluable for CallExpression {
     fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
-        let function = match self.function.eval(env)? {
-            Object::Function(function_object) => function_object,
-            unexpected_object => {
-                return Err(EvalError::UnexpectedFunctionExpression(unexpected_object))
-            }
-        };
-
         let args = self
             .arguments
             .iter()
             .map(|expr| expr.eval(env))
             .collect::<Result<Vec<Object>, EvalError>>()?;
 
-        function.call(&args)
+        match self.function.eval(env)? {
+            Object::Function(function_object) => function_object.call(&args),
+            Object::BuiltInFunction(function_object) => (function_object.function)(&args),
+            unexpected_object => Err(EvalError::UnexpectedFunctionExpression(unexpected_object)),
+        }
     }
 }
 
