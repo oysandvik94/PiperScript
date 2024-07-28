@@ -290,4 +290,18 @@ mod tests {
             }
         });
     }
+
+    #[test]
+    fn eval_string_literal_test() {
+        let input_expected: Vec<(&str, &str)> = vec![("\"hello world\"", "hello world")];
+
+        test_util::assert_list(input_expected, |expected: &&str, input: &&str| {
+            let object = test_util::expect_evaled_program(input);
+
+            match object {
+                Object::Str(string) => assert_eq!(expected, &string),
+                something_else => panic!("Expected boolean, got {something_else}"),
+            }
+        });
+    }
 }
