@@ -24,6 +24,10 @@ impl Evaluable for Expression {
                 event!(Level::DEBUG, "Evaluated to number {number}");
                 Ok(Integer(*number))
             }
+            Expression::StringLiteral(string) => {
+                event!(Level::DEBUG, "Evaluated to string {string}");
+                Ok(Str(string.clone()))
+            }
             Expression::IdentifierLiteral(identifier) => {
                 eval_identifier_expression(identifier, env)
             }

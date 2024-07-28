@@ -7,6 +7,7 @@ use super::{eval_error::EvalError, function_evaluator::FunctionObject};
 #[derive(Debug, Clone)]
 pub enum Object {
     Integer(i32),
+    Str(String),
     Boolean(bool),
     Void,
     ReturnValue(Box<Object>),
@@ -104,6 +105,7 @@ impl Display for Object {
 
         match self {
             Integer(number) => write!(f, "{number}"),
+            Str(string) => write!(f, "{string}"),
             Boolean(boolean) => write!(f, "{boolean}"),
             Void => write!(f, ""),
             ReturnValue(object) => write!(f, "{object}"),

@@ -15,6 +15,7 @@ use super::{
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
     IdentifierLiteral(Identifier),
+    StringLiteral(String),
     IntegerLiteral(i32),
     BooleanLiteral(bool),
     Prefix {
@@ -71,6 +72,7 @@ impl Expression {
                 Ok(parsed_number) => Ok(Expression::IntegerLiteral(parsed_number)),
                 Err(error) => Err(ParseError::ParseIntegerError(token.clone(), error)),
             },
+            Token::Str(string_literal) => Ok(Expression::StringLiteral(string_literal.clone())),
             Token::Bang => Self::create_prefix_expression(parser, PrefixOperator::Bang),
             Token::Minus => Self::create_prefix_expression(parser, PrefixOperator::Minus),
             Token::LParen => Self::create_grouped_expression(parser),
@@ -162,6 +164,21 @@ mod tests {
         expressions::{expression::Expression, expression_statement::ExpressionStatement},
         test_util,
     };
+
+    #[test]
+    fn test_string_expression() {
+        let input: &str = "\"hellow world\"";
+
+        let statements = test_util::expect_parsed_program(input);
+
+        match statements.first().expect("Should only have one statement") {
+            Statement::Expression(ExpressionStatement { expression }) => match expression {
+                Expression::StringLiteral(string) => assert_eq!(string, "hellow world"),
+                _ => panic!("Should have parsed a string expression"),
+            },
+            _ => panic!("Should have parsed an expression statement"),
+        }
+    }
 
     #[test]
     fn test_integer_expression() {

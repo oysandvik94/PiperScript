@@ -102,6 +102,7 @@ impl Display for Expression {
         match self {
             Expression::IdentifierLiteral(ident) => write!(f, "{ident}"),
             Expression::IntegerLiteral(integer_literal) => write!(f, "{integer_literal}"),
+            Expression::StringLiteral(string_literal) => write!(f, "\"{string_literal}\""),
             Expression::Prefix { right, operator } => write!(f, "({operator}{right})"),
             Expression::Infix {
                 left,
