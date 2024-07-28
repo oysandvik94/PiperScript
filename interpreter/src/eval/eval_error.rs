@@ -15,6 +15,7 @@ pub enum EvalError {
     EmptyProgram,
     IncorrectBangSuffix(Object),
     IntegerInfixOperatorError(Operator),
+    StringInfixOperatorError(Operator),
     InfixRightLeft(Object, Object),
     BooleanInfixOperator(Operator),
     NonBooleanConditional(Object),
@@ -58,6 +59,9 @@ impl Display for EvalError {
             EvalError::ArgumentMismatch(params, args) => {
                 writeln!(f, "Passed in arguments to no matche function parameters. Parameters: {} Arguments: {}", params.to_function_string(), args.to_function_string())
             }
+            EvalError::StringInfixOperatorError(operator) => {
+                writeln!(f, "Operator {operator} is not supported for strings")
+            }
         }
     }
 }
@@ -96,6 +100,10 @@ mod tests {
                 ~
                 ",
                 "Operator + is not supported for booleans",
+            ),
+            (
+                "\"Hello\" - \"world\"",
+                "Operator - is not supported for strings",
             ),
         ];
 

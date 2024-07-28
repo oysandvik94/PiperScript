@@ -98,11 +98,32 @@ fn eval_infix_expression(
         (Boolean(left_boolean), Boolean(right_boolean)) => {
             eval_boolean_infix_expression(left_boolean, right_boolean, operator)
         }
+        (Str(left_str), Str(right_str)) => {
+            eval_string_infix_expression(left_str, right_str, operator)
+        }
         (unexpected_left, unexpected_right) => Err(EvalError::InfixRightLeft(
             unexpected_left.clone(),
             unexpected_right.clone(),
         )),
     }
+}
+
+fn eval_string_infix_expression(
+    left_str: String,
+    right_str: String,
+    operator: &Operator,
+) -> Result<Object, EvalError> {
+    Ok(match operator {
+        Operator::Plus => {
+            let concatted_str = [left_str, right_str].concat();
+            Object::Str(concatted_str)
+        }
+        unsupported_operator => {
+            return Err(EvalError::StringInfixOperatorError(
+                unsupported_operator.clone(),
+            ))
+        }
+    })
 }
 
 fn eval_boolean_infix_expression(
