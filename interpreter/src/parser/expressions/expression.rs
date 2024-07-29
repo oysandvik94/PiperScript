@@ -8,6 +8,7 @@ use crate::parser::{
 };
 
 use super::{
+    arrays::ArrayLiteral,
     functions::{CallExpression, FunctionLiteral},
     if_expression::IfExpression,
 };
@@ -18,6 +19,7 @@ pub enum Expression {
     StringLiteral(String),
     IntegerLiteral(i32),
     BooleanLiteral(bool),
+    Array(ArrayLiteral),
     Prefix {
         right: Box<Expression>,
         operator: PrefixOperator,
@@ -80,6 +82,7 @@ impl Expression {
             Token::Func => FunctionLiteral::parse(parser),
             Token::True => Ok(Expression::BooleanLiteral(true)),
             Token::False => Ok(Expression::BooleanLiteral(false)),
+            Token::LBracket => ArrayLiteral::parse(parser),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
         }
     }
@@ -155,6 +158,38 @@ impl Expression {
             HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
         }
     }
+
+    pub fn parse_expression_list(
+        parser: &mut Parser,
+        end: &Token,
+    ) -> Result<Vec<Expression>, ParseError> {
+        let mut parameters: Vec<Expression> = Vec::from([]);
+        while let Some(token) = parser.tokens.peek() {
+            match token {
+                token if token == end => {
+                    parser.tokens.consume();
+                    return Ok(parameters);
+                }
+                Token::Comma => {
+                    parser.tokens.consume();
+                }
+                _ => {
+                    let current_token = parser
+                        .tokens
+                        .consume()
+                        .expect("Expected a token after peeking");
+
+                    parameters.push(Expression::parse(
+                        parser,
+                        current_token,
+                        Precedence::Lowest,
+                    )?);
+                }
+            }
+        }
+
+        Ok(parameters)
+    }
 }
 
 #[cfg(test)]
@@ -162,7 +197,7 @@ mod tests {
     use crate::{
         parser::{
             ast::{Identifier, Operator, PrefixOperator, Statement},
-            expressions::{expression::Expression, expression_statement::ExpressionStatement},
+            expressions::expression::Expression,
         },
         test_util,
     };
@@ -174,7 +209,7 @@ mod tests {
         let statements = test_util::expect_parsed_program(input);
 
         match statements.first().expect("Should only have one statement") {
-            Statement::Expression(ExpressionStatement { expression }) => match expression {
+            Statement::Expression(expression) => match expression {
                 Expression::StringLiteral(string) => assert_eq!(string, "hellow world"),
                 _ => panic!("Should have parsed a string expression"),
             },
@@ -192,9 +227,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(ExpressionStatement {
-                expression: Expression::IntegerLiteral(5)
-            })
+            Statement::Expression(Expression::IntegerLiteral(5))
         ));
     }
 
@@ -214,9 +247,9 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(ExpressionStatement { expression: Expression::IdentifierLiteral(
+            Statement::Expression(Expression::IdentifierLiteral(
                     Identifier(ident)
-                        ) }) if ident == "foobar"
+                        )) if ident == "foobar"
         ));
     }
 
@@ -236,15 +269,11 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(ExpressionStatement {
-                expression: Expression::BooleanLiteral(true)
-            })
+            Statement::Expression(Expression::BooleanLiteral(true))
         ));
         assert!(matches!(
             statements.get(1).unwrap(),
-            Statement::Expression(ExpressionStatement {
-                expression: Expression::BooleanLiteral(false)
-            })
+            Statement::Expression(Expression::BooleanLiteral(false))
         ));
     }
 

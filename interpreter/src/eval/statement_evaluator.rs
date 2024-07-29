@@ -3,7 +3,6 @@ use tracing::{span, Level};
 use crate::parser::{
     assign_statement::AssignStatement,
     ast::{BlockStatement, Identifier, Statement},
-    expressions::expression_statement::ExpressionStatement,
     return_statement::ReturnStatement,
 };
 
@@ -36,7 +35,7 @@ impl Evaluable for Statement {
         let _enter = expression_statement_span.enter();
 
         match self {
-            Statement::Expression(ExpressionStatement { expression }) => expression.eval(env),
+            Statement::Expression(expression) => expression.eval(env),
             Statement::Return(return_statement) => return_statement.eval(env),
             Statement::Assign(assign_statement) => assign_statement.eval(env),
         }

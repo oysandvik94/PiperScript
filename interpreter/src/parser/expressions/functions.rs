@@ -3,7 +3,7 @@ use std::fmt::Display;
 use tracing::{event, span, Level};
 
 use crate::{
-    eval::objects::FunctionListable,
+    eval::objects::Listable,
     parser::{
         ast::{BlockStatement, Identifier},
         lexer::token::{Precedence, Token},
@@ -31,7 +31,7 @@ impl Display for FunctionLiteral {
         write!(
             f,
             "fn({}): {}",
-            self.parameters.to_function_string(),
+            self.parameters.to_commaseperated_list(),
             self.body
         )
     }
@@ -90,38 +90,8 @@ impl CallExpression {
 
         Ok(Expression::Call(CallExpression {
             function: Box::from(function),
-            arguments: Self::parse_function_arguments(parser)?,
+            arguments: Expression::parse_expression_list(parser, &Token::RParen)?,
         }))
-    }
-
-    fn parse_function_arguments(parser: &mut Parser) -> Result<Vec<Expression>, ParseError> {
-        event!(Level::DEBUG, "Parsing function arguments");
-        let mut parameters: Vec<Expression> = Vec::from([]);
-        while let Some(token) = parser.tokens.peek() {
-            match token {
-                Token::RParen => {
-                    parser.tokens.consume();
-                    return Ok(parameters);
-                }
-                Token::Comma => {
-                    parser.tokens.consume();
-                }
-                _ => {
-                    let current_token = parser
-                        .tokens
-                        .consume()
-                        .expect("Expected a token after peeking");
-
-                    parameters.push(Expression::parse(
-                        parser,
-                        current_token,
-                        Precedence::Lowest,
-                    )?);
-                }
-            }
-        }
-
-        Ok(parameters)
     }
 }
 
@@ -130,10 +100,7 @@ mod tests {
     use crate::{
         parser::{
             ast::{BlockStatement, Operator, Statement},
-            expressions::{
-                expression::Expression, expression_statement::ExpressionStatement,
-                functions::CallExpression,
-            },
+            expressions::{expression::Expression, functions::CallExpression},
         },
         test_util,
     };
@@ -171,9 +138,7 @@ mod tests {
         });
         assert_eq!(
             statement,
-            &Statement::Expression(ExpressionStatement {
-                expression: expected_statement
-            }),
+            &Statement::Expression(expected_statement),
             "Parsed statement should match testcase"
         );
     }
@@ -190,13 +155,13 @@ mod tests {
                 test_util::create_function_expression(
                     Vec::from(["x", "y"]),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: test_util::create_infix_expression(
+                        statements: Vec::from([Statement::Expression(
+                            test_util::create_infix_expression(
                                 test_util::create_identifierliteral("x"),
                                 test_util::create_identifierliteral("y"),
                                 Operator::Plus,
                             ),
-                        })]),
+                        )]),
                     },
                 ),
             ),
@@ -206,12 +171,8 @@ mod tests {
                     Vec::from([]),
                     BlockStatement {
                         statements: Vec::from([
-                            Statement::Expression(ExpressionStatement {
-                                expression: test_util::create_identifierliteral("x"),
-                            }),
-                            Statement::Expression(ExpressionStatement {
-                                expression: test_util::create_identifierliteral("y"),
-                            }),
+                            Statement::Expression(test_util::create_identifierliteral("x")),
+                            Statement::Expression(test_util::create_identifierliteral("y")),
                         ]),
                     },
                 ),

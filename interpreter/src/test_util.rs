@@ -12,8 +12,7 @@ use crate::{
     parser::{
         ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
         expressions::{
-            expression::Expression, expression_statement::ExpressionStatement,
-            functions::FunctionLiteral, if_expression::IfExpression,
+            expression::Expression, functions::FunctionLiteral, if_expression::IfExpression,
         },
         lexer::lexedtokens::LexedTokens,
         ParsedProgram, Parser,
@@ -70,10 +69,8 @@ pub fn expect_parsed_program(source_code: &str) -> Vec<Statement> {
     match Parser::parse_tokens(tokens) {
         ParsedProgram::ValidProgram(valid_statements) => valid_statements,
         ParsedProgram::InvalidProgram(parse_errors) => {
-            parse_errors.into_iter().for_each(|ele| {
-                error!("{ele}");
-            });
-            panic!("Eval failed with parse errors")
+            parse_errors.into_iter().for_each(|ele| eprintln!("{ele}"));
+            panic!("parse failed with parse errors")
         }
     }
 }
@@ -82,11 +79,9 @@ pub fn create_prefix_test_case(
     right_expression: Expression,
     operator: PrefixOperator,
 ) -> Statement {
-    Statement::Expression(ExpressionStatement {
-        expression: Expression::Prefix {
-            right: Box::new(right_expression),
-            operator,
-        },
+    Statement::Expression(Expression::Prefix {
+        right: Box::new(right_expression),
+        operator,
     })
 }
 
@@ -95,39 +90,34 @@ pub fn create_infix_test_case(
     right_expression: Expression,
     operator: Operator,
 ) -> Statement {
-    Statement::Expression(ExpressionStatement {
-        expression: Expression::Infix {
-            left: Box::new(left_expression),
-            right: Box::new(right_expression),
-            operator,
-        },
+    Statement::Expression(Expression::Infix {
+        left: Box::new(left_expression),
+        right: Box::new(right_expression),
+        operator,
     })
 }
 
 pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> Statement {
-    Statement::Expression(ExpressionStatement {
-        expression: Expression::Function(FunctionLiteral {
-            parameters: parameters
-                .iter()
-                .map(|param| Identifier(param.to_string()))
-                .collect(),
-            body,
-        }),
-    })
+    Statement::Expression(Expression::Function(FunctionLiteral {
+        parameters: parameters
+            .iter()
+            .map(|param| Identifier(param.to_string()))
+            .collect(),
+        body,
+    }))
 }
+
 pub fn create_if_condition(
     condition: Expression,
     consequence: BlockStatement,
     alternative: Option<BlockStatement>,
 ) -> Statement {
     use Expression::*;
-    Statement::Expression(ExpressionStatement {
-        expression: If(IfExpression {
-            condition: Box::from(condition),
-            consequence,
-            alternative,
-        }),
-    })
+    Statement::Expression(If(IfExpression {
+        condition: Box::from(condition),
+        consequence,
+        alternative,
+    }))
 }
 
 pub fn create_infix_expression(

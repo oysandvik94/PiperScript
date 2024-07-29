@@ -89,12 +89,12 @@ impl Default for Environment {
     }
 }
 
-pub trait FunctionListable {
-    fn to_function_string(&self) -> String;
+pub trait Listable {
+    fn to_commaseperated_list(&self) -> String;
 }
 
-impl<T: ToString> FunctionListable for Vec<T> {
-    fn to_function_string(&self) -> String {
+impl<T: ToString> Listable for Vec<T> {
+    fn to_commaseperated_list(&self) -> String {
         self.iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()
@@ -112,7 +112,9 @@ impl Display for Object {
             Boolean(boolean) => write!(f, "{boolean}"),
             Void => write!(f, ""),
             ReturnValue(object) => write!(f, "{object}"),
-            Function(function) => write!(f, "fn ({})", function.parameters.to_function_string()),
+            Function(function) => {
+                write!(f, "fn ({})", function.parameters.to_commaseperated_list())
+            }
             BuiltInFunction(builtin) => write!(f, "builtin fn: {}", builtin.name),
         }
     }

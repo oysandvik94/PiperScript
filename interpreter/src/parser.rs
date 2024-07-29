@@ -5,12 +5,12 @@ pub(crate) mod lexer;
 pub(crate) mod parse_errors;
 pub(crate) mod return_statement;
 
+use expressions::expression_statement;
 use tracing::{event, span, Level};
 
 use crate::{
     parser::assign_statement::AssignStatement,
     parser::ast::Statement,
-    parser::expressions::expression_statement::ExpressionStatement,
     parser::lexer::{lexedtokens::LexedTokens, token::Token},
     parser::parse_errors::ParseError,
     parser::return_statement::ReturnStatement,
@@ -64,7 +64,7 @@ impl Parser {
         match self.tokens.peek() {
             Some(Token::Return) => ReturnStatement::parse_return_statement(self),
             Some(Token::Let) => AssignStatement::parse(self),
-            Some(_) => ExpressionStatement::parse(self),
+            Some(_) => expression_statement::parse(self),
             None => Err(ParseError::ExpectedToken),
         }
     }

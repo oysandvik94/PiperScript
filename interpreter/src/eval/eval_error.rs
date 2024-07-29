@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    eval::objects::FunctionListable,
+    eval::objects::Listable,
     parser::{
         ast::{Identifier, Operator},
         expressions::expression::Expression,
@@ -58,7 +58,7 @@ impl Display for EvalError {
                 writeln!(f, "Can only call a function on an identifier representing a function, or an actual function literal. Instead tried to call on {object}")
             }
             EvalError::ArgumentMismatch(params, args) => {
-                writeln!(f, "Passed in arguments to no matche function parameters. Parameters: {} Arguments: {}", params.to_function_string(), args.to_function_string())
+                writeln!(f, "Passed in arguments to no matche function parameters. Parameters: {} Arguments: {}", params.to_commaseperated_list(), args.to_commaseperated_list())
             }
             EvalError::StringInfixOperatorError(operator) => {
                 writeln!(f, "Operator {operator} is not supported for strings")

@@ -1,13 +1,10 @@
 use std::fmt::Display;
 
-use crate::eval::objects::FunctionListable;
+use crate::eval::objects::Listable;
 
 use super::{
     assign_statement::AssignStatement,
-    expressions::{
-        expression::Expression, expression_statement::ExpressionStatement,
-        functions::CallExpression, if_expression::IfExpression,
-    },
+    expressions::{expression::Expression, functions::CallExpression, if_expression::IfExpression},
     lexer::token::Token,
     parse_errors::ParseError,
     return_statement::ReturnStatement,
@@ -18,7 +15,7 @@ use super::{
 pub enum Statement {
     Assign(AssignStatement),
     Return(ReturnStatement),
-    Expression(ExpressionStatement),
+    Expression(Expression),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -130,8 +127,9 @@ impl Display for Expression {
                 function,
                 arguments,
             }) => {
-                write!(f, "{function}({})", arguments.to_function_string())
+                write!(f, "{function}({})", arguments.to_commaseperated_list())
             }
+            Expression::Array(array_literal) => write!(f, "{array_literal}"),
         }
     }
 }

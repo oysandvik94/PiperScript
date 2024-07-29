@@ -54,10 +54,7 @@ impl IfExpression {
 #[cfg(test)]
 mod tests {
     use crate::{
-        parser::{
-            ast::{BlockStatement, Operator, Statement},
-            expressions::expression_statement::ExpressionStatement,
-        },
+        parser::ast::{BlockStatement, Operator, Statement},
         test_util,
     };
 
@@ -77,9 +74,9 @@ mod tests {
                         Operator::LessThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: test_util::create_identifierliteral("x"),
-                        })]),
+                        statements: Vec::from([Statement::Expression(
+                            test_util::create_identifierliteral("x"),
+                        )]),
                     },
                     None,
                 ),
@@ -93,14 +90,14 @@ mod tests {
                         Operator::GreaterThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: test_util::create_identifierliteral("x"),
-                        })]),
+                        statements: Vec::from([Statement::Expression(
+                            test_util::create_identifierliteral("x"),
+                        )]),
                     },
                     Some(BlockStatement {
-                        statements: Vec::from([Statement::Expression(ExpressionStatement {
-                            expression: test_util::create_identifierliteral("y"),
-                        })]),
+                        statements: Vec::from([Statement::Expression(
+                            test_util::create_identifierliteral("y"),
+                        )]),
                     }),
                 ),
             ),
