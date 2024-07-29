@@ -130,6 +130,7 @@ impl Display for Expression {
                 write!(f, "{function}({})", arguments.to_commaseperated_list())
             }
             Expression::Array(array_literal) => write!(f, "{array_literal}"),
+            Expression::Index { left, index } => write!(f, "({left}[{index}])"),
         }
     }
 }

@@ -80,7 +80,7 @@ mod tests {
             input: String,
             expected: String,
         }
-        let test_cases: [TestCase; 24] = [
+        let test_cases: [TestCase; 26] = [
             ("-a * b", "((-a) * b)"),
             ("!-a", "(!(-a))"),
             ("a + b + c", "((a + b) + c)"),
@@ -113,6 +113,14 @@ mod tests {
             (
                 "add(a + b + c * d / f + g)",
                 "add((((a + b) + ((c * d) / f)) + g))",
+            ),
+            (
+                "a * [1, 2, 3, 4][b * c] * d",
+                "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            ),
+            (
+                "add(a * b[2], b[1], 2 * [1, 2][1])",
+                "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
             ),
         ]
         .map(|(input, expected)| TestCase {

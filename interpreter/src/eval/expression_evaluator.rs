@@ -50,6 +50,7 @@ impl Evaluable for Expression {
             Expression::Function(function_literal) => function_literal.eval(env),
             Expression::Call(call_expression) => call_expression.eval(env),
             Expression::Array(_) => todo!(),
+            Expression::Index { left, index } => todo!(),
         }
     }
 }

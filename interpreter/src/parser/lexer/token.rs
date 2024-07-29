@@ -41,11 +41,13 @@ pub enum Precedence {
     Product,
     Prefix,
     Call,
+    Index,
 }
 
 pub enum HasInfix {
     Arithmic(Operator),
     Call(),
+    Index(),
     No(Token),
 }
 
@@ -74,6 +76,7 @@ impl Token {
 
     pub fn get_precedence(&self) -> Precedence {
         match self {
+            LBracket => Precedence::Index,
             LParen => Precedence::Call,
             Equal | NotEqual => Precedence::Equals,
             LessThan | GreaterThan => Precedence::LessGreater,
@@ -94,6 +97,7 @@ impl Token {
             Token::Slash => HasInfix::Arithmic(Operator::DividedBy),
             Token::Asterix => HasInfix::Arithmic(Operator::Multiply),
             Token::LParen => HasInfix::Call(),
+            Token::LBracket => HasInfix::Index(),
             unexpected_token => HasInfix::No(unexpected_token.clone()),
         }
     }

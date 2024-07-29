@@ -1,5 +1,7 @@
 use std::{iter::Peekable, str::Chars, vec::IntoIter};
 
+use tracing::{event, Level};
+
 use crate::parser::{ast::Identifier, lexer::token::FirstPart, parse_errors::ParseError};
 
 use super::token::{HasInfix, Precedence, Token};
@@ -46,10 +48,15 @@ impl LexedTokens {
     }
 
     pub fn next_token_has_infix(&mut self) -> bool {
-        match self.token_iter.peek() {
+        let next_token = self.token_iter.peek();
+        let has_infix = match next_token {
             Some(token) => !matches!(token.has_infix(), HasInfix::No(_)),
             None => false,
-        }
+        };
+
+        event!(Level::DEBUG, "Token {next_token:?} has infix: {has_infix}");
+
+        has_infix
     }
 
     pub fn next_token_is(&mut self, is_token: &Token) -> bool {

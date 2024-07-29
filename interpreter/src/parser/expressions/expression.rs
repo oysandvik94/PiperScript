@@ -20,6 +20,10 @@ pub enum Expression {
     IntegerLiteral(i32),
     BooleanLiteral(bool),
     Array(ArrayLiteral),
+    Index {
+        left: Box<Expression>,
+        index: Box<Expression>,
+    },
     Prefix {
         right: Box<Expression>,
         operator: PrefixOperator,
@@ -155,6 +159,7 @@ impl Expression {
                 })
             }
             HasInfix::Call() => CallExpression::parse(parser, left),
+            HasInfix::Index() => Expression::parse_index_expression(parser, left),
             HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
         }
     }
@@ -189,6 +194,22 @@ impl Expression {
         }
 
         Ok(parameters)
+    }
+
+    fn parse_index_expression(
+        parser: &mut Parser,
+        left: Expression,
+    ) -> Result<Expression, ParseError> {
+        let token = parser.tokens.expect()?;
+
+        let index = Expression::parse(parser, token, Precedence::Lowest)?;
+
+        parser.tokens.expect_token(Token::RBracket)?;
+
+        Ok(Expression::Index {
+            left: Box::new(left),
+            index: Box::new(index),
+        })
     }
 }
 

@@ -28,9 +28,11 @@ impl ArrayLiteral {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Borrow;
+
     use crate::{
         parser::{
-            ast::{Operator, Statement},
+            ast::{Identifier, Operator, Statement},
             expressions::expression::Expression,
         },
         test_util,
@@ -78,6 +80,41 @@ mod tests {
                 assert_eq!(operator, &Operator::Plus);
                 assert_eq!(right, &Box::new(Expression::IntegerLiteral(3)));
                 assert_eq!(left, &Box::new(Expression::IntegerLiteral(3)));
+            }
+            unexpected => panic!("Expected integer expression, got {unexpected}"),
+        }
+    }
+
+    #[test]
+    fn test_index_array_parsing() {
+        test_util::setup_logger();
+        let input = "myArray[1 + 1]";
+
+        let statemens = test_util::expect_parsed_program(input);
+        let statement = statemens.first().expect("Should only return one statement");
+
+        let (left, index) = match statement {
+            Statement::Expression(expression) => match expression {
+                Expression::Index { left, index } => (left, index),
+                unexpected => panic!("Expected index expression, but got {unexpected}"),
+            },
+            _ => panic!("Expected expression statement"),
+        };
+
+        match left.borrow() {
+            Expression::IdentifierLiteral(Identifier(name)) => assert_eq!(name, "myArray"),
+            unexpected => panic!("Expected identifier expression, got {unexpected}"),
+        }
+
+        match index.borrow() {
+            Expression::Infix {
+                right,
+                left,
+                operator,
+            } => {
+                assert_eq!(operator, &Operator::Plus);
+                assert_eq!(right, &Box::new(Expression::IntegerLiteral(1)));
+                assert_eq!(left, &Box::new(Expression::IntegerLiteral(1)));
             }
             unexpected => panic!("Expected integer expression, got {unexpected}"),
         }

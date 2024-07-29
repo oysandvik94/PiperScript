@@ -6,7 +6,7 @@ use crate::{
     eval::objects::Listable,
     parser::{
         ast::{BlockStatement, Identifier},
-        lexer::token::{Precedence, Token},
+        lexer::token::Token,
         parse_errors::{ParseError, TokenExpectation},
         Parser,
     },
