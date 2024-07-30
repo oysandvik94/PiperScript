@@ -5,4 +5,4 @@ let fibonacci: fn(x):
     	fibonacci(x - 1) + fibonacci(x - 2)
     ~
 ~
-fibonacci(28)
+fibonacci(30)
