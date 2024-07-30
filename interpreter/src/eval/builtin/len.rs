@@ -15,9 +15,13 @@ pub fn len(args: &[Object]) -> Result<Object, EvalError> {
             event!(Level::DEBUG, "Calling len on: {s}");
             Ok(Object::Integer(s.len() as i32))
         }
+        Object::Array(arr) => {
+            event!(Level::DEBUG, "Calling len on array");
+            Ok(Object::Integer(arr.len() as i32))
+        }
         _ => Err(EvalError::BuiltInInvalidArguments(
             "len".to_string(),
-            "Expected a string".to_string(),
+            "Expected a string or array".to_string(),
         )),
     }
 }
