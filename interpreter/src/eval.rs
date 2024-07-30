@@ -5,6 +5,7 @@ use crate::parser::{
     lexer::lexedtokens::LexedTokens, parse_errors::ParseError, ParsedProgram, Parser,
 };
 
+mod array_evaluator;
 pub mod builtin;
 pub mod eval_error;
 mod expression_evaluator;

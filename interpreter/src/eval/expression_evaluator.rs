@@ -49,7 +49,7 @@ impl Evaluable for Expression {
             Expression::If(if_expression) => if_expression.eval(env),
             Expression::Function(function_literal) => function_literal.eval(env),
             Expression::Call(call_expression) => call_expression.eval(env),
-            Expression::Array(_) => todo!(),
+            Expression::Array(array) => array.eval(env),
             Expression::Index { left, index } => todo!(),
         }
     }
@@ -331,5 +331,22 @@ mod tests {
                 something_else => panic!("Expected boolean, got {something_else}"),
             }
         });
+    }
+
+    #[test]
+    fn eval_array_literal_test() {
+        let input = "[1, 2 * 2, 3 + 3]";
+
+        let object = test_util::expect_evaled_program(input);
+
+        match object {
+            Object::Array(array) => {
+                assert_eq!(array.len(), 3);
+                test_util::assert_integar_literal(&array[0], 1);
+                test_util::assert_integar_literal(&array[1], 4);
+                test_util::assert_integar_literal(&array[2], 6);
+            }
+            something_else => panic!("Expected boolean, got {something_else}"),
+        }
     }
 }

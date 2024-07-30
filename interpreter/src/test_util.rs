@@ -29,6 +29,15 @@ where
     });
 }
 
+pub fn assert_integar_literal(actual: &Object, expected: i32) {
+    match actual {
+        Object::Integer(actual) => {
+            assert_eq!(expected, *actual, "Expected {expected} but got {actual}")
+        }
+        unexpected => panic!("Expected integer literal, but got {unexpected}"),
+    }
+}
+
 pub fn has_parser_errors(program: &ParsedProgram) -> bool {
     match program {
         ParsedProgram::ValidProgram(_) => false,
@@ -57,7 +66,7 @@ pub fn expect_evaled_program(source_code: &str) -> Object {
             panic!("Eval failed with parse errors");
         }
         EvaledProgram::EvalError(eval_errors) => {
-            error!("{eval_errors}");
+            eprintln!("{eval_errors}");
             panic!("Eval failed with runtime errors")
         }
         EvaledProgram::Valid(valid_program) => valid_program,

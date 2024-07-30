@@ -11,6 +11,7 @@ pub enum Object {
     Integer(i32),
     Str(String),
     Boolean(bool),
+    Array(Vec<Object>),
     Void,
     ReturnValue(Box<Object>),
     Function(FunctionObject),
@@ -116,6 +117,7 @@ impl Display for Object {
                 write!(f, "fn ({})", function.parameters.to_commaseperated_list())
             }
             BuiltInFunction(builtin) => write!(f, "builtin fn: {}", builtin.name),
+            Array(elements) => write!(f, "[{}]", elements.to_commaseperated_list()),
         }
     }
 }
