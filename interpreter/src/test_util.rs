@@ -1,6 +1,5 @@
 use std::sync::Once;
 
-use tracing::error;
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{

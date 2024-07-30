@@ -1,7 +1,7 @@
 use std::{
     env,
-    fs::{self, File},
-    io::{self, stdin, stdout, BufRead, Write},
+    fs::{self},
+    io::{stdin, stdout, Write},
 };
 
 use interpreter::eval::{self, objects::Environment, EvaledProgram};

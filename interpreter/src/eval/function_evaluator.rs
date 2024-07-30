@@ -62,7 +62,7 @@ impl Evaluable for CallExpression {
 mod tests {
     use crate::{
         eval::{
-            self, eval,
+            self,
             eval_error::EvalError,
             objects::{Environment, Object},
             EvaledProgram,

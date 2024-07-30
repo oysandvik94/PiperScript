@@ -24,6 +24,9 @@ pub enum EvalError {
     UnexpectedFunctionExpression(Object),
     ArgumentMismatch(Vec<Identifier>, Vec<Object>),
     BuiltInInvalidArguments(String, String),
+    IndexOutOfBounds(usize, i32),
+    IndexingNonArray(Object),
+    IndexNotInteger(Object),
 }
 
 impl Display for EvalError {
@@ -68,6 +71,16 @@ impl Display for EvalError {
                     f,
                     "Error calling built-in function {func_name}: {error_msg}"
                 )
+            }
+            EvalError::IndexOutOfBounds(array_size, indexed) => writeln!(
+                f,
+                "Index {indexed} out of bounds for array with size {array_size}"
+            ),
+            EvalError::IndexingNonArray(object) => {
+                writeln!(f, "Can only index arrays, but tried to index {object}")
+            }
+            EvalError::IndexNotInteger(object) => {
+                writeln!(f, "Index must be an integer, but got {object}")
             }
         }
     }

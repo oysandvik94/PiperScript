@@ -50,8 +50,33 @@ impl Evaluable for Expression {
             Expression::Function(function_literal) => function_literal.eval(env),
             Expression::Call(call_expression) => call_expression.eval(env),
             Expression::Array(array) => array.eval(env),
-            Expression::Index { left, index } => todo!(),
+            Expression::Index { left, index } => eval_index_expression(left, index, env),
         }
+    }
+}
+
+fn eval_index_expression(
+    left: &Expression,
+    index: &Expression,
+    env: &mut EnvReference,
+) -> Result<Object, EvalError> {
+    let left = match left.eval(env)? {
+        Object::Array(array) => array,
+        unexpected_object => {
+            return Err(EvalError::IndexingNonArray(unexpected_object));
+        }
+    };
+
+    let index = match index.eval(env)? {
+        Object::Integer(index) => index,
+        unexpected_object => {
+            return Err(EvalError::IndexNotInteger(unexpected_object));
+        }
+    };
+
+    match left.get(index as usize) {
+        Some(indexed_object) => Ok(indexed_object.clone()),
+        None => Err(EvalError::IndexOutOfBounds(left.len(), index)),
     }
 }
 
@@ -203,7 +228,15 @@ fn eval_bang_operator_expression(right: &Object) -> Result<Object, EvalError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{eval::objects::Object, test_util};
+    use crate::{
+        eval::{
+            self,
+            eval_error::EvalError,
+            objects::{Environment, Object},
+            EvaledProgram,
+        },
+        test_util,
+    };
 
     #[test]
     fn eval_integer_expression_test() {
@@ -347,6 +380,46 @@ mod tests {
                 test_util::assert_integar_literal(&array[2], 6);
             }
             something_else => panic!("Expected boolean, got {something_else}"),
+        }
+    }
+
+    #[test]
+    fn indexing_array_shoud_produce_correct_element() {
+        let test_cases = vec![
+            ("[1, 2, 3][0]", 1),
+            ("[1, 2, 3][1]", 2),
+            ("[1, 2, 3][2]", 3),
+            ("let i: 0. [1][i]", 1),
+            ("[1, 2, 3][1 + 1]", 3),
+            ("let myArray: [1, 2, 3]. myArray[2]", 3),
+            (
+                "let myArray: [1, 2, 3]. myArray[0] + myArray[1] + myArray[2]",
+                6,
+            ),
+            ("let myArray: [1, 2, 3]. let i: myArray[0]. myArray[i]", 2),
+        ];
+
+        for test_case in test_cases {
+            let object = test_util::expect_evaled_program(test_case.0);
+            test_util::assert_integar_literal(&object, test_case.1);
+        }
+    }
+
+    #[test]
+    fn indexing_out_of_bounds_produces_error() {
+        let test_cases = vec![("[1, 2, 3][3]", 3, 3), ("[1, 2, 3][-1]", 3, -1)];
+
+        for test_case in test_cases {
+            match eval::eval(test_case.0, &mut Environment::new_env_reference()) {
+                EvaledProgram::EvalError(eval_error) => match eval_error {
+                    EvalError::IndexOutOfBounds(size, indexed) => {
+                        assert_eq!(size, test_case.1, "Reported size should be correct");
+                        assert_eq!(indexed, test_case.2, "Reported index should be correct");
+                    }
+                    _ => panic!("Expected index out of bounds error"),
+                },
+                _ => panic!("Expected eval error"),
+            }
         }
     }
 }
