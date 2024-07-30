@@ -61,7 +61,12 @@ impl Evaluable for CallExpression {
 #[cfg(test)]
 mod tests {
     use crate::{
-        eval::objects::Object,
+        eval::{
+            self, eval,
+            eval_error::EvalError,
+            objects::{Environment, Object},
+            EvaledProgram,
+        },
         parser::{
             ast::{BlockStatement, Identifier, Operator},
             expressions::expression::Expression,
@@ -70,7 +75,7 @@ mod tests {
     };
 
     #[test]
-    fn closure_test() {
+    fn closure_should_capture_environment() {
         let input = "
             let newAdder: fn(x):
                 fn(y): x + y~
@@ -85,6 +90,30 @@ mod tests {
         match object {
             Object::Integer(integer) => assert_eq!(4, integer, "Function should evaluate to 4"),
             unexpected_object => panic!("expected integer, but got {unexpected_object}"),
+        }
+    }
+
+    #[test]
+    fn closure_scope_should_be_dropped() {
+        let input = "
+            let newAdder: fn(x):
+                fn(y): x + y~
+            ~
+
+             let addTwo: newAdder(2)
+
+             x
+
+            ";
+
+        match eval::eval(input, &mut Environment::new_env_reference()) {
+            EvaledProgram::EvalError(eval_error) => match eval_error {
+                EvalError::IdentifierNotFound(identifier) => {
+                    assert_eq!(identifier.0.to_owned(), "x")
+                }
+                _ => panic!("Expected identifier not found error"),
+            },
+            _ => panic!("Expected eval error"),
         }
     }
 
