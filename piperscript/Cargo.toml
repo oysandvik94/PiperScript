@@ -1,11 +1,15 @@
 [package]
-name = "piper"
+name = "piperscript"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-repl = { path = "../repl/" }
-filerunner = { path = "../filerunner//" }
+repl = { path = "../repl/", version = "0.1.0" }
+filerunner = { path = "../filerunner/", version = "0.1.0" }
 tracing = "0.1.40"
 tracing-subscriber = {version = "0.3.18", features =[ "env-filter"]}
 clap = { version = "4.5.11", features = ["derive"] }
+
+[[bin]]
+name = "piper"
+path = "src/main.rs"

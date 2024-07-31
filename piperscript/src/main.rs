@@ -1,4 +1,4 @@
-use piper::{execute_piper, setup_logging};
+use piperscript::{execute_piper, setup_logging};
 
 fn main() -> Result<(), std::io::Error> {
     setup_logging();
