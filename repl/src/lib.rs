@@ -1,32 +1,8 @@
-use std::{
-    env,
-    fs::{self},
-    io::{stdin, stdout, Write},
-};
+use std::io::{stdin, stdout, Write};
 
 use interpreter::eval::{self, objects::Environment, EvaledProgram};
-use tracing_subscriber::FmtSubscriber;
 
-fn main() -> Result<(), std::io::Error> {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() == 2 {
-        let filename = &args[1];
-
-        let file_content = fs::read_to_string(filename)?;
-        let execution_scope = &mut Environment::new_env_reference();
-        let evaluated_output = eval::eval(&file_content, execution_scope);
-        handle_output(evaluated_output);
-
-        return Ok(());
-    }
-
-    let subscriber = FmtSubscriber::builder()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .finish();
-
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
+pub fn execute_repl() -> Result<(), std::io::Error> {
     println!("Welcome to lasagnalang, try and write some code:");
     let repl_scope = &mut Environment::new_env_reference();
 
