@@ -1,0 +1,16 @@
+[package]
+name = "son_of_anton"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.44"
+interpreter = { path = "../interpreter/" }
+serde_json = "1.0.78"
+tokio = { version = "1.17.0", features = ["full"] }
+tower-lsp = { version = "0.20.0", features = ["proposed"]}
+serde = { version = "1.0", features = ["derive"] }
+tracing = "0.1.40"
+tracing-subscriber = {version = "0.3.18", features =[ "env-filter"]}
+
+
