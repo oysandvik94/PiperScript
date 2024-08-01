@@ -2,7 +2,8 @@
 resolver = "2"
 
 members = [
-    "interpreter",
-    "repl",
-    "piper"
-    , "filerunner", "son_of_anton"]
+    "crates/interpreter",
+    "crates/repl",
+    "crates/piper" ,
+    "crates/filerunner",
+    "crates/son_of_anton"]

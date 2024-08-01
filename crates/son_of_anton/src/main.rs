@@ -1,5 +1,5 @@
 use serde_json::Value;
-use son_of_anton::capabilites::ANTON_CAPABILITIES;
+use son_of_anton::capabilites::get_antons_capabilites;
 use son_of_anton::handlers;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
@@ -16,19 +16,17 @@ impl LanguageServer for Backend {
     async fn initialize(&self, _: InitializeParams) -> Result<InitializeResult> {
         Ok(InitializeResult {
             server_info: None,
-            capabilities: ANTON_CAPABILITIES,
+            capabilities: get_antons_capabilites(),
             ..Default::default()
         })
     }
 
-    async fn completion(&self, _: CompletionParams) -> Result<Option<CompletionResponse>> {
-        Ok(Some(halndlers::completion::handle_completion(
-            completion_params,
-        )))
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        Ok(Some(handlers::completion::handle_completion(params)))
     }
 
-    async fn hover(&self, _: HoverParams) -> Result<Option<Hover>> {
-        Ok(Some(handlers::hover::handle_hover(hover_params)))
+    async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
+        Ok(Some(handlers::hover::handle_hover(params)))
     }
 
     async fn initialized(&self, _: InitializedParams) {

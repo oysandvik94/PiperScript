@@ -1,4 +1,4 @@
-use tower_lsp::lsp_types::{CompletionParams, CompletionResponse};
+use tower_lsp::lsp_types::{CompletionItem, CompletionParams, CompletionResponse};
 
 pub fn handle_completion(_: CompletionParams) -> CompletionResponse {
     CompletionResponse::Array(vec![
