@@ -6,4 +6,4 @@ members = [
     "crates/repl",
     "crates/piper" ,
     "crates/filerunner",
-    "crates/son_of_anton"]
+    "crates/son_of_anton", "crates/piperfmt"]

@@ -1,9 +1,9 @@
-pub(crate) mod assign_statement;
-pub(crate) mod ast;
-pub(crate) mod expressions;
-pub(crate) mod lexer;
-pub(crate) mod parse_errors;
-pub(crate) mod return_statement;
+pub mod assign_statement;
+pub mod ast;
+pub mod expressions;
+pub mod lexer;
+pub mod parse_errors;
+pub mod return_statement;
 
 use expressions::expression_statement;
 use tracing::{event, span, Level};
