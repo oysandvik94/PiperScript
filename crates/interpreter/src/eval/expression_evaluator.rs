@@ -1,5 +1,8 @@
+use std::collections::HashMap;
+
 use tracing::{event, span, Level};
 
+use crate::eval::objects::{HashPair, PrimitiveObject};
 use crate::parser::expressions::if_expression::IfExpression;
 use crate::parser::{
     ast::{Identifier, Operator, PrefixOperator},
@@ -18,23 +21,21 @@ pub(crate) trait Evaluable {
 
 impl Evaluable for Expression {
     fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
-        use Object::*;
-
         match self {
             Expression::IntegerLiteral(number) => {
                 event!(Level::DEBUG, "Evaluated to number {number}");
-                Ok(Integer(*number))
+                Ok(Object::primitive_from_int(*number))
             }
             Expression::StringLiteral(string) => {
                 event!(Level::DEBUG, "Evaluated to string {string}");
-                Ok(Str(string.clone()))
-            }
-            Expression::IdentifierLiteral(identifier) => {
-                eval_identifier_expression(identifier, env)
+                Ok(Object::primitive_from_str(string.to_owned()))
             }
             Expression::BooleanLiteral(boolean) => {
                 event!(Level::DEBUG, "Evaluated to boolean {boolean}");
-                Ok(Boolean(*boolean))
+                Ok(Object::primitive_from_bool(*boolean))
+            }
+            Expression::IdentifierLiteral(identifier) => {
+                eval_identifier_expression(identifier, env)
             }
             Expression::Prefix { right, operator } => eval_prefix_expression(right, operator, env),
             Expression::Infix {
@@ -51,7 +52,31 @@ impl Evaluable for Expression {
             Expression::Call(call_expression) => call_expression.eval(env),
             Expression::Array(array) => array.eval(env),
             Expression::Index { left, index } => eval_index_expression(left, index, env),
+            Expression::HashLiteral(hash_vec) => eval_hash_literal(hash_vec, env),
         }
+    }
+}
+
+fn eval_hash_literal(
+    hash_vec: &[(Expression, Expression)],
+    env: &mut EnvReference,
+) -> Result<Object, EvalError> {
+    let mut hash = HashMap::with_capacity(hash_vec.len());
+
+    for (key_expr, value_expr) in hash_vec {
+        let key = eval_hash_key(key_expr, env)?;
+        let value = value_expr.eval(env)?;
+
+        hash.insert(key.clone(), HashPair { key, value });
+    }
+
+    Ok(Object::Hash(hash))
+}
+
+fn eval_hash_key(expr: &Expression, env: &mut EnvReference) -> Result<PrimitiveObject, EvalError> {
+    match expr.eval(env)? {
+        Object::Primitive(prim) => Ok(prim),
+        obj => Err(EvalError::InvalidHashKey(obj)),
     }
 }
 
@@ -68,7 +93,7 @@ fn eval_index_expression(
     };
 
     let index = match index.eval(env)? {
-        Object::Integer(index) => index,
+        Object::Primitive(PrimitiveObject::Integer(index)) => index,
         unexpected_object => {
             return Err(EvalError::IndexNotInteger(unexpected_object));
         }
@@ -101,7 +126,7 @@ impl Evaluable for IfExpression {
         event!(Level::DEBUG, "Evaluating if condition");
 
         let evaluated_condition = match self.condition.eval(env)? {
-            Object::Boolean(boolean) => boolean,
+            Object::Primitive(PrimitiveObject::Boolean(boolean)) => boolean,
             unexpected_condition => {
                 return Err(EvalError::NonBooleanConditional(unexpected_condition))
             }
@@ -124,13 +149,15 @@ fn eval_infix_expression(
 ) -> Result<Object, EvalError> {
     use Object::*;
     match (left, right) {
-        (Integer(left_integer), Integer(right_integer)) => {
-            eval_integer_infix_expression(left_integer, right_integer, operator)
-        }
-        (Boolean(left_boolean), Boolean(right_boolean)) => {
-            eval_boolean_infix_expression(left_boolean, right_boolean, operator)
-        }
-        (Str(left_str), Str(right_str)) => {
+        (
+            Primitive(PrimitiveObject::Integer(left_integer)),
+            Primitive(PrimitiveObject::Integer(right_integer)),
+        ) => eval_integer_infix_expression(left_integer, right_integer, operator),
+        (
+            Primitive(PrimitiveObject::Boolean(left_boolean)),
+            Primitive(PrimitiveObject::Boolean(right_boolean)),
+        ) => eval_boolean_infix_expression(left_boolean, right_boolean, operator),
+        (Primitive(PrimitiveObject::Str(left_str)), Primitive(PrimitiveObject::Str(right_str))) => {
             eval_string_infix_expression(left_str, right_str, operator)
         }
         (unexpected_left, unexpected_right) => Err(EvalError::InfixRightLeft(
@@ -148,7 +175,7 @@ fn eval_string_infix_expression(
     Ok(match operator {
         Operator::Plus => {
             let concatted_str = [left_str, right_str].concat();
-            Object::Str(concatted_str)
+            Object::primitive_from_str(concatted_str)
         }
         unsupported_operator => {
             return Err(EvalError::StringInfixOperatorError(
@@ -163,11 +190,9 @@ fn eval_boolean_infix_expression(
     right_boolean: bool,
     operator: &Operator,
 ) -> Result<Object, EvalError> {
-    use Object::*;
-
     Ok(match operator {
-        Operator::Equals => Boolean(left_boolean == right_boolean),
-        Operator::NotEquals => Boolean(left_boolean != right_boolean),
+        Operator::Equals => Object::primitive_from_bool(left_boolean == right_boolean),
+        Operator::NotEquals => Object::primitive_from_bool(left_boolean != right_boolean),
         unsupported_operator => {
             return Err(EvalError::BooleanInfixOperator(
                 unsupported_operator.clone(),
@@ -181,17 +206,15 @@ fn eval_integer_infix_expression(
     right_integer: i32,
     operator: &crate::parser::ast::Operator,
 ) -> Result<Object, EvalError> {
-    use Object::*;
-
     Ok(match operator {
-        Operator::Minus => Integer(left_integer - right_integer),
-        Operator::Plus => Integer(left_integer + right_integer),
-        Operator::Multiply => Integer(left_integer * right_integer),
-        Operator::DividedBy => Integer(left_integer / right_integer),
-        Operator::LessThan => Boolean(left_integer < right_integer),
-        Operator::GreaterThan => Boolean(left_integer > right_integer),
-        Operator::Equals => Boolean(left_integer == right_integer),
-        Operator::NotEquals => Boolean(left_integer != right_integer),
+        Operator::Minus => Object::primitive_from_int(left_integer - right_integer),
+        Operator::Plus => Object::primitive_from_int(left_integer + right_integer),
+        Operator::Multiply => Object::primitive_from_int(left_integer * right_integer),
+        Operator::DividedBy => Object::primitive_from_int(left_integer / right_integer),
+        Operator::LessThan => Object::primitive_from_bool(left_integer < right_integer),
+        Operator::GreaterThan => Object::primitive_from_bool(left_integer > right_integer),
+        Operator::Equals => Object::primitive_from_bool(left_integer == right_integer),
+        Operator::NotEquals => Object::primitive_from_bool(left_integer != right_integer),
         unexpected_operator => {
             return Err(EvalError::IntegerInfixOperatorError(
                 unexpected_operator.clone(),
@@ -214,14 +237,18 @@ fn eval_prefix_expression(
 
 fn eval_minus_operator_expression(right: &Object) -> Result<Object, EvalError> {
     match right {
-        Object::Integer(integer_value) => Ok(Object::Integer(-integer_value)),
+        Object::Primitive(PrimitiveObject::Integer(integer_value)) => {
+            Ok(Object::primitive_from_int(-integer_value))
+        }
         unexpected_object => Err(EvalError::IncorrectBangSuffix(unexpected_object.clone())),
     }
 }
 
 fn eval_bang_operator_expression(right: &Object) -> Result<Object, EvalError> {
     match right {
-        Object::Boolean(boolean_value) => Ok(Object::Boolean(!boolean_value)),
+        Object::Primitive(PrimitiveObject::Boolean(boolean_value)) => {
+            Ok(Object::primitive_from_bool(!boolean_value))
+        }
         unexpected_object => Err(EvalError::IncorrectBangSuffix(unexpected_object.clone())),
     }
 }
@@ -232,7 +259,7 @@ mod tests {
         eval::{
             self,
             eval_error::EvalError,
-            objects::{Environment, Object},
+            objects::{Environment, Object, PrimitiveObject},
             EvaledProgram,
         },
         test_util,
@@ -262,7 +289,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Integer(number) => assert_eq!(&number, expected),
+                Object::Primitive(PrimitiveObject::Integer(number)) => {
+                    assert_eq!(&number, expected)
+                }
                 unexpected_type => {
                     panic!("Should have returned a number, instead got {unexpected_type}")
                 }
@@ -300,7 +329,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Boolean(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Boolean(boolean)) => {
+                    assert_eq!(expected, &boolean)
+                }
                 something_else => panic!("Expected boolean, got {something_else}"),
             }
         };
@@ -321,7 +352,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Boolean(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Boolean(boolean)) => {
+                    assert_eq!(expected, &boolean)
+                }
                 something_else => panic!("Expected boolean, got {something_else}"),
             }
         });
@@ -344,7 +377,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Integer(integer)) => {
+                    assert_eq!(expected, &integer)
+                }
                 something_else => {
                     panic!("Expected correct integer, got {something_else} for input '{input}'")
                 }
@@ -360,7 +395,7 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Str(string) => assert_eq!(expected, &string),
+                Object::Primitive(PrimitiveObject::Str(string)) => assert_eq!(expected, &string),
                 something_else => panic!("Expected boolean, got {something_else}"),
             }
         });
@@ -420,6 +455,70 @@ mod tests {
                 },
                 _ => panic!("Expected eval error"),
             }
+        }
+    }
+
+    #[test]
+    fn hash_with_string_key_should_eval() {
+        let input = r#"
+        let two: "two"
+        {
+            "one": 10 - 9,
+            two: 1 + 1,
+            "thr" + "ee": 6 / 2,
+        "#;
+
+        let object = test_util::expect_evaled_program(input);
+
+        match object {
+            Object::Hash(hash) => {
+                assert_eq!(hash.len(), 3);
+
+                let expected = vec![("one", 1), ("two", 2), ("three", 3)];
+
+                for (key, value) in expected {
+                    let key = PrimitiveObject::Str(String::from(key));
+
+                    let fail_msg = format!("Expected key not found: {key}");
+                    hash.get(&key).expect(&fail_msg);
+
+                    let hash_value = &hash[&key];
+                    test_util::assert_integar_literal(&hash_value.value, value);
+                }
+            }
+            unexpected => panic!("Expected hash, got {unexpected}"),
+        }
+    }
+
+    #[test]
+    fn hash_with_int_key_should_eval() {
+        let input = r#"
+        let six: 6
+        {
+            4: 10 - 9,
+            six: 1 + 1,
+        }
+        "#;
+
+        let object = test_util::expect_evaled_program(input);
+
+        match object {
+            Object::Hash(hash) => {
+                assert_eq!(hash.len(), 2);
+
+                let expected = vec![(4, 1), (6, 2)];
+
+                for (key, value) in expected {
+                    let key = PrimitiveObject::Integer(key);
+
+                    let fail_msg = format!("Expected key not found: {key}");
+                    hash.get(&key).expect(&fail_msg);
+
+                    let hash_value = &hash[&key];
+                    test_util::assert_integar_literal(&hash_value.value, value);
+                }
+            }
+            unexpected => panic!("Expected hash, got {unexpected}"),
         }
     }
 }

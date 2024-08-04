@@ -46,7 +46,7 @@ impl FunctionLiteral {
         let parameters: Vec<Identifier> = Self::parse_function_parameters(parser)?;
         event!(Level::DEBUG, "Found parameters {parameters:?}");
 
-        parser.tokens.expect_token(Token::Assign)?;
+        parser.tokens.expect_token(Token::Colon)?;
 
         let body: BlockStatement = Expression::parse_blockstatement(parser)?;
         parser.tokens.expect_token(Token::Lasagna)?;
@@ -121,16 +121,8 @@ mod tests {
 
         let expected_arguments = Vec::from([
             Expression::IntegerLiteral(1),
-            test_util::create_infix_expression(
-                Expression::IntegerLiteral(2),
-                Expression::IntegerLiteral(2),
-                Operator::Multiply,
-            ),
-            test_util::create_infix_expression(
-                Expression::IntegerLiteral(4),
-                Expression::IntegerLiteral(5),
-                Operator::Plus,
-            ),
+            test_util::create_integer_infix_expression(2, 2, Operator::Multiply),
+            test_util::create_integer_infix_expression(4, 5, Operator::Plus),
         ]);
         let expected_statement = Expression::Call(CallExpression {
             function: Box::from(test_util::create_identifierliteral("add")),

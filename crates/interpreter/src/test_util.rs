@@ -5,7 +5,7 @@ use tracing_subscriber::FmtSubscriber;
 use crate::{
     eval::{
         self,
-        objects::{Environment, Object},
+        objects::{Environment, Object, PrimitiveObject},
         EvaledProgram,
     },
     parser::{
@@ -30,8 +30,14 @@ where
 
 pub fn assert_integar_literal(actual: &Object, expected: i32) {
     match actual {
-        Object::Integer(actual) => {
-            assert_eq!(expected, *actual, "Expected {expected} but got {actual}")
+        Object::Primitive(actual) => {
+            match actual {
+                PrimitiveObject::Integer(actual) => {
+                    assert_eq!(expected, *actual, "Expected {expected} but got {actual}")
+                }
+                unexpected => panic!("Expected integer literal, but got {unexpected}"),
+            }
+            {}
         }
         unexpected => panic!("Expected integer literal, but got {unexpected}"),
     }
@@ -126,6 +132,14 @@ pub fn create_if_condition(
         consequence,
         alternative,
     }))
+}
+
+pub fn create_integer_infix_expression(left: i32, right: i32, operator: Operator) -> Expression {
+    Expression::Infix {
+        left: Box::from(Expression::IntegerLiteral(left)),
+        right: Box::from(Expression::IntegerLiteral(right)),
+        operator,
+    }
 }
 
 pub fn create_infix_expression(

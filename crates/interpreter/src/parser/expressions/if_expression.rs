@@ -17,9 +17,9 @@ pub struct IfExpression {
 impl IfExpression {
     pub fn parse_if_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
         let next_token = parser.tokens.expect()?;
-        let condition = Expression::parse(parser, next_token, Precedence::Lowest)?;
+        let condition = Expression::parse(parser, &next_token, Precedence::Lowest)?;
 
-        parser.tokens.expect_token(Token::Assign)?;
+        parser.tokens.expect_token(Token::Colon)?;
 
         let consequence = Expression::parse_blockstatement(parser)?;
 
@@ -36,7 +36,7 @@ impl IfExpression {
         let alternative = match parser.tokens.consume() {
             Some(Token::Lasagna) => Ok(None),
             Some(Token::Else) => {
-                parser.tokens.expect_token(Token::Assign)?;
+                parser.tokens.expect_token(Token::Colon)?;
                 let else_block = Some(Expression::parse_blockstatement(parser)?);
                 parser.tokens.expect_token(Token::Lasagna)?;
                 Ok(else_block)

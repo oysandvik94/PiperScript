@@ -7,15 +7,41 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
+pub struct HashPair {
+    pub key: PrimitiveObject,
+    pub value: Object,
+}
+
+#[derive(Debug, Clone)]
 pub enum Object {
-    Integer(i32),
-    Str(String),
-    Boolean(bool),
+    Primitive(PrimitiveObject),
     Array(Vec<Object>),
+    Hash(HashMap<PrimitiveObject, HashPair>),
     Void,
     ReturnValue(Box<Object>),
     Function(FunctionObject),
     BuiltInFunction(BuiltInFunctionObject),
+}
+
+impl Object {
+    pub fn primitive_from_int(primitive: i32) -> Object {
+        Object::Primitive(PrimitiveObject::Integer(primitive))
+    }
+
+    pub fn primitive_from_str(primitive: String) -> Object {
+        Object::Primitive(PrimitiveObject::Str(primitive))
+    }
+
+    pub fn primitive_from_bool(primitive: bool) -> Object {
+        Object::Primitive(PrimitiveObject::Boolean(primitive))
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub enum PrimitiveObject {
+    Integer(i32),
+    Str(String),
+    Boolean(bool),
 }
 
 pub type EnvReference = Rc<RefCell<Environment>>;
@@ -108,9 +134,7 @@ impl Display for Object {
         use Object::*;
 
         match self {
-            Integer(number) => write!(f, "{number}"),
-            Str(string) => write!(f, "{string}"),
-            Boolean(boolean) => write!(f, "{boolean}"),
+            Primitive(primitive) => write!(f, "{}", primitive),
             Void => write!(f, ""),
             ReturnValue(object) => write!(f, "{object}"),
             Function(function) => {
@@ -118,6 +142,45 @@ impl Display for Object {
             }
             BuiltInFunction(builtin) => write!(f, "builtin fn: {}", builtin.name),
             Array(elements) => write!(f, "[{}]", elements.to_commaseperated_list()),
+            Hash(map) => write!(
+                f,
+                "{{{}}}",
+                map.iter()
+                    .map(|(key, value)| format!("{}: {}", key, value.value))
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            ),
         }
     }
+}
+
+impl Display for PrimitiveObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use PrimitiveObject::*;
+
+        match self {
+            Integer(number) => write!(f, "{number}"),
+            Str(string) => write!(f, "{string}"),
+            Boolean(boolean) => write!(f, "{boolean}"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // use std::ptr::hash;
+
+    // #[test]
+    // fn string_hashkeys_are_the_same() {
+    //     use crate::eval::objects::Object;
+    //
+    //     let string1 = Object::from_str(String::from("Hello World"));
+    //     let string2 = Object::from_str(String::from("Hello World"));
+    //     let diff1 = Object::from_str(String::from("My name is john"));
+    //     let diff2 = Object::from_str(String::from("My name is john"));
+    //
+    //     assert_eq!(string1.hash_key(), string2.hash_key());
+    //     assert_eq!(diff1.hash_key(), diff2.hash_key());
+    //     assert_ne!(diff1.hash_key(), string1.hash_key());
+    // }
 }

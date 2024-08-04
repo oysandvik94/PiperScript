@@ -20,6 +20,7 @@ pub enum Expression {
     IntegerLiteral(i32),
     BooleanLiteral(bool),
     Array(ArrayLiteral),
+    HashLiteral(Vec<(Expression, Expression)>),
     Index {
         left: Box<Expression>,
         index: Box<Expression>,
@@ -41,7 +42,7 @@ pub enum Expression {
 impl Expression {
     pub fn parse(
         parser: &mut Parser,
-        current_token: Token,
+        current_token: &Token,
         precedence: Precedence,
     ) -> Result<Expression, ParseError> {
         event!(
@@ -51,7 +52,7 @@ impl Expression {
             precedence
         );
 
-        let mut left = Self::parse_prefix_expression(parser, &current_token)?;
+        let mut left = Self::parse_prefix_expression(parser, current_token)?;
         event!(Level::DEBUG, "Found prefix expression {:?}", left);
 
         while parser.tokens.next_token_has_infix()
@@ -87,6 +88,7 @@ impl Expression {
             Token::True => Ok(Expression::BooleanLiteral(true)),
             Token::False => Ok(Expression::BooleanLiteral(false)),
             Token::LBracket => ArrayLiteral::parse(parser),
+            Token::LBrace => Ok(Expression::HashLiteral(Self::parse_hash_literal(parser)?)),
             unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
         }
     }
@@ -111,7 +113,7 @@ impl Expression {
             None => Err(ParseError::NoPrefixPartner),
         }?;
 
-        let right = Self::parse(parser, token, Precedence::Prefix)?;
+        let right = Self::parse(parser, &token, Precedence::Prefix)?;
         Ok(Expression::Prefix {
             right: Box::new(right),
             operator,
@@ -120,7 +122,7 @@ impl Expression {
 
     fn create_grouped_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
         let next_token = parser.tokens.expect()?;
-        let grouped_expression = Self::parse(parser, next_token, Precedence::Lowest);
+        let grouped_expression = Self::parse(parser, &next_token, Precedence::Lowest);
         parser.tokens.expect_token(Token::RParen)?;
         grouped_expression
     }
@@ -150,7 +152,7 @@ impl Expression {
             HasInfix::Arithmic(operator) => {
                 let precedence = token.get_precedence();
                 let next_token = parser.tokens.expect()?;
-                let right = Self::parse(parser, next_token, precedence)?;
+                let right = Self::parse(parser, &next_token, precedence)?;
 
                 Ok(Expression::Infix {
                     left: Box::from(left),
@@ -186,7 +188,7 @@ impl Expression {
 
                     parameters.push(Expression::parse(
                         parser,
-                        current_token,
+                        &current_token,
                         Precedence::Lowest,
                     )?);
                 }
@@ -202,7 +204,7 @@ impl Expression {
     ) -> Result<Expression, ParseError> {
         let token = parser.tokens.expect()?;
 
-        let index = Expression::parse(parser, token, Precedence::Lowest)?;
+        let index = Expression::parse(parser, &token, Precedence::Lowest)?;
 
         parser.tokens.expect_token(Token::RBracket)?;
 
@@ -210,6 +212,36 @@ impl Expression {
             left: Box::new(left),
             index: Box::new(index),
         })
+    }
+
+    pub fn parse_hash_literal(
+        parser: &mut Parser,
+    ) -> Result<Vec<(Expression, Expression)>, ParseError> {
+        let mut keypairs: Vec<(Expression, Expression)> = Vec::new();
+        while let Some(token) = parser.tokens.peek() {
+            match token {
+                Token::RBrace => {
+                    parser.tokens.consume();
+                    return Ok(keypairs);
+                }
+                Token::Comma => {
+                    parser.tokens.consume();
+                }
+                _ => {
+                    let current_token = parser.tokens.expect()?;
+                    let key = Expression::parse(parser, &current_token, Precedence::Lowest)?;
+                    event!(Level::DEBUG, "Parsed key expression {:?}", key);
+
+                    parser.tokens.expect_token(Token::Colon)?;
+                    let current_token = parser.tokens.expect()?;
+                    let value = Expression::parse(parser, &current_token, Precedence::Lowest)?;
+                    event!(Level::DEBUG, "Parsed value expression {:?}", value);
+                    keypairs.push((key, value));
+                }
+            }
+        }
+
+        Ok(keypairs)
     }
 }
 
@@ -416,5 +448,89 @@ mod tests {
         };
 
         test_util::assert_list(test_cases, asserter);
+    }
+
+    #[test]
+    fn can_parse_hash_with_expressions() {
+        let input = r#"{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}"#;
+
+        let statements = test_util::expect_parsed_program(input);
+        let actual_statement = statements.first().expect("Should be one statement");
+
+        match actual_statement {
+            Statement::Expression(Expression::HashLiteral(pairs)) => {
+                assert_eq!(pairs.len(), 3);
+
+                let expected_pairs = vec![
+                    (
+                        Expression::StringLiteral("one".to_string()),
+                        test_util::create_integer_infix_expression(0, 1, Operator::Plus),
+                    ),
+                    (
+                        Expression::StringLiteral("two".to_string()),
+                        test_util::create_integer_infix_expression(10, 8, Operator::Minus),
+                    ),
+                    (
+                        Expression::StringLiteral("three".to_string()),
+                        test_util::create_integer_infix_expression(15, 5, Operator::DividedBy),
+                    ),
+                ];
+
+                for (actual, expected) in pairs.iter().zip(expected_pairs.iter()) {
+                    assert_eq!(actual, expected);
+                }
+            }
+            _ => panic!("Should have parsed a hash literal"),
+        }
+    }
+    #[test]
+    fn can_parse_hash_string_keys() {
+        test_util::setup_logger();
+
+        let input = r#"{"one": 1, "two": 2, "three": 3}"#;
+
+        let statements = test_util::expect_parsed_program(input);
+        let actual_statement = statements.first().expect("Should be one statement");
+
+        match actual_statement {
+            Statement::Expression(Expression::HashLiteral(pairs)) => {
+                assert_eq!(pairs.len(), 3);
+
+                let expected_pairs = vec![
+                    (
+                        Expression::StringLiteral("one".to_string()),
+                        Expression::IntegerLiteral(1),
+                    ),
+                    (
+                        Expression::StringLiteral("two".to_string()),
+                        Expression::IntegerLiteral(2),
+                    ),
+                    (
+                        Expression::StringLiteral("three".to_string()),
+                        Expression::IntegerLiteral(3),
+                    ),
+                ];
+
+                for (actual, expected) in pairs.iter().zip(expected_pairs.iter()) {
+                    assert_eq!(actual, expected);
+                }
+            }
+            _ => panic!("Should have parsed a hash literal"),
+        }
+    }
+
+    #[test]
+    fn can_parse_empty_hash() {
+        let input = r#"{}"#;
+
+        let statements = test_util::expect_parsed_program(input);
+        let actual_statement = statements.first().expect("Should be one statement");
+
+        match actual_statement {
+            Statement::Expression(Expression::HashLiteral(pairs)) => {
+                assert_eq!(pairs.len(), 0);
+            }
+            _ => panic!("Should have parsed a hash literal"),
+        }
     }
 }

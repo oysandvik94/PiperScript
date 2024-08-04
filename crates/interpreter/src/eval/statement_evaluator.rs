@@ -88,7 +88,10 @@ impl Evaluable for BlockStatement {
 
 #[cfg(test)]
 mod tests {
-    use crate::{eval::objects::Object, test_util};
+    use crate::{
+        eval::objects::{Object, PrimitiveObject},
+        test_util,
+    };
 
     #[test]
     fn eval_return_statement_test() {
@@ -114,7 +117,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Integer(integer)) => {
+                    assert_eq!(expected, &integer)
+                }
                 something_else => {
                     panic!("Expected correct integer, got {something_else} for input '{input}'")
                 }
@@ -137,7 +142,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Integer(integer)) => {
+                    assert_eq!(expected, &integer)
+                }
                 something_else => {
                     panic!("Expected correct integer, got {something_else} for input '{input}'")
                 }

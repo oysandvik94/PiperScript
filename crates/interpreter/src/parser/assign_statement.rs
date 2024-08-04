@@ -18,10 +18,10 @@ impl AssignStatement {
     pub fn parse(parser: &mut Parser) -> Result<Statement, ParseError> {
         parser.tokens.expect_token(Token::Let)?;
         let identifier = parser.tokens.expected_identifier()?;
-        parser.tokens.expect_token(Token::Assign)?;
+        parser.tokens.expect_token(Token::Colon)?;
 
         let next_token = parser.tokens.expect()?;
-        let expression = Expression::parse(parser, next_token, Precedence::Lowest)?;
+        let expression = Expression::parse(parser, &next_token, Precedence::Lowest)?;
 
         parser.tokens.expect_optional_token(Token::Period);
 

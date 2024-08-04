@@ -64,7 +64,7 @@ mod tests {
         eval::{
             self,
             eval_error::EvalError,
-            objects::{Environment, Object},
+            objects::{Environment, Object, PrimitiveObject},
             EvaledProgram,
         },
         parser::{
@@ -87,10 +87,7 @@ mod tests {
 
             ";
         let object = test_util::expect_evaled_program(input);
-        match object {
-            Object::Integer(integer) => assert_eq!(4, integer, "Function should evaluate to 4"),
-            unexpected_object => panic!("expected integer, but got {unexpected_object}"),
-        }
+        test_util::assert_integar_literal(&object, 4);
     }
 
     #[test]
@@ -155,7 +152,9 @@ mod tests {
             let object = test_util::expect_evaled_program(input);
 
             match object {
-                Object::Integer(boolean) => assert_eq!(expected, &boolean),
+                Object::Primitive(PrimitiveObject::Integer(integer)) => {
+                    assert_eq!(expected, &integer)
+                }
                 something_else => {
                     panic!("Expected correct integer, got {something_else} for input '{input}'")
                 }

@@ -131,6 +131,14 @@ impl Display for Expression {
             }
             Expression::Array(array_literal) => write!(f, "{array_literal}"),
             Expression::Index { left, index } => write!(f, "({left}[{index}])"),
+            Expression::HashLiteral(hash) => {
+                let keypairs = hash
+                    .iter()
+                    .map(|(x, y)| format!("{}: {}", x, y))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{{{keypairs}}}")
+            }
         }
     }
 }

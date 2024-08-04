@@ -4,7 +4,7 @@ pub enum Token {
     Bang,
     Add,
     Minus,
-    Assign,
+    Colon,
     RBrace,
     LBrace,
     RParen,

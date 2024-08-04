@@ -27,6 +27,7 @@ pub enum EvalError {
     IndexOutOfBounds(usize, i32),
     IndexingNonArray(Object),
     IndexNotInteger(Object),
+    InvalidHashKey(Object),
 }
 
 impl Display for EvalError {
@@ -82,6 +83,7 @@ impl Display for EvalError {
             EvalError::IndexNotInteger(object) => {
                 writeln!(f, "Index must be an integer, but got {object}")
             }
+            EvalError::InvalidHashKey(key) => writeln!(f, "Invalid hash key: {key}"),
         }
     }
 }

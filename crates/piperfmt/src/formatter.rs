@@ -41,6 +41,7 @@ impl Format for Expression {
             Expression::If(_) => todo!(),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
+            Expression::HashLiteral(_) => todo!(),
         }
     }
 }
