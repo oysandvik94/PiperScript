@@ -8,7 +8,7 @@ use crate::{
     },
 };
 
-use super::objects::Object;
+use super::objects::{Object, PrimitiveObject};
 
 #[derive(Debug)]
 pub enum EvalError {
@@ -25,9 +25,11 @@ pub enum EvalError {
     ArgumentMismatch(Vec<Identifier>, Vec<Object>),
     BuiltInInvalidArguments(String, String),
     IndexOutOfBounds(usize, i32),
+    NonResolvedKey(PrimitiveObject),
     IndexingNonArray(Object),
     IndexNotInteger(Object),
     InvalidHashKey(Object),
+    NonHashableKey(Object),
 }
 
 impl Display for EvalError {
@@ -84,6 +86,8 @@ impl Display for EvalError {
                 writeln!(f, "Index must be an integer, but got {object}")
             }
             EvalError::InvalidHashKey(key) => writeln!(f, "Invalid hash key: {key}"),
+            EvalError::NonResolvedKey(key) => writeln!(f, "Key {key} was not found in the map"),
+            EvalError::NonHashableKey(key) => writeln!(f, "Key {key} is not hashable"),
         }
     }
 }

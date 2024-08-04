@@ -85,13 +85,36 @@ fn eval_index_expression(
     index: &Expression,
     env: &mut EnvReference,
 ) -> Result<Object, EvalError> {
-    let left = match left.eval(env)? {
-        Object::Array(array) => array,
+    match left.eval(env)? {
+        Object::Array(array) => eval_index_array_expression(&array, index, env),
+        Object::Hash(hash) => eval_index_hash_expression(&hash, index, env),
+        unexpected_object => Err(EvalError::IndexingNonArray(unexpected_object)),
+    }
+}
+
+fn eval_index_hash_expression(
+    hash: &HashMap<PrimitiveObject, HashPair>,
+    index: &Expression,
+    env: &mut EnvReference,
+) -> Result<Object, EvalError> {
+    let index = match index.eval(env)? {
+        Object::Primitive(index) => index,
         unexpected_object => {
-            return Err(EvalError::IndexingNonArray(unexpected_object));
+            return Err(EvalError::NonHashableKey(unexpected_object));
         }
     };
 
+    match hash.get(&index) {
+        Some(hash_pair) => Ok(hash_pair.value.clone()),
+        None => Err(EvalError::NonResolvedKey(index)),
+    }
+}
+
+fn eval_index_array_expression(
+    array: &[Object],
+    index: &Expression,
+    env: &mut EnvReference,
+) -> Result<Object, EvalError> {
     let index = match index.eval(env)? {
         Object::Primitive(PrimitiveObject::Integer(index)) => index,
         unexpected_object => {
@@ -99,9 +122,9 @@ fn eval_index_expression(
         }
     };
 
-    match left.get(index as usize) {
+    match array.get(index as usize) {
         Some(indexed_object) => Ok(indexed_object.clone()),
-        None => Err(EvalError::IndexOutOfBounds(left.len(), index)),
+        None => Err(EvalError::IndexOutOfBounds(array.len(), index)),
     }
 }
 
@@ -519,6 +542,42 @@ mod tests {
                 }
             }
             unexpected => panic!("Expected hash, got {unexpected}"),
+        }
+    }
+
+    #[test]
+    fn index_hash_test() {
+        let input = vec![
+            (r#"{"foo": 5}["foo"]"#, 5),
+            (r#"let key: "foo". {"foo": 5}[key]"#, 5),
+            (r#"{5: 5}[5]"#, 5),
+            (r#"{true: 5}[true]"#, 5),
+            (r#"{false: 5}[false]"#, 5),
+        ];
+
+        for (input, expected) in input {
+            let object = test_util::expect_evaled_program(input);
+            test_util::assert_integar_literal(&object, expected);
+        }
+    }
+
+    #[test]
+    fn key_not_in_hash_should_fail() {
+        let input = vec![
+            (
+                r#"{"foo": 5}["bar"]"#,
+                PrimitiveObject::Str("bar".to_owned()),
+            ),
+            (r#"{}[5]"#, PrimitiveObject::Integer(5)),
+        ];
+
+        for (input, expected) in input {
+            match eval::eval(input, &mut Environment::new_env_reference()) {
+                EvaledProgram::EvalError(EvalError::NonResolvedKey(key)) => {
+                    assert_eq!(key, expected);
+                }
+                _ => panic!("Expected eval error"),
+            };
         }
     }
 }
