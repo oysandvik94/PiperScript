@@ -5,10 +5,11 @@ use crate::eval::{
     objects::{Object, PrimitiveObject},
 };
 
+pub const FN_NAME: &str = "len";
 pub fn len(args: &[Object]) -> Result<Object, EvalError> {
     if args.len() != 1 {
         return Err(EvalError::BuiltInInvalidArguments(
-            "len".to_string(),
+            FN_NAME.to_owned(),
             format!("Expected 1 argument, got {}", args.len()),
         ));
     }
@@ -23,7 +24,7 @@ pub fn len(args: &[Object]) -> Result<Object, EvalError> {
             Ok(Object::primitive_from_int(string.len() as i32))
         }
         _ => Err(EvalError::BuiltInInvalidArguments(
-            "len".to_string(),
+            FN_NAME.to_owned(),
             "Expected a string or array".to_string(),
         )),
     }

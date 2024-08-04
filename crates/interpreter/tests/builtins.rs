@@ -1,4 +1,9 @@
-use interpreter::eval::{self, eval_error::EvalError, objects::Environment, EvaledProgram};
+use interpreter::eval::{
+    self,
+    eval_error::EvalError,
+    objects::{Environment, Object},
+    EvaledProgram,
+};
 
 mod common;
 
@@ -104,5 +109,18 @@ fn len_error_test() {
             },
             _ => panic!("Test failed with unexpected result"),
         }
+    }
+}
+
+#[test]
+fn print_prints() {
+    let input = r#"print("Hello world")"#;
+
+    let scope = &mut Environment::new_env_reference();
+    let object = eval::eval(input, scope);
+
+    match object {
+        EvaledProgram::Valid(Object::Void) => {}
+        _ => panic!("Expected valid program"),
     }
 }

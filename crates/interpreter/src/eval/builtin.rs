@@ -1,5 +1,6 @@
 mod last;
 mod len;
+mod print;
 mod push;
 mod rest;
 
@@ -13,10 +14,11 @@ pub struct BuiltInFunctionObject {
 
 pub(crate) fn lookup_builtins(identifier: &str) -> Option<Object> {
     match identifier {
-        "len" => create_builtin("len", len::len),
-        "last" => create_builtin("last", last::last),
-        "rest" => create_builtin("rest", rest::rest),
-        "push" => create_builtin("push", push::push),
+        print::FN_NAME => create_builtin(print::FN_NAME, print::print),
+        len::FN_NAME => create_builtin(len::FN_NAME, len::len),
+        last::FN_NAME => create_builtin(last::FN_NAME, last::last),
+        rest::FN_NAME => create_builtin(rest::FN_NAME, rest::rest),
+        push::FN_NAME => create_builtin(push::FN_NAME, push::push),
         _ => None,
     }
 }

@@ -1,6 +1,6 @@
 use crate::eval::{eval_error::EvalError, objects::Object};
 
-const FN_NAME: &str = "push";
+pub const FN_NAME: &str = "push";
 pub fn push(args: &[Object]) -> Result<Object, EvalError> {
     if args.len() != 2 {
         return Err(EvalError::BuiltInInvalidArguments(

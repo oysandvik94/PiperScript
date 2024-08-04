@@ -1,6 +1,6 @@
 use crate::eval::{eval_error::EvalError, objects::Object};
 
-const FN_NAME: &str = "rest";
+pub const FN_NAME: &str = "rest";
 pub fn rest(args: &[Object]) -> Result<Object, EvalError> {
     if args.len() != 1 {
         return Err(EvalError::BuiltInInvalidArguments(
