@@ -165,22 +165,3 @@ impl Display for PrimitiveObject {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    // use std::ptr::hash;
-
-    // #[test]
-    // fn string_hashkeys_are_the_same() {
-    //     use crate::eval::objects::Object;
-    //
-    //     let string1 = Object::from_str(String::from("Hello World"));
-    //     let string2 = Object::from_str(String::from("Hello World"));
-    //     let diff1 = Object::from_str(String::from("My name is john"));
-    //     let diff2 = Object::from_str(String::from("My name is john"));
-    //
-    //     assert_eq!(string1.hash_key(), string2.hash_key());
-    //     assert_eq!(diff1.hash_key(), diff2.hash_key());
-    //     assert_ne!(diff1.hash_key(), string1.hash_key());
-    // }
-}
