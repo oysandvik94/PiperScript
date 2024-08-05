@@ -1,0 +1,12 @@
+[package]
+name = "son_of_anton"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.122"
+tracing-appender = "0.2.3"

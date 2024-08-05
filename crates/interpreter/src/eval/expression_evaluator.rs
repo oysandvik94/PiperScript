@@ -489,6 +489,7 @@ mod tests {
             "one": 10 - 9,
             two: 1 + 1,
             "thr" + "ee": 6 / 2,
+        }
         "#;
 
         let object = test_util::expect_evaled_program(input);

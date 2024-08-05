@@ -7,5 +7,5 @@ edition = "2021"
 
 [dependencies]
 interpreter = { path = "../interpreter" }
-tracing = "0.1.40"
-tracing-subscriber = {version = "0.3.18", features =[ "env-filter"]}
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-repl = { path = "../repl/"  }
-filerunner = { path = "../filerunner/"  }
-tracing = "0.1.40"
-tracing-subscriber = {version = "0.3.18", features =[ "env-filter"]}
+repl = { path = "../repl/" }
+filerunner = { path = "../filerunner/" }
 clap = { version = "4.5.11", features = ["derive"] }
-
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }

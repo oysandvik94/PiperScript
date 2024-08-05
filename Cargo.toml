@@ -4,6 +4,13 @@ resolver = "2"
 members = [
     "crates/interpreter",
     "crates/repl",
-    "crates/piper" ,
+    "crates/piper",
     "crates/filerunner",
- "crates/piperfmt"]
+    "crates/piperfmt",
+    "crates/son_of_anton",
+]
+
+[workspace.dependencies]
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+anyhow = "1.0.42"
