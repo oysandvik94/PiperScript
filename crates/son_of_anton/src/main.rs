@@ -18,7 +18,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut anton = SonOfAnton::from(io::stdout());
 
     loop {
-        match process_message(&mut reader, &mut anton) {
+        // Block until there is input to read
+        let mut buffer = String::new();
+        reader.read_line(&mut buffer)?;
+
+        if buffer.trim().is_empty() {
+            continue;
+        }
+
+        match process_message(&mut buffer.as_bytes(), &mut anton) {
             Ok(()) => {
                 continue;
             }

@@ -390,6 +390,7 @@ name = "son_of_anton"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "interpreter",
  "serde",
  "serde_json",
  "tracing",

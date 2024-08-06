@@ -4,7 +4,7 @@ use tracing::{event, Level};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BaseMessage {
-    id: u64,
+    id: Option<u64>,
     jsonrpc: String,
 }
 
@@ -63,7 +63,7 @@ mod tests {
             "Content-Length: 40\r\n\r\n{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"test\"}";
         let actual = encode_response(Response {
             message: BaseMessage {
-                id: 1,
+                id: Some(1),
                 jsonrpc: "2.0".to_string(),
             },
             result: Some("test".to_string()),
