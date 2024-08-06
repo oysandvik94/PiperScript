@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::{
     eval::objects::Listable,
-    parser::{lexer::token::Token, parse_errors::ParseError, Parser},
+    parser::{lexer::token::TokenKind, parse_errors::ParseError, Parser},
 };
 
 use super::expression::Expression;
@@ -21,7 +21,7 @@ impl Display for ArrayLiteral {
 impl ArrayLiteral {
     pub fn parse(parser: &mut Parser) -> Result<Expression, ParseError> {
         Ok(Expression::Array(ArrayLiteral {
-            elements: Expression::parse_expression_list(parser, &Token::RBracket)?,
+            elements: Expression::parse_expression_list(parser, &TokenKind::RBracket)?,
         }))
     }
 }

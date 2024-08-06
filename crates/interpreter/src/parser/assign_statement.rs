@@ -1,11 +1,15 @@
 use std::fmt::Display;
 
+use tracing::{event, span, Level};
+
+use crate::parser::parse_errors::ParseErrorKind;
+
 use super::{
     ast::{Identifier, Statement},
     expressions::expression::Expression,
-    lexer::token::{Precedence, Token},
+    lexer::token::{Precedence, TokenKind},
     parse_errors::ParseError,
-    Parser,
+    Parser, StatementError, StatementType,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -15,20 +19,71 @@ pub struct AssignStatement {
 }
 
 impl AssignStatement {
-    pub fn parse(parser: &mut Parser) -> Result<Statement, ParseError> {
-        parser.tokens.expect_token(Token::Let)?;
-        let identifier = parser.tokens.expected_identifier()?;
-        parser.tokens.expect_token(Token::Colon)?;
+    pub fn parse(parser: &mut Parser) -> Result<Statement, StatementError> {
+        let let_stmt_span = span!(Level::DEBUG, "Assign");
+        let _enter = let_stmt_span.enter();
 
-        let next_token = parser.tokens.expect()?;
-        let expression = Expression::parse(parser, &next_token, Precedence::Lowest)?;
+        match Self::parse_assignment(parser) {
+            Ok(statement) => Ok(statement),
+            Err(err) => {
+                event!(
+                    Level::DEBUG,
+                    "Found error parsing assignment statement: {err}"
+                );
 
-        parser.tokens.expect_optional_token(Token::Period);
+                Err(err)
+            }
+        }
+    }
+
+    fn parse_assignment(parser: &mut Parser) -> Result<Statement, StatementError> {
+        parser
+            .lexer
+            .expect_token(TokenKind::Let)
+            .map_err(Self::handle_parse_error)?;
+
+        let identifier = parser
+            .lexer
+            .expected_identifier()
+            .map_err(Self::handle_parse_error)?;
+
+        let colon = parser
+            .lexer
+            .expect_token(TokenKind::Colon)
+            .map_err(Self::handle_parse_error)?;
+
+        event!(Level::DEBUG, "Parsing binding for assignstatement");
+        let expression =
+            Expression::parse(parser, Precedence::Lowest).map_err(|error| match error.kind {
+                ParseErrorKind::NoPrefixExpression => {
+                    if error.token.token_kind.is_beginning_of_statement() {
+                        StatementError {
+                            parse_error: ParseError {
+                                kind: ParseErrorKind::NoPrefixExpression,
+                                token: colon,
+                            },
+                            statement_type: StatementType::Let,
+                        }
+                    } else {
+                        Self::handle_parse_error(error)
+                    }
+                }
+                _ => Self::handle_parse_error(error),
+            })?;
+
+        parser.lexer.expect_optional_token(TokenKind::Period);
 
         Ok(Statement::Assign(AssignStatement {
             identifier,
             assignment: expression,
         }))
+    }
+
+    fn handle_parse_error(parse_error: ParseError) -> StatementError {
+        StatementError {
+            parse_error,
+            statement_type: StatementType::Let,
+        }
     }
 }
 
@@ -49,11 +104,19 @@ mod tests {
     };
 
     #[test]
+    fn parse_test_statement() {
+        test_util::setup_logger();
+        let source_code = "let x: 5";
+
+        let _ = test_util::expect_parsed_program(source_code);
+    }
+    #[test]
     fn parse_assign_statement() {
+        test_util::setup_logger();
         let source_code = "
-            let x: 5.
-            let y: 10.
-            let foobar: 54456.
+            let x: 5
+            let y: 10
+            let foobar: 54456
         ";
 
         let statements = test_util::expect_parsed_program(source_code);

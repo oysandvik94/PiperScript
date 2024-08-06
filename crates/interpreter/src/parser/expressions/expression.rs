@@ -2,9 +2,9 @@ use tracing::{event, Level};
 
 use crate::parser::{
     ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
-    lexer::token::{HasInfix, Precedence, Token},
-    parse_errors::{ParseError, TokenExpectation},
-    Parser,
+    lexer::token::{HasInfix, Precedence, Token, TokenKind},
+    parse_errors::{ParseError, ParseErrorKind},
+    Parser, StatementError,
 };
 
 use super::{
@@ -40,25 +40,14 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn parse(
-        parser: &mut Parser,
-        current_token: &Token,
-        precedence: Precedence,
-    ) -> Result<Expression, ParseError> {
-        event!(
-            Level::DEBUG,
-            "Parsing expression starting with token {:?} and precedence {:?}",
-            current_token,
-            precedence
-        );
-
-        let mut left = Self::parse_prefix_expression(parser, current_token)?;
+    pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Expression, ParseError> {
+        let mut left = Self::parse_prefix_expression(parser)?;
         event!(Level::DEBUG, "Found prefix expression {:?}", left);
 
-        while parser.tokens.next_token_has_infix()
-            && precedence < parser.tokens.next_token_precedence()
+        while parser.lexer.next_token_has_infix()
+            && precedence < parser.lexer.next_token_precedence()
         {
-            let next_token = parser.tokens.expect()?;
+            let next_token = parser.lexer.expect()?;
             left = Self::parse_infix_expression(parser, left, &next_token)?;
         }
 
@@ -67,40 +56,52 @@ impl Expression {
         Ok(left)
     }
 
-    fn parse_prefix_expression(
-        parser: &mut Parser,
-        token: &Token,
-    ) -> Result<Expression, ParseError> {
-        match token {
-            Token::Ident(literal) => Ok(Expression::IdentifierLiteral(Identifier(
+    fn parse_prefix_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
+        let token: &Token = parser.lexer.expect_peek()?;
+        if !token.token_kind.valid_prefix() {
+            return Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::NoPrefixExpression,
+            ));
+        }
+
+        let token = parser.lexer.expect()?;
+        match &token.token_kind {
+            TokenKind::Ident(literal) => Ok(Expression::IdentifierLiteral(Identifier(
                 literal.to_string(),
             ))),
-            Token::Int(integer_literal) => match integer_literal.parse::<i32>() {
+            TokenKind::Int(integer_literal) => match integer_literal.parse::<i32>() {
                 Ok(parsed_number) => Ok(Expression::IntegerLiteral(parsed_number)),
-                Err(error) => Err(ParseError::ParseIntegerError(token.clone(), error)),
+                Err(error) => Err(ParseError::new(
+                    token.clone(),
+                    ParseErrorKind::ParseIntegerError(error),
+                )),
             },
-            Token::Str(string_literal) => Ok(Expression::StringLiteral(string_literal.clone())),
-            Token::Bang => Self::create_prefix_expression(parser, PrefixOperator::Bang),
-            Token::Minus => Self::create_prefix_expression(parser, PrefixOperator::Minus),
-            Token::LParen => Self::create_grouped_expression(parser),
-            Token::If => IfExpression::parse_if_expression(parser),
-            Token::Func => FunctionLiteral::parse(parser),
-            Token::True => Ok(Expression::BooleanLiteral(true)),
-            Token::False => Ok(Expression::BooleanLiteral(false)),
-            Token::LBracket => ArrayLiteral::parse(parser),
-            Token::LBrace => Ok(Expression::HashLiteral(Self::parse_hash_literal(parser)?)),
-            unexpected_token => Err(ParseError::NoPrefixExpression(unexpected_token.clone())),
+            TokenKind::Str(string_literal) => Ok(Expression::StringLiteral(string_literal.clone())),
+            TokenKind::Bang => Self::create_prefix_expression(parser, PrefixOperator::Bang),
+            TokenKind::Minus => Self::create_prefix_expression(parser, PrefixOperator::Minus),
+            TokenKind::LParen => Self::create_grouped_expression(parser),
+            TokenKind::If => IfExpression::parse_if_expression(parser),
+            TokenKind::Func => FunctionLiteral::parse(parser),
+            TokenKind::True => Ok(Expression::BooleanLiteral(true)),
+            TokenKind::False => Ok(Expression::BooleanLiteral(false)),
+            TokenKind::LBracket => ArrayLiteral::parse(parser),
+            TokenKind::LBrace => Ok(Expression::HashLiteral(Self::parse_hash_literal(parser)?)),
+            _ => Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::NoPrefixExpression,
+            )),
         }
     }
 
     pub fn parse_literal(parser: &mut Parser) -> Result<Identifier, ParseError> {
-        match parser.tokens.consume() {
-            Some(Token::Ident(literal)) => Ok(Identifier(literal)),
-            Some(unexpected_token) => Err(ParseError::UnexpectedToken {
-                expected_token: TokenExpectation::SingleExpectation(Token::Ident("".to_string())),
-                found_token: Some(unexpected_token),
-            }),
-            None => Err(ParseError::ExpectedToken),
+        let token = parser.lexer.expect()?;
+        match token.token_kind {
+            TokenKind::Ident(literal) => Ok(Identifier(literal)),
+            _ => Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::UnexpectedToken(TokenKind::Ident("".to_owned())),
+            )),
         }
     }
 
@@ -108,12 +109,7 @@ impl Expression {
         parser: &mut Parser,
         operator: PrefixOperator,
     ) -> Result<Expression, ParseError> {
-        let token = match parser.tokens.consume() {
-            Some(token) => Ok(token),
-            None => Err(ParseError::NoPrefixPartner),
-        }?;
-
-        let right = Self::parse(parser, &token, Precedence::Prefix)?;
+        let right = Self::parse(parser, Precedence::Prefix)?;
         Ok(Expression::Prefix {
             right: Box::new(right),
             operator,
@@ -121,16 +117,16 @@ impl Expression {
     }
 
     fn create_grouped_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
-        let next_token = parser.tokens.expect()?;
-        let grouped_expression = Self::parse(parser, &next_token, Precedence::Lowest);
-        parser.tokens.expect_token(Token::RParen)?;
+        let grouped_expression = Self::parse(parser, Precedence::Lowest);
+        parser.lexer.expect_token(TokenKind::RParen)?;
         grouped_expression
     }
 
-    pub fn parse_blockstatement(parser: &mut Parser) -> Result<BlockStatement, ParseError> {
+    pub fn parse_blockstatement(parser: &mut Parser) -> Result<BlockStatement, StatementError> {
         let mut statements: Vec<Statement> = Vec::new();
-        while !parser.tokens.next_token_is(&Token::Lasagna)
-            && !parser.tokens.next_token_is(&Token::Else)
+        while !parser.lexer.next_token_is(&TokenKind::Lasagna)
+            && !parser.lexer.next_token_is(&TokenKind::Else)
+            && parser.lexer.has_next()
         {
             statements.push(parser.parse_statement()?);
         }
@@ -148,11 +144,10 @@ impl Expression {
             "Parsing infix expression for token {:?}",
             token
         );
-        match token.has_infix() {
+        match token.token_kind.has_infix() {
             HasInfix::Arithmic(operator) => {
-                let precedence = token.get_precedence();
-                let next_token = parser.tokens.expect()?;
-                let right = Self::parse(parser, &next_token, precedence)?;
+                let precedence = token.token_kind.get_precedence();
+                let right = Self::parse(parser, precedence)?;
 
                 Ok(Expression::Infix {
                     left: Box::from(left),
@@ -162,35 +157,29 @@ impl Expression {
             }
             HasInfix::Call() => CallExpression::parse(parser, left),
             HasInfix::Index() => Expression::parse_index_expression(parser, left),
-            HasInfix::No(token) => Err(ParseError::NoInfixExpression(token.clone())),
+            HasInfix::No(_) => Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::NoInfixExpression,
+            )),
         }
     }
 
     pub fn parse_expression_list(
         parser: &mut Parser,
-        end: &Token,
+        end: &TokenKind,
     ) -> Result<Vec<Expression>, ParseError> {
         let mut parameters: Vec<Expression> = Vec::from([]);
-        while let Some(token) = parser.tokens.peek() {
-            match token {
+        while let Some(token) = parser.lexer.peek() {
+            match &token.token_kind {
                 token if token == end => {
-                    parser.tokens.consume();
+                    parser.lexer.consume();
                     return Ok(parameters);
                 }
-                Token::Comma => {
-                    parser.tokens.consume();
+                TokenKind::Comma => {
+                    parser.lexer.consume();
                 }
                 _ => {
-                    let current_token = parser
-                        .tokens
-                        .consume()
-                        .expect("Expected a token after peeking");
-
-                    parameters.push(Expression::parse(
-                        parser,
-                        &current_token,
-                        Precedence::Lowest,
-                    )?);
+                    parameters.push(Expression::parse(parser, Precedence::Lowest)?);
                 }
             }
         }
@@ -202,11 +191,9 @@ impl Expression {
         parser: &mut Parser,
         left: Expression,
     ) -> Result<Expression, ParseError> {
-        let token = parser.tokens.expect()?;
+        let index = Expression::parse(parser, Precedence::Lowest)?;
 
-        let index = Expression::parse(parser, &token, Precedence::Lowest)?;
-
-        parser.tokens.expect_token(Token::RBracket)?;
+        parser.lexer.expect_token(TokenKind::RBracket)?;
 
         Ok(Expression::Index {
             left: Box::new(left),
@@ -218,23 +205,21 @@ impl Expression {
         parser: &mut Parser,
     ) -> Result<Vec<(Expression, Expression)>, ParseError> {
         let mut keypairs: Vec<(Expression, Expression)> = Vec::new();
-        while let Some(token) = parser.tokens.peek() {
-            match token {
-                Token::RBrace => {
-                    parser.tokens.consume();
+        while let Some(token) = parser.lexer.peek() {
+            match &token.token_kind {
+                TokenKind::RBrace => {
+                    parser.lexer.consume();
                     return Ok(keypairs);
                 }
-                Token::Comma => {
-                    parser.tokens.consume();
+                TokenKind::Comma => {
+                    parser.lexer.consume();
                 }
                 _ => {
-                    let current_token = parser.tokens.expect()?;
-                    let key = Expression::parse(parser, &current_token, Precedence::Lowest)?;
+                    let key = Expression::parse(parser, Precedence::Lowest)?;
                     event!(Level::DEBUG, "Parsed key expression {:?}", key);
 
-                    parser.tokens.expect_token(Token::Colon)?;
-                    let current_token = parser.tokens.expect()?;
-                    let value = Expression::parse(parser, &current_token, Precedence::Lowest)?;
+                    parser.lexer.expect_token(TokenKind::Colon)?;
+                    let value = Expression::parse(parser, Precedence::Lowest)?;
                     event!(Level::DEBUG, "Parsed value expression {:?}", value);
                     keypairs.push((key, value));
                 }

@@ -1,78 +1,87 @@
 use std::{fmt::Display, num::ParseIntError};
 
-use lexer::token::Token;
+use lexer::token::TokenKind;
 
 use crate::parser::lexer;
 
-#[derive(Debug)]
-pub enum ParseError {
-    UnexpectedToken {
-        expected_token: TokenExpectation,
-        found_token: Option<Token>,
-    },
+use super::lexer::token::Token;
+
+#[derive(Debug, Clone)]
+pub struct ParseError {
+    pub token: Token,
+    pub kind: ParseErrorKind,
+}
+
+#[derive(Debug, Clone)]
+pub enum ParseErrorKind {
+    UnexpectedToken(TokenKind),
     ExpectedToken,
-    UnknownToken(Token),
+    UnknownToken,
     ExpressionError(String),
-    NoPrefixExpression(Token),
-    NoInfixExpression(Token),
-    ParseIntegerError(Token, ParseIntError),
+    NoPrefixExpression,
+    NoInfixExpression,
+    ParseIntegerError(ParseIntError),
     NoPrefixPartner,
+    UnfinishedIfStatement,
+    UnfinishedFunctionDeclaration,
+    FunctionBlockError(Box<ParseError>),
+    IfBlockError(Box<ParseError>),
 }
 
 impl ParseError {
-    pub fn single_unexpected(expected_token: &Token, found_token: Option<&Token>) -> ParseError {
-        ParseError::UnexpectedToken {
-            expected_token: TokenExpectation::SingleExpectation(expected_token.clone()),
-            found_token: found_token.cloned(),
-        }
-    }
-
-    pub fn multiple_unexpected(
-        expected_tokens: Vec<Token>,
-        found_token: Option<&Token>,
-    ) -> ParseError {
-        let expected_tokens = TokenExpectation::MultipleExpectation(expected_tokens);
-        ParseError::UnexpectedToken {
-            expected_token: expected_tokens,
-            found_token: found_token.cloned(),
-        }
+    pub fn new(token: Token, kind: ParseErrorKind) -> ParseError {
+        ParseError { token, kind }
     }
 }
 
+pub trait StatementParseError {}
+
 #[derive(Debug)]
 pub enum TokenExpectation {
-    SingleExpectation(Token),
-    MultipleExpectation(Vec<Token>),
+    SingleExpectation(TokenKind),
+    MultipleExpectation(Vec<TokenKind>),
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ParseError::UnexpectedToken {
-                expected_token,
-                found_token,
-            } => write!(
+        let token = &self.token;
+        match &self.kind {
+            ParseErrorKind::UnexpectedToken(token_kind) => write!(
                 f,
-                "Expected token {expected_token:?}, but received token of type {found_token:?}"
+                "Expected token {token_kind:?}, but received token of type {token:?}"
             ),
-            ParseError::ExpectedToken => {
+            ParseErrorKind::ExpectedToken => {
                 write!(f, "Expected to receive a token, but no token was received")
             }
-            ParseError::UnknownToken(token) => write!(
+            ParseErrorKind::UnknownToken => write!(
                 f,
                 "Received unknown token of type {token:?}, don't know how to handle it"
             ),
-            ParseError::ExpressionError(error) => write!(f, "{error}"),
-            ParseError::ParseIntegerError(token, error) => write!(
+            ParseErrorKind::ExpressionError(error) => write!(f, "{error}"),
+            ParseErrorKind::ParseIntegerError(error) => write!(
                 f,
                 "Tried to parse token {token:?} as an integer, but got error {error}"
             ),
-            ParseError::NoPrefixExpression(token) => {
+            ParseErrorKind::NoPrefixExpression => {
                 write!(f, "No prefix parse function for {token:?} found")
             }
-            ParseError::NoPrefixPartner => write!(f, "Expected expression to follow prefix"),
-            ParseError::NoInfixExpression(token) => {
+            ParseErrorKind::NoPrefixPartner => write!(f, "Expected expression to follow prefix"),
+            ParseErrorKind::NoInfixExpression => {
                 write!(f, "No infix parse function for {token:?} found")
+            }
+            ParseErrorKind::UnfinishedIfStatement => writeln!(
+                f,
+                "If statement should be closed with ~ or else, but found {token:?} instead"
+            ),
+            ParseErrorKind::UnfinishedFunctionDeclaration => writeln!(
+                f,
+                "Function should be closed with , or ), but found {token:?} instead"
+            ),
+            ParseErrorKind::FunctionBlockError(error) => {
+                writeln!(f, "Error parsing statements in function: {error}")
+            }
+            ParseErrorKind::IfBlockError(error) => {
+                writeln!(f, "Error parsing statements in if condition: {error}")
             }
         }
     }
@@ -81,7 +90,7 @@ impl Display for ParseError {
 #[cfg(test)]
 mod tests {
     use crate::{
-        parser::{parse_errors::ParseError, ParsedProgram},
+        parser::{parse_errors::ParseErrorKind, ParsedProgram},
         test_util,
     };
 
@@ -97,7 +106,10 @@ mod tests {
             ParsedProgram::ValidProgram(_) => panic!("Program did not fail"),
             ParsedProgram::InvalidProgram(parse_errors) => {
                 parse_errors.iter().for_each(|parse_error| {
-                    assert!(matches!(parse_error, ParseError::NoPrefixExpression(_)))
+                    assert!(matches!(
+                        parse_error.parse_error.kind,
+                        ParseErrorKind::NoPrefixExpression
+                    ))
                 });
             }
         }

@@ -3,11 +3,11 @@ use std::fmt::Display;
 use crate::{
     parser::ast::Statement,
     parser::expressions::expression::Expression,
-    parser::lexer::token::{Precedence, Token},
+    parser::lexer::token::{Precedence, TokenKind},
     parser::parse_errors::ParseError,
 };
 
-use super::Parser;
+use super::{Parser, StatementError, StatementType};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
@@ -15,16 +15,26 @@ pub struct ReturnStatement {
 }
 
 impl ReturnStatement {
-    pub fn parse_return_statement(parser: &mut Parser) -> Result<Statement, ParseError> {
-        parser.tokens.expect_token(Token::Return)?;
-        let next_token = parser.tokens.expect()?;
-        let expression = Expression::parse(parser, &next_token, Precedence::Lowest)?;
+    pub fn parse_return_statement(parser: &mut Parser) -> Result<Statement, StatementError> {
+        parser
+            .lexer
+            .expect_token(TokenKind::Return)
+            .map_err(Self::handle_parse_error)?;
 
-        parser.tokens.expect_optional_token(Token::Period);
+        let expression =
+            Expression::parse(parser, Precedence::Lowest).map_err(Self::handle_parse_error)?;
 
+        parser.lexer.expect_optional_token(TokenKind::Period);
         Ok(Statement::Return(ReturnStatement {
             return_value: expression,
         }))
+    }
+
+    fn handle_parse_error(parse_error: ParseError) -> StatementError {
+        StatementError {
+            parse_error,
+            statement_type: StatementType::Return,
+        }
     }
 }
 
@@ -45,6 +55,7 @@ mod tests {
 
     #[test]
     fn parse_return_statement_test() {
+        test_util::setup_logger();
         let source_code = "
             return 5.
             return foobar.

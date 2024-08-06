@@ -1,7 +1,7 @@
 use crate::parser::{
     ast::BlockStatement,
-    lexer::token::{Precedence, Token},
-    parse_errors::ParseError,
+    lexer::token::{Precedence, TokenKind},
+    parse_errors::{ParseError, ParseErrorKind},
     Parser,
 };
 
@@ -16,12 +16,11 @@ pub struct IfExpression {
 
 impl IfExpression {
     pub fn parse_if_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
-        let next_token = parser.tokens.expect()?;
-        let condition = Expression::parse(parser, &next_token, Precedence::Lowest)?;
+        let condition = Expression::parse(parser, Precedence::Lowest)?;
 
-        parser.tokens.expect_token(Token::Colon)?;
+        parser.lexer.expect_token(TokenKind::Colon)?;
 
-        let consequence = Expression::parse_blockstatement(parser)?;
+        let consequence = Expression::parse_blockstatement(parser).map_err(handle_if_error())?;
 
         let alternative = Self::parse_alternative(parser)?;
 
@@ -33,21 +32,33 @@ impl IfExpression {
     }
 
     fn parse_alternative(parser: &mut Parser) -> Result<Option<BlockStatement>, ParseError> {
-        let alternative = match parser.tokens.consume() {
-            Some(Token::Lasagna) => Ok(None),
-            Some(Token::Else) => {
-                parser.tokens.expect_token(Token::Colon)?;
-                let else_block = Some(Expression::parse_blockstatement(parser)?);
-                parser.tokens.expect_token(Token::Lasagna)?;
+        let token = parser.lexer.expect()?;
+        let alternative = match token.token_kind {
+            TokenKind::Lasagna => Ok(None),
+            TokenKind::Else => {
+                parser.lexer.expect_token(TokenKind::Colon)?;
+                let else_block =
+                    Some(Expression::parse_blockstatement(parser).map_err(handle_if_error())?);
+                parser.lexer.expect_token(TokenKind::Lasagna)?;
                 Ok(else_block)
             }
-            Some(unexpected_token) => Err(ParseError::multiple_unexpected(
-                Vec::from([Token::Lasagna, Token::Else]),
-                Some(&unexpected_token),
+            _ => Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::UnfinishedIfStatement,
             )),
-            None => Err(ParseError::ExpectedToken),
         }?;
         Ok(alternative)
+    }
+}
+
+fn handle_if_error() -> impl FnOnce(crate::parser::StatementError) -> ParseError {
+    |e| {
+        let error = e.parse_error.clone();
+
+        ParseError::new(
+            e.parse_error.token.clone(),
+            ParseErrorKind::IfBlockError(Box::new(error)),
+        )
     }
 }
 

@@ -5,8 +5,8 @@ use crate::eval::objects::Listable;
 use super::{
     assign_statement::AssignStatement,
     expressions::{expression::Expression, functions::CallExpression, if_expression::IfExpression},
-    lexer::token::Token,
-    parse_errors::ParseError,
+    lexer::token::{Token, TokenKind},
+    parse_errors::{ParseError, ParseErrorKind},
     return_statement::ReturnStatement,
     ParsedProgram,
 };
@@ -47,11 +47,11 @@ pub struct Identifier(pub String);
 
 impl Identifier {
     pub fn parse_from_token(value: &Token) -> Result<Identifier, ParseError> {
-        match value {
-            Token::Ident(ident_literal) => Ok(Identifier(ident_literal.to_string())),
-            unexpected_token => Err(ParseError::single_unexpected(
-                &Token::Ident(String::from("")),
-                Some(unexpected_token),
+        match &value.token_kind {
+            TokenKind::Ident(ident_literal) => Ok(Identifier(ident_literal.to_string())),
+            _ => Err(ParseError::new(
+                value.clone(),
+                ParseErrorKind::UnexpectedToken(TokenKind::Ident("".to_owned())),
             )),
         }
     }

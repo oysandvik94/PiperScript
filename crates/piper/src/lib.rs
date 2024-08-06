@@ -16,6 +16,7 @@ pub fn execute_piper() -> Result<(), std::io::Error> {
     match &cli.command {
         PiperCommands::Repl => repl::execute_repl()?,
         PiperCommands::Run { filename } => filerunner::execute_file(filename)?,
+        PiperCommands::Check { filename } => filerunner::parse_file(filename)?,
     }
 
     Ok(())
