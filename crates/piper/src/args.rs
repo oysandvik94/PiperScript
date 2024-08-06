@@ -11,4 +11,5 @@ pub struct PiperArgs {
 pub enum PiperCommands {
     Repl,
     Run { filename: String },
+    Check { filename: String },
 }

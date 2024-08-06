@@ -1,242 +1,386 @@
-use std::{iter::Peekable, str::Chars, vec::IntoIter};
+use std::str::Chars;
 
 use tracing::{event, Level};
 
-use crate::parser::{ast::Identifier, lexer::token::FirstPart, parse_errors::ParseError};
+use crate::parser::{
+    ast::Identifier,
+    parse_errors::{ParseError, ParseErrorKind},
+};
 
-use super::token::{HasInfix, Precedence, Token};
+use super::token::{HasInfix, Location, Precedence, Token, TokenKind};
 
 #[derive(Debug)]
-pub struct LexedTokens {
-    token_iter: Peekable<IntoIter<Token>>,
+pub struct Lexer<'a> {
+    chars: Chars<'a>,
+    current_pos: usize,
+    current_token: Option<Token>,
+    current_line_number: u16,
 }
 
-impl From<&str> for LexedTokens {
-    fn from(source_code: &str) -> Self {
-        let mut code_iter = source_code.chars().peekable();
+impl<'a> Lexer<'a> {
+    pub fn new(source_code: &'a str) -> Self {
+        let mut lexer = Lexer {
+            chars: source_code.chars(),
+            current_pos: 0,
+            current_token: None,
+            current_line_number: 1,
+        };
+        event!(Level::DEBUG, "Initializing lexer");
+        lexer.advance();
+        lexer.advance_through_whitespace();
+        event!(Level::DEBUG, "Advanced lexer to starting position");
 
-        let mut tokens: Vec<Token> = Vec::new();
-        while let Some(current_char) = code_iter.next() {
-            if current_char.is_whitespace() {
-                continue;
-            }
-
-            let lexed_token: Token = parse(current_char, &mut code_iter);
-            tokens.push(lexed_token);
-        }
-
-        LexedTokens {
-            token_iter: tokens.into_iter().peekable(),
-        }
+        lexer
     }
-}
 
-impl LexedTokens {
     pub fn consume(&mut self) -> Option<Token> {
-        self.token_iter.next()
+        event!(
+            Level::TRACE,
+            "Consuming at state: current token: {:?}",
+            self.current_token
+        );
+
+        let token = self.current_token.take();
+        self.advance();
+
+        event!(Level::TRACE, "returning token: {:?}", token);
+
+        self.advance_through_whitespace();
+
+        token
+    }
+
+    fn advance(&mut self) {
+        self.current_token = if let Some(c) = self.chars.next() {
+            self.current_pos += c.len_utf8();
+            let token_kind = self.tokenize(c);
+
+            let token = Token {
+                token_kind,
+                location: Location {
+                    line_number: self.current_line_number,
+                },
+            };
+            Some(token)
+        } else {
+            None
+        };
+    }
+
+    /// At a later point we will return whitespace tokens to the client in order to
+    /// generate token lists for syntax nodes, but as of now we just skip it
+    fn advance_through_whitespace(&mut self) {
+        while self
+            .current_token
+            .as_ref()
+            .map(Token::is_whitespace)
+            .unwrap_or(false)
+        {
+            event!(
+                Level::TRACE,
+                "found whitespace token, we advance: {:?}",
+                self.current_token
+            );
+            self.advance();
+        }
     }
 
     pub fn expect(&mut self) -> Result<Token, ParseError> {
-        match self.consume() {
-            Some(token) => Ok(token),
-            None => Err(ParseError::ExpectedToken),
+        self.consume().ok_or_else(|| {
+            ParseError::new(
+                Token {
+                    token_kind: TokenKind::EOF,
+                    // TODO: need to figure out last line of file
+                    location: Location {
+                        line_number: self.current_line_number,
+                    },
+                },
+                ParseErrorKind::ExpectedToken,
+            )
+        })
+    }
+
+    pub fn peek(&self) -> Option<&Token> {
+        self.current_token.as_ref()
+    }
+
+    pub fn has_next(&self) -> bool {
+        self.current_token.as_ref().is_some()
+    }
+
+    pub fn expect_peek(&self) -> Result<&Token, ParseError> {
+        self.current_token.as_ref().ok_or(ParseError::new(
+            Token {
+                token_kind: TokenKind::EOF,
+                location: Location {
+                    line_number: self.current_line_number,
+                },
+            },
+            ParseErrorKind::ExpectedToken,
+        ))
+    }
+
+    fn tokenize(&mut self, first_char: char) -> TokenKind {
+        match first_char {
+            '!' => self.lex_bang(),
+            '=' => self.lex_equal(),
+            '+' => TokenKind::Add,
+            '-' => TokenKind::Minus,
+            ':' => TokenKind::Colon,
+            '}' => TokenKind::RBrace,
+            '{' => TokenKind::LBrace,
+            ')' => TokenKind::RParen,
+            '(' => TokenKind::LParen,
+            ']' => TokenKind::RBracket,
+            '[' => TokenKind::LBracket,
+            '<' => TokenKind::LessThan,
+            '>' => TokenKind::GreaterThan,
+            ',' => TokenKind::Comma,
+            '.' => TokenKind::Period,
+            '~' => TokenKind::Lasagna,
+            '/' => TokenKind::Slash,
+            '*' => TokenKind::Asterix,
+            '"' => self.lex_string(),
+            '\n' => {
+                self.current_line_number += 1;
+                TokenKind::NewLine
+            }
+            c if c.is_whitespace() => self.lex_whitespace(c),
+            c if c.is_ascii_digit() => self.lex_number(c),
+            c if c.is_alphabetic() => self.lex_identifier_or_keyword(c),
+            _ => TokenKind::Illegal,
         }
     }
 
-    pub fn peek(&mut self) -> Option<&Token> {
-        self.token_iter.peek()
+    fn lex_bang(&mut self) -> TokenKind {
+        if self.chars.clone().next() == Some('=') {
+            self.chars.next();
+            self.current_pos += 1;
+            TokenKind::NotEqual
+        } else {
+            TokenKind::Bang
+        }
+    }
+
+    fn lex_equal(&mut self) -> TokenKind {
+        if self.chars.clone().next() == Some('=') {
+            self.chars.next();
+            self.current_pos += 1;
+            TokenKind::Equal
+        } else {
+            TokenKind::Illegal
+        }
+    }
+
+    fn lex_string(&mut self) -> TokenKind {
+        let mut value = String::new();
+        for c in self.chars.by_ref() {
+            self.current_pos += c.len_utf8();
+            if c == '"' {
+                break;
+            }
+            value.push(c);
+        }
+        TokenKind::Str(value)
+    }
+
+    fn lex_whitespace(&mut self, current_char: char) -> TokenKind {
+        let mut value = String::new();
+        value.push(current_char);
+
+        while let Some(c) = self.chars.clone().next() {
+            if !c.is_whitespace() || c == '\n' {
+                break;
+            }
+            value.push(c);
+            self.chars.next();
+            self.current_pos += c.len_utf8();
+        }
+        TokenKind::Space
+    }
+
+    fn lex_number(&mut self, current_char: char) -> TokenKind {
+        let mut value = String::new();
+        value.push(current_char);
+
+        while let Some(c) = self.chars.clone().next() {
+            if !c.is_ascii_digit() {
+                break;
+            }
+            value.push(c);
+            self.chars.next();
+            self.current_pos += c.len_utf8();
+        }
+        TokenKind::Int(value)
+    }
+
+    fn lex_identifier_or_keyword(&mut self, current_char: char) -> TokenKind {
+        let mut value = String::new();
+        value.push(current_char);
+
+        while let Some(c) = self.chars.clone().next() {
+            if !c.is_alphabetic() || c == ',' {
+                break;
+            }
+            value.push(c);
+            self.chars.next();
+            self.current_pos += c.len_utf8();
+        }
+        TokenKind::parse_keyword(&value)
     }
 
     pub fn next_token_has_infix(&mut self) -> bool {
-        let next_token = self.token_iter.peek();
+        let next_token = self.peek();
         let has_infix = match next_token {
-            Some(token) => !matches!(token.has_infix(), HasInfix::No(_)),
+            Some(token) => !matches!(token.token_kind.has_infix(), HasInfix::No(_)),
             None => false,
         };
 
-        event!(Level::DEBUG, "Token {next_token:?} has infix: {has_infix}");
+        event!(
+            Level::DEBUG,
+            "Checking infix of token {next_token:?}: {has_infix}"
+        );
 
         has_infix
     }
 
-    pub fn next_token_is(&mut self, is_token: &Token) -> bool {
-        match self.token_iter.peek() {
-            Some(token) => is_token == token,
+    pub fn next_token_is(&mut self, is_token: &TokenKind) -> bool {
+        match self.peek() {
+            Some(token) => is_token == &token.token_kind,
             None => false,
         }
     }
 
     pub fn iterate_to_next_statement(&mut self) {
-        for token in self.token_iter.by_ref() {
-            if token == Token::Period {
+        if self
+            .current_token
+            .as_ref()
+            .map_or(false, |token| token.token_kind.is_beginning_of_statement())
+        {
+            event!(
+                Level::TRACE,
+                "Current token {:?} is already valid beginning",
+                self.current_token
+            );
+            return;
+        }
+
+        while let Some(token) = self.consume() {
+            event!(Level::TRACE, "Iterating to next statement: {:?}", token);
+            if token.token_kind.is_beginning_of_statement() {
+                event!(Level::TRACE, "Found beginning, stop advancing");
                 break;
             }
         }
     }
 
-    pub fn expect_token(&mut self, expected_token_type: Token) -> Result<Token, ParseError> {
-        match self.token_iter.next_if_eq(&expected_token_type) {
-            Some(token) => Ok(token),
-            None => Err(ParseError::single_unexpected(
-                &expected_token_type,
-                self.token_iter.peek(),
+    pub fn expect_token(&mut self, expected_token_type: TokenKind) -> Result<Token, ParseError> {
+        match self.peek() {
+            Some(token) if token.token_kind == expected_token_type => Ok(self.consume().unwrap()),
+            Some(token) => Err(ParseError::new(
+                token.clone(),
+                ParseErrorKind::UnexpectedToken(expected_token_type),
+            )),
+            None => Err(ParseError::new(
+                Token {
+                    token_kind: TokenKind::EOF,
+                    location: Location {
+                        line_number: self.current_line_number,
+                    },
+                },
+                ParseErrorKind::ExpectedToken,
             )),
         }
     }
 
-    pub fn expect_optional_token(&mut self, expected_token_type: Token) {
-        self.token_iter.next_if_eq(&expected_token_type);
+    pub fn expect_optional_token(&mut self, expected_token_type: TokenKind) {
+        if self.next_token_is(&expected_token_type) {
+            self.consume();
+        }
     }
 
     pub fn expected_identifier(&mut self) -> Result<Identifier, ParseError> {
-        match self.token_iter.peek() {
-            Some(peeked_token) => {
-                let parsed_identifier = Identifier::parse_from_token(peeked_token)?;
+        match self.peek() {
+            Some(token) => {
+                let parsed_identifier = Identifier::parse_from_token(token)?;
                 self.consume();
                 Ok(parsed_identifier)
             }
-            None => Err(ParseError::ExpectedToken),
+            None => Err(ParseError::new(
+                Token {
+                    token_kind: TokenKind::EOF,
+                    location: Location {
+                        line_number: self.current_line_number,
+                    },
+                },
+                ParseErrorKind::ExpectedToken,
+            )),
         }
     }
 
     pub fn next_token_precedence(&mut self) -> Precedence {
         match self.peek() {
-            Some(token) => token.get_precedence(),
+            Some(token) => token.token_kind.get_precedence(),
             None => Precedence::Lowest,
         }
     }
 }
 
-fn parse(char: char, token_iter: &mut Peekable<Chars>) -> Token {
-    match char {
-        '!' => lex_multipart_token(FirstPart::Bang, token_iter),
-        '=' => lex_multipart_token(FirstPart::Equal, token_iter),
-        '+' => Token::Add,
-        '-' => Token::Minus,
-        ':' => Token::Colon,
-        '}' => Token::RBrace,
-        '{' => Token::LBrace,
-        ')' => Token::RParen,
-        '(' => Token::LParen,
-        ']' => Token::RBracket,
-        '[' => Token::LBracket,
-        '<' => Token::LessThan,
-        '>' => Token::GreaterThan,
-        ',' => Token::Comma,
-        '.' => Token::Period,
-        '~' => Token::Lasagna,
-        '/' => Token::Slash,
-        '*' => Token::Asterix,
-        '"' => {
-            let first_char = token_iter.next().expect("Malformed string");
-
-            if first_char == '"' {
-                return Token::Str("".to_string());
-            }
-
-            let literal: String = read_literal(token_iter, first_char, |char| char != &'"');
-            token_iter.next();
-            Token::Str(literal)
-        }
-        numeric_char if numeric_char.is_numeric() => {
-            let literal: String = read_literal(token_iter, char, |char| char.is_numeric());
-
-            Token::Int(literal)
-        }
-        alphabetic_char if alphabetic_char.is_alphabetic() => {
-            let literal: String = read_literal(token_iter, char, |char| {
-                char.is_alphabetic() && char != &','
-            });
-
-            Token::parse_keyword(&literal)
-        }
-        _ => Token::Illegal,
-    }
-}
-
-fn lex_multipart_token(first_char: FirstPart, token_iter: &mut Peekable<Chars>) -> Token {
-    use FirstPart::*;
-    match first_char {
-        Bang => match token_iter.peek() {
-            Some('=') => {
-                token_iter.next();
-                Token::NotEqual
-            }
-            _ => Token::Bang,
-        },
-        Equal => match token_iter.peek() {
-            Some('=') => {
-                token_iter.next();
-                Token::Equal
-            }
-            _ => Token::Illegal,
-        },
-    }
-}
-fn read_literal<F>(iterator: &mut Peekable<Chars>, first_char: char, read_until: F) -> String
-where
-    F: Fn(&char) -> bool,
-{
-    let mut literal = String::from(first_char);
-
-    while let Some(c) = iterator.peek().cloned().filter(|c| read_until(c)) {
-        literal.push(c);
-        iterator.next();
-    }
-
-    literal
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::parser::lexer::{lexedtokens::LexedTokens, token::Token};
+    use crate::{
+        parser::lexer::{lexedtokens::Lexer, token::TokenKind},
+        test_util,
+    };
 
     #[test]
     fn parse_sympols() {
+        test_util::setup_logger();
         let source_code = "
             !+:}{)(][~
         ";
 
         let expected_tokens = vec![
-            Token::Bang,
-            Token::Add,
-            Token::Colon,
-            Token::RBrace,
-            Token::LBrace,
-            Token::RParen,
-            Token::LParen,
-            Token::RBracket,
-            Token::LBracket,
-            Token::Lasagna,
+            TokenKind::Bang,
+            TokenKind::Add,
+            TokenKind::Colon,
+            TokenKind::RBrace,
+            TokenKind::LBrace,
+            TokenKind::RParen,
+            TokenKind::LParen,
+            TokenKind::RBracket,
+            TokenKind::LBracket,
+            TokenKind::Lasagna,
         ];
 
-        let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
+        let mut found_tokens: Lexer = Lexer::new(source_code);
         let mut expected_iter = expected_tokens.into_iter();
         while let Some(token) = found_tokens.consume() {
             let expected_token = expected_iter.next().unwrap();
-            assert_eq!(token, expected_token);
+            assert_eq!(token.token_kind, expected_token);
         }
     }
 
     #[test]
     fn parse_identifier() {
+        test_util::setup_logger();
         let source_code = "
             foo
         ";
 
-        let expected_tokens = [Token::Ident("foo".to_string())];
+        let expected_tokens = [TokenKind::Ident("foo".to_string())];
 
-        let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
+        let found_tokens = test_util::tokenize(source_code);
 
         assert_eq!(
-            found_tokens.token_iter.len(),
+            found_tokens.len(),
             expected_tokens.len(),
             "List of expected tokens should be the same as found tokens"
         );
         expected_tokens.iter().enumerate().for_each(|(idx, token)| {
             assert_eq!(
                 token,
-                &found_tokens.token_iter.nth(idx).expect("Should have token"),
+                &found_tokens.get(idx).expect("Should have token").token_kind,
                 "Token in position {idx} was not parsed"
             )
         });
@@ -249,24 +393,21 @@ mod tests {
         ";
 
         let expected_tokens = [
-            Token::LParen,
-            Token::Ident("foo".to_string()),
-            Token::Comma,
-            Token::Ident("bar".to_string()),
-            Token::RParen,
+            TokenKind::LParen,
+            TokenKind::Ident("foo".to_string()),
+            TokenKind::Comma,
+            TokenKind::Ident("bar".to_string()),
+            TokenKind::RParen,
         ];
 
-        let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
-
-        assert_eq!(
-            found_tokens.token_iter.len(),
-            expected_tokens.len(),
-            "List of expected tokens should be the same as found tokens"
-        );
+        let mut lexer = Lexer::new(source_code);
 
         expected_tokens.iter().for_each(|token| {
-            let found = &found_tokens.consume().unwrap();
-            assert_eq!(token, found, "Expected {token:?}, but got {found:?}")
+            let found = &lexer.consume().unwrap();
+            assert_eq!(
+                token, &found.token_kind,
+                "Expected {token:?}, but got {found:?}"
+            )
         });
     }
 
@@ -295,66 +436,66 @@ mod tests {
         ";
 
         let expected_tokens = vec![
-            Token::Let,
-            Token::Ident("foo".to_string()),
-            Token::Colon,
-            Token::Int("5".to_string()),
-            Token::Lasagna,
-            Token::Ident("foo".to_string()),
-            Token::Add,
-            Token::Int("6".to_string()),
-            Token::Lasagna,
-            Token::Ident("fooFunc".to_string()),
-            Token::LParen,
-            Token::Ident("x".to_string()),
-            Token::Comma,
-            Token::Ident("y".to_string()),
-            Token::RParen,
-            Token::Colon,
-            Token::Lasagna,
-            Token::Ident("res".to_string()),
-            Token::Ident("x".to_string()),
-            Token::Add,
-            Token::Ident("y".to_string()),
-            Token::Return,
-            Token::Ident("res".to_string()),
-            Token::Lasagna,
-            Token::Lasagna,
-            Token::If,
-            Token::LParen,
-            Token::Int("5".to_string()),
-            Token::LessThan,
-            Token::Int("10".to_string()),
-            Token::RParen,
-            Token::Colon,
-            Token::Int("5".to_string()),
-            Token::Add,
-            Token::Int("6".to_string()),
-            Token::Int("6".to_string()),
-            Token::Add,
-            Token::Int("7".to_string()),
-            Token::Return,
-            Token::True,
-            Token::Lasagna,
-            Token::Else,
-            Token::Colon,
-            Token::Bang,
-            Token::Return,
-            Token::False,
-            Token::Lasagna,
-            Token::Equal,
-            Token::NotEqual,
-            Token::Str("foo".to_string()),
-            Token::Add,
-            Token::Str("bar hei".to_string()),
-            Token::Str("".to_string()),
+            TokenKind::Let,
+            TokenKind::Ident("foo".to_string()),
+            TokenKind::Colon,
+            TokenKind::Int("5".to_string()),
+            TokenKind::Lasagna,
+            TokenKind::Ident("foo".to_string()),
+            TokenKind::Add,
+            TokenKind::Int("6".to_string()),
+            TokenKind::Lasagna,
+            TokenKind::Ident("fooFunc".to_string()),
+            TokenKind::LParen,
+            TokenKind::Ident("x".to_string()),
+            TokenKind::Comma,
+            TokenKind::Ident("y".to_string()),
+            TokenKind::RParen,
+            TokenKind::Colon,
+            TokenKind::Lasagna,
+            TokenKind::Ident("res".to_string()),
+            TokenKind::Ident("x".to_string()),
+            TokenKind::Add,
+            TokenKind::Ident("y".to_string()),
+            TokenKind::Return,
+            TokenKind::Ident("res".to_string()),
+            TokenKind::Lasagna,
+            TokenKind::Lasagna,
+            TokenKind::If,
+            TokenKind::LParen,
+            TokenKind::Int("5".to_string()),
+            TokenKind::LessThan,
+            TokenKind::Int("10".to_string()),
+            TokenKind::RParen,
+            TokenKind::Colon,
+            TokenKind::Int("5".to_string()),
+            TokenKind::Add,
+            TokenKind::Int("6".to_string()),
+            TokenKind::Int("6".to_string()),
+            TokenKind::Add,
+            TokenKind::Int("7".to_string()),
+            TokenKind::Return,
+            TokenKind::True,
+            TokenKind::Lasagna,
+            TokenKind::Else,
+            TokenKind::Colon,
+            TokenKind::Bang,
+            TokenKind::Return,
+            TokenKind::False,
+            TokenKind::Lasagna,
+            TokenKind::Equal,
+            TokenKind::NotEqual,
+            TokenKind::Str("foo".to_string()),
+            TokenKind::Add,
+            TokenKind::Str("bar hei".to_string()),
+            TokenKind::Str("".to_string()),
         ];
 
-        let mut found_tokens: LexedTokens = LexedTokens::from(source_code);
+        let mut found_tokens: Lexer = Lexer::new(source_code);
         let mut expected_iter = expected_tokens.into_iter();
         while let Some(token) = found_tokens.consume() {
             let expected_token = expected_iter.next().unwrap();
-            assert_eq!(token, expected_token);
+            assert_eq!(token.token_kind, expected_token);
         }
     }
 }

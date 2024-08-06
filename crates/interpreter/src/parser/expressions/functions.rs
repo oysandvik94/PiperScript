@@ -6,8 +6,8 @@ use crate::{
     eval::objects::Listable,
     parser::{
         ast::{BlockStatement, Identifier},
-        lexer::token::Token,
-        parse_errors::{ParseError, TokenExpectation},
+        lexer::token::{Token, TokenKind},
+        parse_errors::{ParseError, ParseErrorKind},
         Parser,
     },
 };
@@ -46,35 +46,46 @@ impl FunctionLiteral {
         let parameters: Vec<Identifier> = Self::parse_function_parameters(parser)?;
         event!(Level::DEBUG, "Found parameters {parameters:?}");
 
-        parser.tokens.expect_token(Token::Colon)?;
+        parser.lexer.expect_token(TokenKind::Colon)?;
 
-        let body: BlockStatement = Expression::parse_blockstatement(parser)?;
-        parser.tokens.expect_token(Token::Lasagna)?;
+        let body: BlockStatement = Expression::parse_blockstatement(parser).map_err(|e| {
+            let error = e.parse_error.clone();
+            ParseError::new(
+                e.parse_error.token.clone(),
+                ParseErrorKind::FunctionBlockError(Box::new(error)),
+            )
+        })?;
+        parser.lexer.expect_token(TokenKind::Lasagna)?;
 
         Ok(Expression::Function(FunctionLiteral { parameters, body }))
     }
 
     fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, ParseError> {
         let mut parameters: Vec<Identifier> = Vec::from([]);
-        while let Some(token) = parser.tokens.consume() {
-            match token {
-                Token::LParen | Token::Comma => match parser.tokens.peek() {
-                    Some(Token::RParen) => {
-                        parser.tokens.consume();
+        while let Some(token) = parser.lexer.consume() {
+            match token.token_kind {
+                TokenKind::LParen | TokenKind::Comma => match parser.lexer.peek() {
+                    Some(Token {
+                        token_kind: TokenKind::RParen,
+                        location: _,
+                    }) => {
+                        parser.lexer.consume();
                         return Ok(parameters);
                     }
                     Some(_) => parameters.push(Expression::parse_literal(parser)?),
-                    None => return Err(ParseError::ExpectedToken),
+                    None => {
+                        return Err(ParseError::new(
+                            token.clone(),
+                            ParseErrorKind::ExpectedToken,
+                        ))
+                    }
                 },
-                Token::RParen => return Ok(parameters),
-                unexpected_token => {
-                    return Err(ParseError::UnexpectedToken {
-                        expected_token: TokenExpectation::MultipleExpectation(Vec::from([
-                            Token::Comma,
-                            Token::RParen,
-                        ])),
-                        found_token: Some(unexpected_token),
-                    })
+                TokenKind::RParen => return Ok(parameters),
+                _ => {
+                    return Err(ParseError::new(
+                        token.clone(),
+                        ParseErrorKind::UnfinishedFunctionDeclaration,
+                    ))
                 }
             }
         }
@@ -90,7 +101,7 @@ impl CallExpression {
 
         Ok(Expression::Call(CallExpression {
             function: Box::from(function),
-            arguments: Expression::parse_expression_list(parser, &Token::RParen)?,
+            arguments: Expression::parse_expression_list(parser, &TokenKind::RParen)?,
         }))
     }
 }

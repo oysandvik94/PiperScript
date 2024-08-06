@@ -1,9 +1,7 @@
 use eval_error::EvalError;
 use objects::{EnvReference, Object};
 
-use crate::parser::{
-    lexer::lexedtokens::LexedTokens, parse_errors::ParseError, ParsedProgram, Parser,
-};
+use crate::parser::{ParsedProgram, Parser, StatementError};
 
 mod array_evaluator;
 pub mod builtin;
@@ -14,15 +12,14 @@ pub mod objects;
 mod statement_evaluator;
 
 pub enum EvaledProgram {
-    ParseError(Vec<ParseError>),
+    ParseError(Vec<StatementError>),
     EvalError(EvalError),
     Valid(Object),
 }
 
 pub fn eval(input: &str, env: &mut EnvReference) -> EvaledProgram {
-    let lexed_tokens = LexedTokens::from(input);
-    let program = Parser::parse_tokens(lexed_tokens);
-
+    let mut parser = Parser::new(input);
+    let program = parser.parse_program();
     match program {
         ParsedProgram::InvalidProgram(parse_errors) => EvaledProgram::ParseError(parse_errors),
         ParsedProgram::ValidProgram(valid_program) => {

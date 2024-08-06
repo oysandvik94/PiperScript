@@ -1,5 +1,6 @@
 use std::sync::Once;
 
+use tracing::{event, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
@@ -13,7 +14,7 @@ use crate::{
         expressions::{
             expression::Expression, functions::FunctionLiteral, if_expression::IfExpression,
         },
-        lexer::lexedtokens::LexedTokens,
+        lexer::{lexedtokens::Lexer, token::Token},
         ParsedProgram, Parser,
     },
 };
@@ -58,8 +59,8 @@ pub fn has_parser_errors(program: &ParsedProgram) -> bool {
 }
 
 pub fn parse_program(source_code: &str) -> ParsedProgram {
-    let tokens = LexedTokens::from(source_code);
-    Parser::parse_tokens(tokens)
+    let mut parser = Parser::new(source_code);
+    parser.parse_program()
 }
 
 pub fn expect_evaled_program(source_code: &str) -> Object {
@@ -79,14 +80,28 @@ pub fn expect_evaled_program(source_code: &str) -> Object {
 }
 
 pub fn expect_parsed_program(source_code: &str) -> Vec<Statement> {
-    let tokens = LexedTokens::from(source_code);
-    match Parser::parse_tokens(tokens) {
+    let mut parser = Parser::new(source_code);
+    let evaled_program = parser.parse_program();
+    match evaled_program {
         ParsedProgram::ValidProgram(valid_statements) => valid_statements,
         ParsedProgram::InvalidProgram(parse_errors) => {
             parse_errors.into_iter().for_each(|ele| eprintln!("{ele}"));
             panic!("parse failed with parse errors")
         }
     }
+}
+
+pub fn tokenize(source_code: &str) -> Vec<Token> {
+    let mut lexer = Lexer::new(source_code);
+    let mut tokens: Vec<Token> = Vec::new();
+
+    event!(Level::DEBUG, "hei");
+    while let Some(token) = lexer.consume() {
+        event!(Level::DEBUG, "pushing token: {token:?}");
+        tokens.push(token);
+    }
+
+    tokens
 }
 
 pub fn create_prefix_test_case(

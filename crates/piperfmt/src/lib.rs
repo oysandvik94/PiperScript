@@ -2,7 +2,7 @@ use std::fs;
 
 use anyhow::Result;
 use formatter::Format;
-use interpreter::parser::{lexer::lexedtokens::LexedTokens, ParsedProgram, Parser};
+use interpreter::parser::{ParsedProgram, Parser};
 
 mod formatter;
 
@@ -16,8 +16,8 @@ pub fn format_snippet(snippet: &str) -> String {
 }
 
 fn parse_and_format(code: &str) -> String {
-    let tokens = LexedTokens::from(code);
-    let parsed_program = Parser::parse_tokens(tokens);
+    let mut parser = Parser::new(code);
+    let parsed_program = parser.parse_program();
 
     match parsed_program {
         ParsedProgram::ValidProgram(statements) => statements
