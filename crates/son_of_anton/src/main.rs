@@ -18,7 +18,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut anton = SonOfAnton::from(io::stdout());
 
     loop {
-        // Block until there is input to read
         let mut buffer = String::new();
         reader.read_line(&mut buffer)?;
 

@@ -1,39 +1,48 @@
-# Lasagnalang
+# PiperScript
 
-This project is an interpreter for the language Lasagnalang.
+This project is an interpreter for the language PiperScript.
 
 It is intented as a learning exercise based on the book [Writing An Interpreter
 in Go](https://interpreterbook.com/). At the current state the intepreter is
-adapted from the Go to Rust, with the goal of learning more about interpreters
-and Rust. At a later stage I hope to create a
-[LSP](https://microsoft.github.io/language-server-protocol/) for Lasagnalang,
-as well as implementing some more novel idea for the language.
+adapted from Go to Rust, with the goal of learning more about interpreters
+and Rust.
 
-Lasagnalang may look something like this:
+PiperScript looks something like this:
 
 ```
-foo: 5
+let foo: "hei"
+let bar: fn(x):
+    return x + "ok"
+~
 
-if foo == 5:
-    foo + 10
+if bar == foo:
+    print(bar)
 else:
-    1 + 1
+    print(foo)
 ~
 
-add: fn(x, y): return x + y~
-
-add 5 1
-
-complex: fn(x, y, k):
-    foo: add x y
-    return k(foo)
+let adder: fn(x):
+    return fn(y): return x + y ~
 ~
 
-power: fn(x): return x * x~
+let array: [2, 5, 6]
+print(array[2])
 
-complex 5 3 power // 64
-res: complex 5 3 power
+let hash: {"mee", 5, "boo", 1}
+print(hash["mee"])
+
+let one: 1
+print(hash["mee"] / 8 * (array[1] + one))
+
+print(last(array))
+
+push(array, 5)
 ```
 
-There is nothing interesting or worthwhile about the language, the project is
-entirely about the exercise of creating an interpreter.
+## Additonal documentation
+
+See the following readme's for more technical docs:
+
+- [Interpreter](crates/interpreter/README.md)
+- [LSP](crates/son_of_anton/README.md)
+- [Formatter](crates/piperfmt/README.md)

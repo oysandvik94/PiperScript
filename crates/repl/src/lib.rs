@@ -3,7 +3,7 @@ use std::io::{stdin, stdout, Write};
 use interpreter::eval::{self, objects::Environment, EvaledProgram};
 
 pub fn execute_repl() -> Result<(), std::io::Error> {
-    println!("Welcome to lasagnalang, try and write some code:");
+    println!("Welcome to piperscript, try and write some code:");
     let repl_scope = &mut Environment::new_env_reference();
 
     loop {
