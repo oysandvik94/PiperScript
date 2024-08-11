@@ -1,28 +1,109 @@
-let foo: "hei"
-let bar: fn(x):
-    return x + "ok"
+let a: "hello world"
+let b: 42
+let c: true
+let d: false
+let e: null
+
+let add: fn(x, y):
+    return x + y
 ~
 
-if bar("en") == foo:
-    print(bar)
+let multiply: fn(x, y):
+    return x * y
+~
+
+let complex_func: fn(x, y, z):
+    let temp: x + y
+    if temp > z:
+        return temp * 2
+    else:
+        return z - temp
+    ~
+~
+
+let outer: fn(x):
+    let inner: fn(y):
+        return x * y
+    ~
+    return inner
+~
+
+let numbers: [1, 2, 3, 4, 5]
+let mixed_array: [1, "two", true, [4, 5], {"six": 6}]
+let person: {"name": "Alice", "age": 30, "hobbies": ["reading", "coding"]}
+
+if a == "hello world":
+    print("Greeting")
+else if b > 40:
+    print("Large number")
 else:
-    print(foo)
+    print("Something else")
 ~
 
-let adder: fn(x):
-    return fn(y): return x + y ~
+let i: 0
+while i < 5:
+    print(numbers[i])
+    let i: i + 1
 ~
 
-let array: [2, 5, 6]
-print(array[2])
+print(add(b, 10))
+print(multiply(3, 4))
+print(complex_func(5, 7, 10))
 
-let hash: {"mee": 5, "boo": 1}
-print(hash["mee"])
+print(outer(5)(3))
 
-let one: 1
-print(hash["mee"] / 8 * (array[1] + one))
+push(numbers, 6)
+print(last(numbers))
+print(person["name"])
+print(mixed_array[3][1])
 
-print(last(array))
+let result: (b / 2 * (numbers[2] + 1)) - person["age"]
+print(result)
 
-push(array, 5)
+let concat_result: a + " " + person["name"]
+print(concat_result)
 
+let nested: {
+    "data": [
+        {"id": 1, "value": "first"},
+        {"id": 2, "value": "second"},
+        {"id": 3, "value": "third"}
+    ],
+    "metadata": {
+        "created": "2024-08-11",
+        "author": "Parser Benchmark"
+    }
+}
+
+print(nested["data"][1]["value"])
+print(nested["metadata"]["author"])
+
+let x: 15
+if x < 10:
+    print("Small")
+else if x < 20:
+    if x % 2 == 0:
+        print("Medium even")
+    else:
+        print("Medium odd")
+    ~
+else:
+    print("Large")
+~
+
+let create_multiplier: fn(factor):
+    return fn(x): return x * factor ~
+~
+
+let double: create_multiplier(2)
+print(double(5))
+
+let factorial: fn(n):
+    if n <= 1:
+        return 1
+    else:
+        return n * factorial(n - 1)
+    ~
+~
+
+print(factorial(5))
