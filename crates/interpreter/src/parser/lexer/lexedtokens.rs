@@ -219,7 +219,7 @@ impl<'a> Lexer<'a> {
         value.push(current_char);
 
         while let Some(c) = self.chars.clone().next() {
-            if !c.is_alphabetic() || c == ',' {
+            if Self::not_valid_ident_char(c) {
                 break;
             }
             value.push(c);
@@ -227,6 +227,12 @@ impl<'a> Lexer<'a> {
             self.current_pos += c.len_utf8();
         }
         TokenKind::parse_keyword(&value)
+    }
+
+    fn not_valid_ident_char(c: char) -> bool {
+        let is_allowed = c.is_alphabetic() || c == '_';
+
+        !is_allowed
     }
 
     pub fn next_token_has_infix(&mut self) -> bool {
@@ -251,19 +257,25 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// This is meant to keep parsing the program, even if we get an error,
+    /// so that the user can get multiple error reports for a single parse.
+    /// However, we need to figure out a good strategy to parse, since we dont use
+    /// statement seperators, and newlines dont matter
     pub fn iterate_to_next_statement(&mut self) {
-        if self
-            .current_token
-            .as_ref()
-            .map_or(false, |token| token.token_kind.is_beginning_of_statement())
-        {
-            event!(
-                Level::TRACE,
-                "Current token {:?} is already valid beginning",
-                self.current_token
-            );
-            return;
-        }
+        // FIXME: This does not work if the parser fails on a token that
+        // is a valid statement-starter, as it will loop forever
+        // if self
+        //     .current_token
+        //     .as_ref()
+        //     .map_or(false, |token| token.token_kind.is_beginning_of_statement())
+        // {
+        //     event!(
+        //         Level::TRACE,
+        //         "Current token {:?} is already valid beginning",
+        //         self.current_token
+        //     );
+        //     return;
+        // }
 
         while let Some(token) = self.consume() {
             event!(Level::TRACE, "Iterating to next statement: {:?}", token);
