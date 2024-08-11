@@ -34,17 +34,11 @@ let person: {"name": "Alice", "age": 30, "hobbies": ["reading", "coding"]}
 
 if a == "hello world":
     print("Greeting")
-else if b > 40:
-    print("Large number")
 else:
     print("Something else")
 ~
 
 let i: 0
-while i < 5:
-    print(numbers[i])
-    let i: i + 1
-~
 
 print(add(b, 10))
 print(multiply(3, 4))
@@ -81,14 +75,12 @@ print(nested["metadata"]["author"])
 let x: 15
 if x < 10:
     print("Small")
-else if x < 20:
-    if x % 2 == 0:
+else: 
+    if x + 2 == 0:
         print("Medium even")
     else:
         print("Medium odd")
     ~
-else:
-    print("Large")
 ~
 
 let create_multiplier: fn(factor):
@@ -99,7 +91,7 @@ let double: create_multiplier(2)
 print(double(5))
 
 let factorial: fn(n):
-    if n <= 1:
+    if n < 1:
         return 1
     else:
         return n * factorial(n - 1)
