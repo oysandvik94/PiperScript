@@ -171,22 +171,24 @@ fn eval_infix_expression(
     right: Object,
 ) -> Result<Object, EvalError> {
     use Object::*;
+    use PrimitiveObject::*;
+
     match (left, right) {
-        (
-            Primitive(PrimitiveObject::Integer(left_integer)),
-            Primitive(PrimitiveObject::Integer(right_integer)),
-        ) => eval_integer_infix_expression(left_integer, right_integer, operator),
-        (
-            Primitive(PrimitiveObject::Boolean(left_boolean)),
-            Primitive(PrimitiveObject::Boolean(right_boolean)),
-        ) => eval_boolean_infix_expression(left_boolean, right_boolean, operator),
-        (Primitive(PrimitiveObject::Str(left_str)), Primitive(PrimitiveObject::Str(right_str))) => {
-            eval_string_infix_expression(left_str, right_str, operator)
+        (Primitive(Integer(left)), Primitive(Integer(right))) => {
+            eval_integer_infix_expression(left, right, operator)
         }
-        (unexpected_left, unexpected_right) => Err(EvalError::InfixRightLeft(
-            unexpected_left.clone(),
-            unexpected_right.clone(),
-        )),
+
+        (Primitive(Boolean(left)), Primitive(Boolean(right))) => {
+            eval_boolean_infix_expression(left, right, operator)
+        }
+
+        (Primitive(Str(left)), Primitive(Str(right))) => {
+            eval_string_infix_expression(left, right, operator)
+        }
+
+        (unexpected_left, unexpected_right) => {
+            Err(EvalError::InfixRightLeft(unexpected_left, unexpected_right))
+        }
     }
 }
 
@@ -200,6 +202,8 @@ fn eval_string_infix_expression(
             let concatted_str = [left_str, right_str].concat();
             Object::primitive_from_str(concatted_str)
         }
+        Operator::Equals => Object::primitive_from_bool(left_str == right_str),
+        Operator::NotEquals => Object::primitive_from_bool(left_str != right_str),
         unsupported_operator => {
             return Err(EvalError::StringInfixOperatorError(
                 unsupported_operator.clone(),
@@ -346,6 +350,8 @@ mod tests {
             ("(1 < 2) == false", false),
             ("(1 > 2) == true", false),
             ("(1 > 2) == false", true),
+            (r#""test" == "test""#, true),
+            (r#""ok" == "test""#, false),
         ];
 
         let asserter = |expected: &bool, input: &&str| {
