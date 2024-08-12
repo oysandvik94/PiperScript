@@ -2,6 +2,10 @@ use std::fmt::Display;
 
 use crate::compiler::bytecode;
 
+use super::internal_error::InternalError;
+
+/// Not sure if we need this wrapper, or if we could
+/// just use a type alias.
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct Instructions(pub Vec<u8>);
 
@@ -38,12 +42,12 @@ pub enum OpCode {
 }
 
 impl TryFrom<u8> for OpCode {
-    type Error = String;
+    type Error = InternalError;
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(OpCode::OpConstant),
-            _ => Err(format!("Invalid OpCode value: {}", value)),
+            unknown_opcode => Err(InternalError::UnknownOpcode(unknown_opcode)),
         }
     }
 }

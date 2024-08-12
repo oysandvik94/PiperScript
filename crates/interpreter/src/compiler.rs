@@ -1,7 +1,7 @@
 use bytecode::{Instructions, OpCode};
 
 use crate::{
-    eval::objects::{Object, PrimitiveObject},
+    eval::objects::PrimitiveObject,
     parser::{
         ast::{Operator, Statement},
         expressions::expression::Expression,
@@ -9,6 +9,7 @@ use crate::{
 };
 
 pub mod bytecode;
+pub mod internal_error;
 
 #[derive(Default)]
 pub struct Compiler {
@@ -54,8 +55,11 @@ impl Compiler {
             Expression::BooleanLiteral(_) => todo!(),
             Expression::Array(_) => todo!(),
             Expression::HashLiteral(_) => todo!(),
-            Expression::Index { left, index } => todo!(),
-            Expression::Prefix { right, operator } => todo!(),
+            Expression::Index { left: _, index: _ } => todo!(),
+            Expression::Prefix {
+                right: _,
+                operator: _,
+            } => todo!(),
             Expression::If(_) => todo!(),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),

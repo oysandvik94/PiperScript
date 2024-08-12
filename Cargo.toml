@@ -14,3 +14,4 @@ members = [
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 anyhow = "1.0.42"
+thiserror = "1.0.63"

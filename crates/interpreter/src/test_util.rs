@@ -1,4 +1,4 @@
-use std::sync::Once;
+use std::{fmt::Display, sync::Once};
 
 use tracing::{event, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -18,6 +18,7 @@ use crate::{
         lexer::{token::Token, Lexer},
         ParsedProgram, Parser,
     },
+    vm::VirtualMachine,
 };
 
 pub fn assert_list<T, K, F>(test_cases: Vec<(T, K)>, mut asserter: F)
@@ -233,4 +234,26 @@ fn test_constants(expected_constants: Vec<PrimitiveObject>, constants: Vec<Primi
         .into_iter()
         .zip(constants)
         .for_each(|(expected, actual)| assert_eq!(expected, actual, "Got incorrect constant"));
+}
+
+pub struct VmTestCase<T> {
+    pub input: &'static str,
+    pub expected: T,
+}
+
+pub fn run_vm_tests<T: Display>(test_cases: Vec<VmTestCase<T>>) {
+    for test_case in test_cases {
+        let ast = expect_parsed_program(test_case.input);
+
+        let mut compiler: Compiler = Compiler::default();
+        compiler.compile(ast);
+        let bytecode = compiler.bytecode();
+
+        let mut vm = VirtualMachine::new(bytecode);
+        vm.run().unwrap();
+
+        let stack_elem = vm.stack_top();
+
+        assert_eq!(test_case.expected.to_string(), stack_elem.to_string());
+    }
 }
