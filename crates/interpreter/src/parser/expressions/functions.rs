@@ -140,7 +140,7 @@ mod tests {
             arguments: expected_arguments,
         });
         assert_eq!(
-            statement,
+            &statement.statement_type,
             &StatementType::Expression(expected_statement),
             "Parsed statement should match testcase"
         );
@@ -191,7 +191,7 @@ mod tests {
             let statement = binding.first().expect("Should parse one statement");
 
             assert_eq!(
-                statement, &test_case.expected,
+                &statement.statement_type, &test_case.expected,
                 "Parsed statement should match testcase"
             );
         }

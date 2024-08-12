@@ -128,7 +128,8 @@ impl Expression {
             && !parser.lexer.next_token_is(&TokenKind::Else)
             && parser.lexer.has_next()
         {
-            statements.push(parser.parse_statement()?);
+            let new_statement = parser.parse_statement_type()?;
+            statements.push(new_statement);
         }
 
         Ok(BlockStatement { statements })
@@ -246,7 +247,11 @@ mod tests {
 
         let statements = test_util::expect_parsed_program(input);
 
-        match statements.first().expect("Should only have one statement") {
+        match &statements
+            .first()
+            .expect("Should only have one statement")
+            .statement_type
+        {
             StatementType::Expression(expression) => match expression {
                 Expression::StringLiteral(string) => assert_eq!(string, "hellow world"),
                 _ => panic!("Should have parsed a string expression"),
@@ -264,7 +269,7 @@ mod tests {
         let parsed_statement = statements.first().expect("Should only have one statement");
 
         assert!(matches!(
-            parsed_statement,
+            &parsed_statement.statement_type,
             StatementType::Expression(Expression::IntegerLiteral(5))
         ));
     }
@@ -284,7 +289,7 @@ mod tests {
         let parsed_statement = statements.first().expect("Already checked length");
 
         assert!(matches!(
-            parsed_statement,
+            &parsed_statement.statement_type,
             StatementType::Expression(Expression::IdentifierLiteral(
                     Identifier(ident)
                         )) if ident == "foobar"
@@ -306,11 +311,11 @@ mod tests {
         let parsed_statement = statements.first().expect("Already checked length");
 
         assert!(matches!(
-            parsed_statement,
+            &parsed_statement.statement_type,
             StatementType::Expression(Expression::BooleanLiteral(true))
         ));
         assert!(matches!(
-            statements.get(1).unwrap(),
+            &statements.get(1).unwrap().statement_type,
             StatementType::Expression(Expression::BooleanLiteral(false))
         ));
     }
@@ -350,7 +355,7 @@ mod tests {
             let statement = statements.first().expect("Should be one statement");
 
             assert_eq!(
-                statement, &test_case.statement,
+                &statement.statement_type, &test_case.statement,
                 "Parsed statement should match testcase"
             );
         }
@@ -429,7 +434,7 @@ mod tests {
 
             let actual_statement = statements.first().expect("Should be one statement");
 
-            assert_eq!(actual_statement, expected);
+            assert_eq!(&actual_statement.statement_type, expected);
         };
 
         test_util::assert_list(test_cases, asserter);
@@ -442,7 +447,7 @@ mod tests {
         let statements = test_util::expect_parsed_program(input);
         let actual_statement = statements.first().expect("Should be one statement");
 
-        match actual_statement {
+        match &actual_statement.statement_type {
             StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 3);
 
@@ -477,7 +482,7 @@ mod tests {
         let statements = test_util::expect_parsed_program(input);
         let actual_statement = statements.first().expect("Should be one statement");
 
-        match actual_statement {
+        match &actual_statement.statement_type {
             StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 3);
 
@@ -511,7 +516,7 @@ mod tests {
         let statements = test_util::expect_parsed_program(input);
         let actual_statement = statements.first().expect("Should be one statement");
 
-        match actual_statement {
+        match &actual_statement.statement_type {
             StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 0);
             }

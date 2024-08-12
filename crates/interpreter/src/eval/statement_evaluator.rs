@@ -2,7 +2,7 @@ use tracing::{span, Level};
 
 use crate::parser::{
     assign_statement::AssignStatement,
-    ast::{BlockStatement, Identifier, StatementType},
+    ast::{BlockStatement, Identifier, Statement, StatementType},
     return_statement::ReturnStatement,
 };
 
@@ -13,12 +13,13 @@ use super::{
 };
 
 pub fn eval_statements(
-    statements: &Vec<StatementType>,
+    statements: &Vec<Statement>,
     env: &mut EnvReference,
 ) -> Result<Object, EvalError> {
     let mut object: Object = Object::Void;
 
     for statement in statements {
+        let statement = &statement.statement_type;
         object = statement.eval(env)?;
 
         if let Object::ReturnValue(value) = object {

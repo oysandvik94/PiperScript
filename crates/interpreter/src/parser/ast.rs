@@ -12,6 +12,11 @@ use super::{
 };
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct Statement {
+    pub statement_type: StatementType,
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub enum StatementType {
     Assign(AssignStatement),
     Return(ReturnStatement),
@@ -73,6 +78,12 @@ impl Display for ParsedProgram {
         }
 
         Ok(())
+    }
+}
+
+impl Display for Statement {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.statement_type)
     }
 }
 
@@ -186,17 +197,22 @@ mod tests {
     };
 
     use super::StatementType;
+    use super::Statement;
 
     #[test]
     fn test_display() {
         let program: ParsedProgram = ParsedProgram::ValidProgram(Vec::from([
-            StatementType::Assign(AssignStatement {
-                identifier: Identifier(String::from("foo")),
-                assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
-            }),
-            StatementType::Return(ReturnStatement {
-                return_value: test_util::create_identifierliteral("hey"),
-            }),
+            Statement {
+                statement_type: StatementType::Assign(AssignStatement {
+                    identifier: Identifier(String::from("foo")),
+                    assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
+                }),
+            },
+            Statement {
+                statement_type: StatementType::Return(ReturnStatement {
+                    return_value: test_util::create_identifierliteral("hey"),
+                }),
+            },
         ]));
 
         let expected_program: &str = "let foo: bar.

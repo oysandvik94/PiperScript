@@ -124,7 +124,7 @@ mod tests {
             let statement = statements.first().expect("Should be one statement");
 
             assert_eq!(
-                statement, &test_case.expected,
+                statement.statement_type, test_case.expected,
                 "Parsed statement should match testcase"
             );
         }

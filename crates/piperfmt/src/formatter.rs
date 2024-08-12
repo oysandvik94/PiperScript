@@ -1,12 +1,15 @@
-use interpreter::parser::{ast::StatementType, expressions::expression::Expression};
+use interpreter::parser::{
+    ast::{Statement, StatementType},
+    expressions::expression::Expression,
+};
 
 pub trait Format {
     fn format(&self) -> String;
 }
 
-impl Format for StatementType {
+impl Format for Statement {
     fn format(&self) -> String {
-        match self {
+        match &self.statement_type {
             StatementType::Assign(assign_statement) => {
                 format!(
                     "let {}: {}",

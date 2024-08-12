@@ -7,14 +7,15 @@ pub mod return_statement;
 
 use std::fmt::Display;
 
+use ast::{Statement, StatementType};
 use expressions::expression_statement;
 use lexer::{token::TokenKind, Lexer};
 use parse_errors::ParseErrorKind;
 use tracing::{event, span, Level};
 
 use crate::{
-    parser::assign_statement::AssignStatement, parser::ast::StatementType,
-    parser::parse_errors::ParseError, parser::return_statement::ReturnStatement,
+    parser::assign_statement::AssignStatement, parser::parse_errors::ParseError,
+    parser::return_statement::ReturnStatement,
 };
 
 pub struct Parser<'a> {
@@ -22,7 +23,7 @@ pub struct Parser<'a> {
 }
 
 pub enum ParsedProgram {
-    ValidProgram(Vec<StatementType>),
+    ValidProgram(Vec<Statement>),
     InvalidProgram(Vec<StatementError>),
 }
 
@@ -39,7 +40,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_program(&mut self) -> ParsedProgram {
-        let mut statements: Vec<StatementType> = Vec::new();
+        let mut statements: Vec<Statement> = Vec::new();
         let mut parse_errors: Vec<StatementError> = Vec::new();
 
         while self.lexer.has_next() {
@@ -67,7 +68,13 @@ impl<'a> Parser<'a> {
         ParsedProgram::ValidProgram(statements)
     }
 
-    fn parse_statement(&mut self) -> Result<StatementType, StatementError> {
+    fn parse_statement(&mut self) -> Result<Statement, StatementError> {
+        let statement_type = self.parse_statement_type()?;
+
+        Ok(Statement { statement_type })
+    }
+
+    fn parse_statement_type(&mut self) -> Result<StatementType, StatementError> {
         let current_token = self
             .lexer
             .expect_peek()

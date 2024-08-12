@@ -72,15 +72,15 @@ mod tests {
 
         let first_statement = statements.first().expect("Should get statement");
         assert_eq!(
-            first_statement,
-            &StatementType::Return(ReturnStatement {
+            first_statement.statement_type,
+            StatementType::Return(ReturnStatement {
                 return_value: Expression::IntegerLiteral(5)
             })
         );
         let second_statement = statements.get(1).expect("Should get statement");
         assert_eq!(
-            second_statement,
-            &StatementType::Return(ReturnStatement {
+            second_statement.statement_type,
+            StatementType::Return(ReturnStatement {
                 return_value: test_util::create_identifierliteral("foobar")
             })
         );

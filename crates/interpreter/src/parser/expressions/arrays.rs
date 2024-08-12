@@ -45,7 +45,7 @@ mod tests {
         let statemens = test_util::expect_parsed_program(input);
         let statement = statemens.first().expect("Should only return one statement");
 
-        let array_expression = match statement {
+        let array_expression = match &statement.statement_type {
             StatementType::Expression(expression) => match expression {
                 Expression::Array(array) => array,
                 _ => panic!("Expected array expression"),
@@ -93,7 +93,7 @@ mod tests {
         let statemens = test_util::expect_parsed_program(input);
         let statement = statemens.first().expect("Should only return one statement");
 
-        let (left, index) = match statement {
+        let (left, index) = match &statement.statement_type {
             StatementType::Expression(expression) => match expression {
                 Expression::Index { left, index } => (left, index),
                 unexpected => panic!("Expected index expression, but got {unexpected}"),

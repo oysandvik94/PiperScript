@@ -143,7 +143,11 @@ mod tests {
             .iter()
             .enumerate()
             .for_each(|(idx, ident)| {
-                assert_let_statement(&statements[idx], ident, &expected_expression[idx])
+                assert_let_statement(
+                    &statements[idx].statement_type,
+                    ident,
+                    &expected_expression[idx],
+                )
             });
     }
 

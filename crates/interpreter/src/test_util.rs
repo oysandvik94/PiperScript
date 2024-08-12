@@ -10,7 +10,7 @@ use crate::{
         EvaledProgram,
     },
     parser::{
-        ast::{BlockStatement, Identifier, Operator, PrefixOperator, StatementType},
+        ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement, StatementType},
         expressions::{
             expression::Expression, functions::FunctionLiteral, if_expression::IfExpression,
         },
@@ -79,7 +79,7 @@ pub fn expect_evaled_program(source_code: &str) -> Object {
     }
 }
 
-pub fn expect_parsed_program(source_code: &str) -> Vec<StatementType> {
+pub fn expect_parsed_program(source_code: &str) -> Vec<Statement> {
     let mut parser = Parser::new(source_code);
     let evaled_program = parser.parse_program();
     match evaled_program {
