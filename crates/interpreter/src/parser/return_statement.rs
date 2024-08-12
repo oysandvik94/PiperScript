@@ -1,13 +1,13 @@
 use std::fmt::Display;
 
 use crate::{
-    parser::ast::Statement,
+    parser::ast::StatementType,
     parser::expressions::expression::Expression,
     parser::lexer::token::{Precedence, TokenKind},
     parser::parse_errors::ParseError,
 };
 
-use super::{Parser, StatementError, StatementType};
+use super::{Parser, StatementError, StatementErrorType};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
@@ -15,7 +15,7 @@ pub struct ReturnStatement {
 }
 
 impl ReturnStatement {
-    pub fn parse_return_statement(parser: &mut Parser) -> Result<Statement, StatementError> {
+    pub fn parse_return_statement(parser: &mut Parser) -> Result<StatementType, StatementError> {
         parser
             .lexer
             .expect_token(TokenKind::Return)
@@ -25,7 +25,7 @@ impl ReturnStatement {
             Expression::parse(parser, Precedence::Lowest).map_err(Self::handle_parse_error)?;
 
         parser.lexer.expect_optional_token(TokenKind::Period);
-        Ok(Statement::Return(ReturnStatement {
+        Ok(StatementType::Return(ReturnStatement {
             return_value: expression,
         }))
     }
@@ -33,7 +33,7 @@ impl ReturnStatement {
     fn handle_parse_error(parse_error: ParseError) -> StatementError {
         StatementError {
             parse_error,
-            statement_type: StatementType::Return,
+            statement_type: StatementErrorType::Return,
         }
     }
 }
@@ -48,7 +48,8 @@ impl Display for ReturnStatement {
 mod tests {
     use crate::{
         parser::{
-            ast::Statement, expressions::expression::Expression, return_statement::ReturnStatement,
+            ast::StatementType, expressions::expression::Expression,
+            return_statement::ReturnStatement,
         },
         test_util,
     };
@@ -72,14 +73,14 @@ mod tests {
         let first_statement = statements.first().expect("Should get statement");
         assert_eq!(
             first_statement,
-            &Statement::Return(ReturnStatement {
+            &StatementType::Return(ReturnStatement {
                 return_value: Expression::IntegerLiteral(5)
             })
         );
         let second_statement = statements.get(1).expect("Should get statement");
         assert_eq!(
             second_statement,
-            &Statement::Return(ReturnStatement {
+            &StatementType::Return(ReturnStatement {
                 return_value: test_util::create_identifierliteral("foobar")
             })
         );

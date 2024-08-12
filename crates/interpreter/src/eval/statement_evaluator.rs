@@ -2,7 +2,7 @@ use tracing::{span, Level};
 
 use crate::parser::{
     assign_statement::AssignStatement,
-    ast::{BlockStatement, Identifier, Statement},
+    ast::{BlockStatement, Identifier, StatementType},
     return_statement::ReturnStatement,
 };
 
@@ -13,7 +13,7 @@ use super::{
 };
 
 pub fn eval_statements(
-    statements: &Vec<Statement>,
+    statements: &Vec<StatementType>,
     env: &mut EnvReference,
 ) -> Result<Object, EvalError> {
     let mut object: Object = Object::Void;
@@ -29,15 +29,15 @@ pub fn eval_statements(
     Ok(object)
 }
 
-impl Evaluable for Statement {
+impl Evaluable for StatementType {
     fn eval(&self, env: &mut EnvReference) -> Result<Object, EvalError> {
         let expression_statement_span = span!(Level::DEBUG, "Eval");
         let _enter = expression_statement_span.enter();
 
         match self {
-            Statement::Expression(expression) => expression.eval(env),
-            Statement::Return(return_statement) => return_statement.eval(env),
-            Statement::Assign(assign_statement) => assign_statement.eval(env),
+            StatementType::Expression(expression) => expression.eval(env),
+            StatementType::Return(return_statement) => return_statement.eval(env),
+            StatementType::Assign(assign_statement) => assign_statement.eval(env),
         }
     }
 }

@@ -13,7 +13,7 @@ use parse_errors::ParseErrorKind;
 use tracing::{event, span, Level};
 
 use crate::{
-    parser::assign_statement::AssignStatement, parser::ast::Statement,
+    parser::assign_statement::AssignStatement, parser::ast::StatementType,
     parser::parse_errors::ParseError, parser::return_statement::ReturnStatement,
 };
 
@@ -22,7 +22,7 @@ pub struct Parser<'a> {
 }
 
 pub enum ParsedProgram {
-    ValidProgram(Vec<Statement>),
+    ValidProgram(Vec<StatementType>),
     InvalidProgram(Vec<StatementError>),
 }
 
@@ -39,7 +39,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_program(&mut self) -> ParsedProgram {
-        let mut statements: Vec<Statement> = Vec::new();
+        let mut statements: Vec<StatementType> = Vec::new();
         let mut parse_errors: Vec<StatementError> = Vec::new();
 
         while self.lexer.has_next() {
@@ -67,7 +67,7 @@ impl<'a> Parser<'a> {
         ParsedProgram::ValidProgram(statements)
     }
 
-    fn parse_statement(&mut self) -> Result<Statement, StatementError> {
+    fn parse_statement(&mut self) -> Result<StatementType, StatementError> {
         let current_token = self
             .lexer
             .expect_peek()
@@ -89,13 +89,13 @@ impl<'a> Parser<'a> {
 #[derive(Debug)]
 pub struct StatementError {
     parse_error: ParseError,
-    statement_type: StatementType,
+    statement_type: StatementErrorType,
 }
 
 // TODO: Investigate whether we can use a struct for statements with this
 // as the type, instead of an enum of statements
 #[derive(Debug)]
-pub enum StatementType {
+pub enum StatementErrorType {
     Return,
     Let,
     Expression,
@@ -109,8 +109,8 @@ impl Display for StatementError {
             self.parse_error.token.location.line_number
         )?;
         match self.statement_type {
-            StatementType::Return => writeln!(f, "{}", self.parse_error),
-            StatementType::Let => match &self.parse_error.kind {
+            StatementErrorType::Return => writeln!(f, "{}", self.parse_error),
+            StatementErrorType::Let => match &self.parse_error.kind {
                 ParseErrorKind::NoPrefixExpression => {
                     writeln!(f, "expected binding to let statement")
                 }
@@ -126,7 +126,7 @@ impl Display for StatementError {
                 },
                 _ => writeln!(f, "{}", self.parse_error),
             },
-            StatementType::Expression => writeln!(f, "{}", self.parse_error),
+            StatementErrorType::Expression => writeln!(f, "{}", self.parse_error),
         }
     }
 }

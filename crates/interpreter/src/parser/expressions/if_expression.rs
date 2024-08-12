@@ -65,7 +65,7 @@ fn handle_if_error() -> impl FnOnce(crate::parser::StatementError) -> ParseError
 #[cfg(test)]
 mod tests {
     use crate::{
-        parser::ast::{BlockStatement, Operator, Statement},
+        parser::ast::{BlockStatement, Operator, StatementType},
         test_util,
     };
 
@@ -73,7 +73,7 @@ mod tests {
     fn test_if_expression() {
         struct TestCase {
             input: String,
-            expected: Statement,
+            expected: StatementType,
         }
         let test_cases: [TestCase; 2] = [
             (
@@ -85,7 +85,7 @@ mod tests {
                         Operator::LessThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(
+                        statements: Vec::from([StatementType::Expression(
                             test_util::create_identifierliteral("x"),
                         )]),
                     },
@@ -101,12 +101,12 @@ mod tests {
                         Operator::GreaterThan,
                     ),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(
+                        statements: Vec::from([StatementType::Expression(
                             test_util::create_identifierliteral("x"),
                         )]),
                     },
                     Some(BlockStatement {
-                        statements: Vec::from([Statement::Expression(
+                        statements: Vec::from([StatementType::Expression(
                             test_util::create_identifierliteral("y"),
                         )]),
                     }),

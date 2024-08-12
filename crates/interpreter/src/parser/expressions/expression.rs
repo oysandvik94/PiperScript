@@ -1,7 +1,7 @@
 use tracing::{event, Level};
 
 use crate::parser::{
-    ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
+    ast::{BlockStatement, Identifier, Operator, PrefixOperator, StatementType},
     lexer::token::{HasInfix, Precedence, Token, TokenKind},
     parse_errors::{ParseError, ParseErrorKind},
     Parser, StatementError,
@@ -123,7 +123,7 @@ impl Expression {
     }
 
     pub fn parse_blockstatement(parser: &mut Parser) -> Result<BlockStatement, StatementError> {
-        let mut statements: Vec<Statement> = Vec::new();
+        let mut statements: Vec<StatementType> = Vec::new();
         while !parser.lexer.next_token_is(&TokenKind::Lasagna)
             && !parser.lexer.next_token_is(&TokenKind::Else)
             && parser.lexer.has_next()
@@ -234,7 +234,7 @@ impl Expression {
 mod tests {
     use crate::{
         parser::{
-            ast::{Identifier, Operator, PrefixOperator, Statement},
+            ast::{Identifier, Operator, PrefixOperator, StatementType},
             expressions::expression::Expression,
         },
         test_util,
@@ -247,7 +247,7 @@ mod tests {
         let statements = test_util::expect_parsed_program(input);
 
         match statements.first().expect("Should only have one statement") {
-            Statement::Expression(expression) => match expression {
+            StatementType::Expression(expression) => match expression {
                 Expression::StringLiteral(string) => assert_eq!(string, "hellow world"),
                 _ => panic!("Should have parsed a string expression"),
             },
@@ -265,7 +265,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(Expression::IntegerLiteral(5))
+            StatementType::Expression(Expression::IntegerLiteral(5))
         ));
     }
 
@@ -285,7 +285,7 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(Expression::IdentifierLiteral(
+            StatementType::Expression(Expression::IdentifierLiteral(
                     Identifier(ident)
                         )) if ident == "foobar"
         ));
@@ -307,11 +307,11 @@ mod tests {
 
         assert!(matches!(
             parsed_statement,
-            Statement::Expression(Expression::BooleanLiteral(true))
+            StatementType::Expression(Expression::BooleanLiteral(true))
         ));
         assert!(matches!(
             statements.get(1).unwrap(),
-            Statement::Expression(Expression::BooleanLiteral(false))
+            StatementType::Expression(Expression::BooleanLiteral(false))
         ));
     }
 
@@ -319,7 +319,7 @@ mod tests {
     fn test_parse_prefix() {
         struct TestCase {
             input: String,
-            statement: Statement,
+            statement: StatementType,
         }
 
         let test_cases: [TestCase; 2] = [
@@ -361,7 +361,7 @@ mod tests {
         use Expression::*;
         use Operator::*;
 
-        let test_cases: Vec<(String, Statement)> = vec![
+        let test_cases: Vec<(String, StatementType)> = vec![
             (
                 "5 + 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
@@ -424,7 +424,7 @@ mod tests {
             ),
         ];
 
-        let asserter = |expected: &Statement, input: &String| {
+        let asserter = |expected: &StatementType, input: &String| {
             let statements = test_util::expect_parsed_program(input);
 
             let actual_statement = statements.first().expect("Should be one statement");
@@ -443,7 +443,7 @@ mod tests {
         let actual_statement = statements.first().expect("Should be one statement");
 
         match actual_statement {
-            Statement::Expression(Expression::HashLiteral(pairs)) => {
+            StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 3);
 
                 let expected_pairs = vec![
@@ -478,7 +478,7 @@ mod tests {
         let actual_statement = statements.first().expect("Should be one statement");
 
         match actual_statement {
-            Statement::Expression(Expression::HashLiteral(pairs)) => {
+            StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 3);
 
                 let expected_pairs = vec![
@@ -512,7 +512,7 @@ mod tests {
         let actual_statement = statements.first().expect("Should be one statement");
 
         match actual_statement {
-            Statement::Expression(Expression::HashLiteral(pairs)) => {
+            StatementType::Expression(Expression::HashLiteral(pairs)) => {
                 assert_eq!(pairs.len(), 0);
             }
             _ => panic!("Should have parsed a hash literal"),

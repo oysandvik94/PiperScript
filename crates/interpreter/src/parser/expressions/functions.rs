@@ -110,7 +110,7 @@ impl CallExpression {
 mod tests {
     use crate::{
         parser::{
-            ast::{BlockStatement, Operator, Statement},
+            ast::{BlockStatement, Operator, StatementType},
             expressions::{expression::Expression, functions::CallExpression},
         },
         test_util,
@@ -141,7 +141,7 @@ mod tests {
         });
         assert_eq!(
             statement,
-            &Statement::Expression(expected_statement),
+            &StatementType::Expression(expected_statement),
             "Parsed statement should match testcase"
         );
     }
@@ -150,7 +150,7 @@ mod tests {
     fn test_function_expression() {
         struct TestCase {
             input: String,
-            expected: Statement,
+            expected: StatementType,
         }
         let test_cases: [TestCase; 2] = [
             (
@@ -158,7 +158,7 @@ mod tests {
                 test_util::create_function_expression(
                     Vec::from(["x", "y"]),
                     BlockStatement {
-                        statements: Vec::from([Statement::Expression(
+                        statements: Vec::from([StatementType::Expression(
                             test_util::create_infix_expression(
                                 test_util::create_identifierliteral("x"),
                                 test_util::create_identifierliteral("y"),
@@ -174,8 +174,8 @@ mod tests {
                     Vec::from([]),
                     BlockStatement {
                         statements: Vec::from([
-                            Statement::Expression(test_util::create_identifierliteral("x")),
-                            Statement::Expression(test_util::create_identifierliteral("y")),
+                            StatementType::Expression(test_util::create_identifierliteral("x")),
+                            StatementType::Expression(test_util::create_identifierliteral("y")),
                         ]),
                     },
                 ),

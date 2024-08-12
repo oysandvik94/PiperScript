@@ -5,11 +5,11 @@ use tracing::{event, span, Level};
 use crate::parser::parse_errors::ParseErrorKind;
 
 use super::{
-    ast::{Identifier, Statement},
+    ast::{Identifier, StatementType},
     expressions::expression::Expression,
     lexer::token::{Precedence, TokenKind},
     parse_errors::ParseError,
-    Parser, StatementError, StatementType,
+    Parser, StatementError, StatementErrorType,
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -19,7 +19,7 @@ pub struct AssignStatement {
 }
 
 impl AssignStatement {
-    pub fn parse(parser: &mut Parser) -> Result<Statement, StatementError> {
+    pub fn parse(parser: &mut Parser) -> Result<StatementType, StatementError> {
         let let_stmt_span = span!(Level::DEBUG, "Assign");
         let _enter = let_stmt_span.enter();
 
@@ -36,7 +36,7 @@ impl AssignStatement {
         }
     }
 
-    fn parse_assignment(parser: &mut Parser) -> Result<Statement, StatementError> {
+    fn parse_assignment(parser: &mut Parser) -> Result<StatementType, StatementError> {
         parser
             .lexer
             .expect_token(TokenKind::Let)
@@ -62,7 +62,7 @@ impl AssignStatement {
                                 kind: ParseErrorKind::NoPrefixExpression,
                                 token: colon,
                             },
-                            statement_type: StatementType::Let,
+                            statement_type: StatementErrorType::Let,
                         }
                     } else {
                         Self::handle_parse_error(error)
@@ -73,7 +73,7 @@ impl AssignStatement {
 
         parser.lexer.expect_optional_token(TokenKind::Period);
 
-        Ok(Statement::Assign(AssignStatement {
+        Ok(StatementType::Assign(AssignStatement {
             identifier,
             assignment: expression,
         }))
@@ -82,7 +82,7 @@ impl AssignStatement {
     fn handle_parse_error(parse_error: ParseError) -> StatementError {
         StatementError {
             parse_error,
-            statement_type: StatementType::Let,
+            statement_type: StatementErrorType::Let,
         }
     }
 }
@@ -97,7 +97,7 @@ impl Display for AssignStatement {
 mod tests {
     use crate::{
         parser::{
-            ast::{Identifier, Statement},
+            ast::{Identifier, StatementType},
             expressions::expression::Expression,
         },
         test_util,
@@ -148,12 +148,12 @@ mod tests {
     }
 
     fn assert_let_statement(
-        found: &Statement,
+        found: &StatementType,
         expected_identifier: &Identifier,
         expected_expression: &Expression,
     ) {
         match found {
-            Statement::Assign(assign_statement) => {
+            StatementType::Assign(assign_statement) => {
                 assert_eq!(&assign_statement.identifier, expected_identifier);
                 assert_eq!(&assign_statement.assignment, expected_expression);
             }

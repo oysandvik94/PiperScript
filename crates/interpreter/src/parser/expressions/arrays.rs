@@ -32,7 +32,7 @@ mod tests {
 
     use crate::{
         parser::{
-            ast::{Identifier, Operator, Statement},
+            ast::{Identifier, Operator, StatementType},
             expressions::expression::Expression,
         },
         test_util,
@@ -46,7 +46,7 @@ mod tests {
         let statement = statemens.first().expect("Should only return one statement");
 
         let array_expression = match statement {
-            Statement::Expression(expression) => match expression {
+            StatementType::Expression(expression) => match expression {
                 Expression::Array(array) => array,
                 _ => panic!("Expected array expression"),
             },
@@ -94,7 +94,7 @@ mod tests {
         let statement = statemens.first().expect("Should only return one statement");
 
         let (left, index) = match statement {
-            Statement::Expression(expression) => match expression {
+            StatementType::Expression(expression) => match expression {
                 Expression::Index { left, index } => (left, index),
                 unexpected => panic!("Expected index expression, but got {unexpected}"),
             },

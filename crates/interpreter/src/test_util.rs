@@ -10,7 +10,7 @@ use crate::{
         EvaledProgram,
     },
     parser::{
-        ast::{BlockStatement, Identifier, Operator, PrefixOperator, Statement},
+        ast::{BlockStatement, Identifier, Operator, PrefixOperator, StatementType},
         expressions::{
             expression::Expression, functions::FunctionLiteral, if_expression::IfExpression,
         },
@@ -79,7 +79,7 @@ pub fn expect_evaled_program(source_code: &str) -> Object {
     }
 }
 
-pub fn expect_parsed_program(source_code: &str) -> Vec<Statement> {
+pub fn expect_parsed_program(source_code: &str) -> Vec<StatementType> {
     let mut parser = Parser::new(source_code);
     let evaled_program = parser.parse_program();
     match evaled_program {
@@ -107,8 +107,8 @@ pub fn tokenize(source_code: &str) -> Vec<Token> {
 pub fn create_prefix_test_case(
     right_expression: Expression,
     operator: PrefixOperator,
-) -> Statement {
-    Statement::Expression(Expression::Prefix {
+) -> StatementType {
+    StatementType::Expression(Expression::Prefix {
         right: Box::new(right_expression),
         operator,
     })
@@ -118,16 +118,16 @@ pub fn create_infix_test_case(
     left_expression: Expression,
     right_expression: Expression,
     operator: Operator,
-) -> Statement {
-    Statement::Expression(Expression::Infix {
+) -> StatementType {
+    StatementType::Expression(Expression::Infix {
         left: Box::new(left_expression),
         right: Box::new(right_expression),
         operator,
     })
 }
 
-pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> Statement {
-    Statement::Expression(Expression::Function(FunctionLiteral {
+pub fn create_function_expression(parameters: Vec<&str>, body: BlockStatement) -> StatementType {
+    StatementType::Expression(Expression::Function(FunctionLiteral {
         parameters: parameters
             .iter()
             .map(|param| Identifier(param.to_string()))
@@ -140,9 +140,9 @@ pub fn create_if_condition(
     condition: Expression,
     consequence: BlockStatement,
     alternative: Option<BlockStatement>,
-) -> Statement {
+) -> StatementType {
     use Expression::*;
-    Statement::Expression(If(IfExpression {
+    StatementType::Expression(If(IfExpression {
         condition: Box::from(condition),
         consequence,
         alternative,

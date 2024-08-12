@@ -1,15 +1,15 @@
 use tracing::{event, span, Level};
 
 use crate::parser::{
-    ast::Statement,
+    ast::StatementType,
     lexer::token::{Precedence, TokenKind},
     parse_errors::ParseError,
-    Parser, StatementError, StatementType,
+    Parser, StatementError, StatementErrorType,
 };
 
 use super::expression::Expression;
 
-pub fn parse(parser: &mut Parser) -> Result<Statement, StatementError> {
+pub fn parse(parser: &mut Parser) -> Result<StatementType, StatementError> {
     let expression_statement_span = span!(Level::DEBUG, "Expression");
     let _enter = expression_statement_span.enter();
 
@@ -26,12 +26,12 @@ pub fn parse(parser: &mut Parser) -> Result<Statement, StatementError> {
 
     parser.lexer.expect_optional_token(TokenKind::Period);
 
-    Ok(Statement::Expression(expression))
+    Ok(StatementType::Expression(expression))
 }
 
 fn handle_parse_error(parse_error: ParseError) -> StatementError {
     StatementError {
         parse_error,
-        statement_type: StatementType::Expression,
+        statement_type: StatementErrorType::Expression,
     }
 }
