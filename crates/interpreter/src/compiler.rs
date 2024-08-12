@@ -3,7 +3,7 @@ use bytecode::{Instructions, OpCode};
 use crate::{
     eval::objects::PrimitiveObject,
     parser::{
-        ast::{Operator, Statement},
+        ast::{Operator, Statement, StatementType},
         expressions::expression::Expression,
     },
 };
@@ -30,10 +30,10 @@ impl Compiler {
 
     pub fn compile(&mut self, ast: Vec<Statement>) {
         for node in ast {
-            match node {
-                Statement::Assign(_) => todo!(),
-                Statement::Return(_) => todo!(),
-                Statement::Expression(expression) => self.compile_expression(&expression),
+            match node.statement_type {
+                StatementType::Assign(_) => todo!(),
+                StatementType::Return(_) => todo!(),
+                StatementType::Expression(expression) => self.compile_expression(&expression),
             }
         }
     }
