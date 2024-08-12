@@ -3,6 +3,7 @@ pub mod runtime_error;
 use crate::{
     compiler::{
         bytecode::{self, Instructions, OpCode},
+        internal_error::InternalError,
         ByteCode,
     },
     eval::objects::{Object, PrimitiveObject},
@@ -35,10 +36,10 @@ impl VirtualMachine {
         while instruction_pointer < self.instructions.0.len() {
             let operation_byte: u8 = self.instructions.0[instruction_pointer];
             let operation = bytecode::OpCode::try_from(operation_byte)?;
+            instruction_pointer += 1;
 
             match operation {
                 OpCode::OpConstant => {
-                    instruction_pointer += 1;
                     let operands: [u8; 2] = [
                         self.instructions.0[instruction_pointer],
                         self.instructions.0[instruction_pointer + 1],
@@ -49,6 +50,20 @@ impl VirtualMachine {
 
                     let constant = self.constants[constant_index].clone();
                     self.push(Object::Primitive(constant))?;
+                }
+                OpCode::Add => {
+                    let right = self.pop()?;
+                    let left = self.pop()?;
+
+                    let res = match (right, left) {
+                        (
+                            Object::Primitive(PrimitiveObject::Integer(left)),
+                            Object::Primitive(PrimitiveObject::Integer(right)),
+                        ) => left + right,
+                        _ => todo!(),
+                    };
+
+                    self.push(Object::primitive_from_int(res))?;
                 }
             }
         }
@@ -70,6 +85,14 @@ impl VirtualMachine {
         self.stack_pointer += 1;
 
         Ok(())
+    }
+
+    fn pop(&mut self) -> Result<Object> {
+        self.stack_pointer -= 1;
+        match self.stack.pop() {
+            Some(object) => Ok(object),
+            None => bail!(InternalError::PoppedEmptyStack),
+        }
     }
 
     pub fn stack_top(&self) -> Object {
@@ -112,7 +135,7 @@ mod tests {
             },
             VmTestCase {
                 input: "1 + 2",
-                expected: 2,
+                expected: 3,
             },
         ];
 

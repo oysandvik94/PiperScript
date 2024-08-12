@@ -75,6 +75,18 @@ impl Compiler {
     ) {
         self.compile_expression(left);
         self.compile_expression(right);
+
+        match operator {
+            Operator::Bang => todo!(),
+            Operator::Minus => todo!(),
+            Operator::Plus => self.emit(OpCode::Add, &[]),
+            Operator::Multiply => todo!(),
+            Operator::Equals => todo!(),
+            Operator::NotEquals => todo!(),
+            Operator::GreaterThan => todo!(),
+            Operator::LessThan => todo!(),
+            Operator::DividedBy => todo!(),
+        };
     }
 
     fn add_constant(&mut self, object: PrimitiveObject) -> usize {
@@ -112,6 +124,7 @@ mod tests {
             expected_instructions: vec![
                 Instructions(bytecode::make(OpCode::OpConstant, &[0])),
                 Instructions(bytecode::make(OpCode::OpConstant, &[1])),
+                Instructions(bytecode::make(OpCode::Add, &[])),
             ],
         }];
 
