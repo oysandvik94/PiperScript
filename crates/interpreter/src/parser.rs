@@ -8,15 +8,13 @@ pub mod return_statement;
 use std::fmt::Display;
 
 use expressions::expression_statement;
+use lexer::{token::TokenKind, Lexer};
 use parse_errors::ParseErrorKind;
 use tracing::{event, span, Level};
 
 use crate::{
-    parser::assign_statement::AssignStatement,
-    parser::ast::Statement,
-    parser::lexer::{lexedtokens::Lexer, token::TokenKind},
-    parser::parse_errors::ParseError,
-    parser::return_statement::ReturnStatement,
+    parser::assign_statement::AssignStatement, parser::ast::Statement,
+    parser::parse_errors::ParseError, parser::return_statement::ReturnStatement,
 };
 
 pub struct Parser<'a> {

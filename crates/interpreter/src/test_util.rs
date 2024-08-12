@@ -14,7 +14,7 @@ use crate::{
         expressions::{
             expression::Expression, functions::FunctionLiteral, if_expression::IfExpression,
         },
-        lexer::{lexedtokens::Lexer, token::Token},
+        lexer::{token::Token, Lexer},
         ParsedProgram, Parser,
     },
 };

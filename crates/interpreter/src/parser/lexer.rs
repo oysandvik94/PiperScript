@@ -1,13 +1,14 @@
 use std::str::Chars;
 
+use token::{HasInfix, Location, Precedence, Token, TokenKind};
 use tracing::{event, Level};
+
+pub mod token;
 
 use crate::parser::{
     ast::Identifier,
     parse_errors::{ParseError, ParseErrorKind},
 };
-
-use super::token::{HasInfix, Location, Precedence, Token, TokenKind};
 
 #[derive(Debug)]
 pub struct Lexer<'a> {
@@ -340,10 +341,9 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        parser::lexer::{lexedtokens::Lexer, token::TokenKind},
-        test_util,
-    };
+    use crate::test_util;
+
+    use super::{token::TokenKind, Lexer};
 
     #[test]
     fn parse_sympols() {
