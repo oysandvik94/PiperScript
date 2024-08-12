@@ -94,7 +94,7 @@ fn read_until_content_length(reader: &mut impl BufRead) -> Result<u64> {
 }
 
 fn parse_headers(line: &str) -> Option<u64> {
-    let header = line.split(":").collect::<Vec<&str>>();
+    let header = line.split(':').collect::<Vec<&str>>();
     if header.len() == 2 {
         let key = header[0].trim();
         if key == "Content-Length" {

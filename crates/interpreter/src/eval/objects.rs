@@ -6,13 +6,13 @@ use super::{
     builtin::BuiltInFunctionObject, eval_error::EvalError, function_evaluator::FunctionObject,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HashPair {
     pub key: PrimitiveObject,
     pub value: Object,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Object {
     Primitive(PrimitiveObject),
     Array(Vec<Object>),
@@ -46,7 +46,7 @@ pub enum PrimitiveObject {
 
 pub type EnvReference = Rc<RefCell<Environment>>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
     scope: HashMap<String, Object>,
     outer_scopes: Option<EnvReference>,

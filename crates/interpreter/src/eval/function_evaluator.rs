@@ -11,7 +11,7 @@ use super::{
     objects::{EnvReference, Environment, Object},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FunctionObject {
     pub parameters: Vec<Identifier>,
     pub body: BlockStatement,

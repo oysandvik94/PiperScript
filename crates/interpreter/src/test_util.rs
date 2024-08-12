@@ -4,6 +4,7 @@ use tracing::{event, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
+    compiler::{bytecode::Instructions, Compiler},
     eval::{
         self,
         objects::{Environment, Object, PrimitiveObject},
@@ -183,4 +184,53 @@ pub fn setup_logger() {
         tracing::subscriber::set_global_default(subscriber)
             .expect("setting default subscriber failed");
     })
+}
+
+pub struct CompilerTestCase {
+    pub input: String,
+    pub expected_constants: Vec<PrimitiveObject>,
+    pub expected_instructions: Vec<Instructions>,
+}
+
+pub fn run_compiler_tests(test_cases: Vec<CompilerTestCase>) {
+    for test_case in test_cases {
+        let ast = expect_parsed_program(&test_case.input);
+
+        let mut compiler: Compiler = Compiler::default();
+
+        compiler.compile(ast);
+
+        let bytecode = compiler.bytecode();
+
+        test_instructions(test_case.expected_instructions, bytecode.instructions);
+        test_constants(test_case.expected_constants, bytecode.constants);
+    }
+}
+
+fn test_instructions(expected_instructions: Vec<Instructions>, instructions: Instructions) {
+    let expected_instructions: Vec<u8> = expected_instructions
+        .into_iter()
+        .flat_map(|instr| instr.0)
+        .collect();
+
+    assert_eq!(
+        expected_instructions.len(),
+        instructions.0.len(),
+        "Instuctions should have same size"
+    );
+
+    instructions
+        .0
+        .into_iter()
+        .zip(expected_instructions)
+        .for_each(|(actual, expected)| assert_eq!(expected, actual, "Wrong instruction."));
+}
+
+fn test_constants(expected_constants: Vec<PrimitiveObject>, constants: Vec<PrimitiveObject>) {
+    assert_eq!(expected_constants.len(), constants.len());
+
+    expected_constants
+        .into_iter()
+        .zip(constants)
+        .for_each(|(expected, actual)| assert_eq!(expected, actual, "Got incorrect constant"));
 }

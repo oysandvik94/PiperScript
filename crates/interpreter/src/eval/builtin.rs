@@ -6,7 +6,7 @@ mod rest;
 
 use super::{eval_error::EvalError, objects::Object};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct BuiltInFunctionObject {
     pub name: String,
     pub function: fn(&[Object]) -> Result<Object, EvalError>,
