@@ -19,7 +19,7 @@ pub struct Location {
     pub line_number: u16,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, PartialOrd, Ord, Eq)]
 pub enum TokenKind {
     Let,
     Bang,

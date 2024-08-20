@@ -306,18 +306,20 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub fn expect_optional_token(&mut self, expected_token_type: TokenKind) {
+    pub fn expect_optional_token(&mut self, expected_token_type: TokenKind) -> Option<Token> {
         if self.next_token_is(&expected_token_type) {
-            self.consume();
+            return self.consume();
         }
+
+        None
     }
 
-    pub fn expected_identifier(&mut self) -> Result<Identifier, ParseError> {
+    pub fn expected_identifier(&mut self) -> Result<(Identifier, Token), ParseError> {
         match self.peek() {
             Some(token) => {
                 let parsed_identifier = Identifier::parse_from_token(token)?;
-                self.consume();
-                Ok(parsed_identifier)
+                let token = self.expect()?;
+                Ok((parsed_identifier, token))
             }
             None => Err(ParseError::new(
                 Token {

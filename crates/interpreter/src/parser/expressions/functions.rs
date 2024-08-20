@@ -38,26 +38,30 @@ impl Display for FunctionLiteral {
 }
 
 impl FunctionLiteral {
-    pub fn parse(parser: &mut Parser) -> Result<Expression, ParseError> {
+    pub fn parse(parser: &mut Parser) -> Result<(Expression, Vec<Token>), ParseError> {
         let function_span = span!(Level::DEBUG, "Function");
         let _enter = function_span.enter();
+
+        let mut tokens = Vec::new();
 
         event!(Level::DEBUG, "Parsing function");
         let parameters: Vec<Identifier> = Self::parse_function_parameters(parser)?;
         event!(Level::DEBUG, "Found parameters {parameters:?}");
 
-        parser.lexer.expect_token(TokenKind::Colon)?;
+        tokens.push(parser.lexer.expect_token(TokenKind::Colon)?);
 
-        let body: BlockStatement = Expression::parse_blockstatement(parser).map_err(|e| {
+        let (body, mut parsed_tokens) = Expression::parse_blockstatement(parser).map_err(|e| {
             let error = e.parse_error.clone();
             ParseError::new(
                 e.parse_error.token.clone(),
                 ParseErrorKind::FunctionBlockError(Box::new(error)),
             )
         })?;
-        parser.lexer.expect_token(TokenKind::Lasagna)?;
+        tokens.append(&mut parsed_tokens);
+        tokens.push(parser.lexer.expect_token(TokenKind::Lasagna)?);
 
-        Ok(Expression::Function(FunctionLiteral { parameters, body }))
+        let expression_func = Expression::Function(FunctionLiteral { parameters, body });
+        Ok((expression_func, tokens))
     }
 
     fn parse_function_parameters(parser: &mut Parser) -> Result<Vec<Identifier>, ParseError> {
@@ -95,14 +99,22 @@ impl FunctionLiteral {
 }
 
 impl CallExpression {
-    pub fn parse(parser: &mut Parser, function: Expression) -> Result<Expression, ParseError> {
+    pub fn parse(
+        parser: &mut Parser,
+        function: Expression,
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
         let call_span = span!(Level::DEBUG, "Call");
         let _enter = call_span.enter();
 
-        Ok(Expression::Call(CallExpression {
+        let (expression_list, tokens) =
+            Expression::parse_expression_list(parser, &TokenKind::RParen)?;
+
+        let call_expression = Expression::Call(CallExpression {
             function: Box::from(function),
-            arguments: Expression::parse_expression_list(parser, &TokenKind::RParen)?,
-        }))
+            arguments: expression_list,
+        });
+
+        Ok((call_expression, tokens))
     }
 }
 

@@ -7,7 +7,7 @@ use crate::{
     parser::parse_errors::ParseError,
 };
 
-use super::{Parser, StatementError, StatementErrorType};
+use super::{lexer::token::Token, Parser, StatementError, StatementErrorType};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ReturnStatement {
@@ -15,19 +15,32 @@ pub struct ReturnStatement {
 }
 
 impl ReturnStatement {
-    pub fn parse_return_statement(parser: &mut Parser) -> Result<StatementType, StatementError> {
-        parser
-            .lexer
-            .expect_token(TokenKind::Return)
-            .map_err(Self::handle_parse_error)?;
+    pub fn parse_return_statement(
+        parser: &mut Parser,
+    ) -> Result<(StatementType, Vec<Token>), StatementError> {
+        let mut tokens: Vec<Token> = Vec::new();
 
-        let expression =
+        tokens.push(
+            parser
+                .lexer
+                .expect_token(TokenKind::Return)
+                .map_err(Self::handle_parse_error)?,
+        );
+
+        let (expression, mut parsed_tokens) =
             Expression::parse(parser, Precedence::Lowest).map_err(Self::handle_parse_error)?;
 
-        parser.lexer.expect_optional_token(TokenKind::Period);
-        Ok(StatementType::Return(ReturnStatement {
+        tokens.append(&mut parsed_tokens);
+
+        if let Some(token) = parser.lexer.expect_optional_token(TokenKind::Period) {
+            tokens.push(token);
+        }
+
+        let return_statement = StatementType::Return(ReturnStatement {
             return_value: expression,
-        }))
+        });
+
+        Ok((return_statement, tokens))
     }
 
     fn handle_parse_error(parse_error: ParseError) -> StatementError {

@@ -7,7 +7,7 @@ use crate::parser::parse_errors::ParseErrorKind;
 use super::{
     ast::{Identifier, StatementType},
     expressions::expression::Expression,
-    lexer::token::{Precedence, TokenKind},
+    lexer::token::{Precedence, Token, TokenKind},
     parse_errors::ParseError,
     Parser, StatementError, StatementErrorType,
 };
@@ -19,7 +19,7 @@ pub struct AssignStatement {
 }
 
 impl AssignStatement {
-    pub fn parse(parser: &mut Parser) -> Result<StatementType, StatementError> {
+    pub fn parse(parser: &mut Parser) -> Result<(StatementType, Vec<Token>), StatementError> {
         let let_stmt_span = span!(Level::DEBUG, "Assign");
         let _enter = let_stmt_span.enter();
 
@@ -36,16 +36,22 @@ impl AssignStatement {
         }
     }
 
-    fn parse_assignment(parser: &mut Parser) -> Result<StatementType, StatementError> {
-        parser
-            .lexer
-            .expect_token(TokenKind::Let)
-            .map_err(Self::handle_parse_error)?;
+    fn parse_assignment(
+        parser: &mut Parser,
+    ) -> Result<(StatementType, Vec<Token>), StatementError> {
+        let mut tokens = Vec::new();
+        tokens.push(
+            parser
+                .lexer
+                .expect_token(TokenKind::Let)
+                .map_err(Self::handle_parse_error)?,
+        );
 
-        let identifier = parser
+        let (identifier, token) = parser
             .lexer
             .expected_identifier()
             .map_err(Self::handle_parse_error)?;
+        tokens.push(token);
 
         let colon = parser
             .lexer
@@ -53,14 +59,16 @@ impl AssignStatement {
             .map_err(Self::handle_parse_error)?;
 
         event!(Level::DEBUG, "Parsing binding for assignstatement");
-        let expression =
-            Expression::parse(parser, Precedence::Lowest).map_err(|error| match error.kind {
+        // TODO: This is messy code mostly to experiment with giving the correct location of
+        // errors. When a general solution is made, this code should be eradicated
+        let (expression, mut parsed_tokens) = Expression::parse(parser, Precedence::Lowest)
+            .map_err(|error| match error.kind {
                 ParseErrorKind::NoPrefixExpression => {
                     if error.token.token_kind.is_beginning_of_statement() {
                         StatementError {
                             parse_error: ParseError {
                                 kind: ParseErrorKind::NoPrefixExpression,
-                                token: colon,
+                                token: colon.clone(),
                             },
                             statement_type: StatementErrorType::Let,
                         }
@@ -71,12 +79,17 @@ impl AssignStatement {
                 _ => Self::handle_parse_error(error),
             })?;
 
-        parser.lexer.expect_optional_token(TokenKind::Period);
+        tokens.push(colon);
+        tokens.append(&mut parsed_tokens);
+        if let Some(token) = parser.lexer.expect_optional_token(TokenKind::Period) {
+            tokens.push(token);
+        }
 
-        Ok(StatementType::Assign(AssignStatement {
+        let expr = StatementType::Assign(AssignStatement {
             identifier,
             assignment: expression,
-        }))
+        });
+        Ok((expr, tokens))
     }
 
     fn handle_parse_error(parse_error: ParseError) -> StatementError {

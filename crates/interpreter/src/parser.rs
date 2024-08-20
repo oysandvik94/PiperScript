@@ -9,7 +9,10 @@ use std::fmt::Display;
 
 use ast::{Statement, StatementType};
 use expressions::expression_statement;
-use lexer::{token::TokenKind, Lexer};
+use lexer::{
+    token::{Token, TokenKind},
+    Lexer,
+};
 use parse_errors::ParseErrorKind;
 use tracing::{event, span, Level};
 
@@ -69,12 +72,15 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_statement(&mut self) -> Result<Statement, StatementError> {
-        let statement_type = self.parse_statement_type()?;
+        let (statement_type, tokens) = self.parse_statement_type()?;
 
-        Ok(Statement { statement_type })
+        Ok(Statement {
+            statement_type,
+            tokens,
+        })
     }
 
-    fn parse_statement_type(&mut self) -> Result<StatementType, StatementError> {
+    fn parse_statement_type(&mut self) -> Result<(StatementType, Vec<Token>), StatementError> {
         let current_token = self
             .lexer
             .expect_peek()

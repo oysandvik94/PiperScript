@@ -14,6 +14,7 @@ use super::{
 #[derive(PartialEq, Debug, Clone)]
 pub struct Statement {
     pub statement_type: StatementType,
+    pub tokens: Vec<Token>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -196,8 +197,8 @@ mod tests {
         test_util,
     };
 
-    use super::StatementType;
     use super::Statement;
+    use super::StatementType;
 
     #[test]
     fn test_display() {
@@ -207,11 +208,13 @@ mod tests {
                     identifier: Identifier(String::from("foo")),
                     assignment: Expression::IdentifierLiteral(Identifier(String::from("bar"))),
                 }),
+                tokens: vec![],
             },
             Statement {
                 statement_type: StatementType::Return(ReturnStatement {
                     return_value: test_util::create_identifierliteral("hey"),
                 }),
+                tokens: vec![],
             },
         ]));
 

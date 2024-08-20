@@ -40,24 +40,37 @@ pub enum Expression {
 }
 
 impl Expression {
-    pub fn parse(parser: &mut Parser, precedence: Precedence) -> Result<Expression, ParseError> {
-        let mut left = Self::parse_prefix_expression(parser)?;
+    pub fn parse(
+        parser: &mut Parser,
+        precedence: Precedence,
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let (mut left, mut tokens) = Self::parse_prefix_expression(parser)?;
         event!(Level::DEBUG, "Found prefix expression {:?}", left);
 
         while parser.lexer.next_token_has_infix()
             && precedence < parser.lexer.next_token_precedence()
         {
             let next_token = parser.lexer.expect()?;
-            left = Self::parse_infix_expression(parser, left, &next_token)?;
+
+            let (new_left, mut infix_tokens) =
+                Self::parse_infix_expression(parser, left, &next_token)?;
+            left = new_left;
+            tokens.append(&mut infix_tokens);
+
+            tokens.push(next_token);
         }
 
         event!(Level::DEBUG, "Completed parsing of expression: {:?}", left);
 
-        Ok(left)
+        Ok((left, tokens))
     }
 
-    fn parse_prefix_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
+    fn parse_prefix_expression(
+        parser: &mut Parser,
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let mut tokens: Vec<Token> = Vec::new();
         let token: &Token = parser.lexer.expect_peek()?;
+
         if !token.token_kind.valid_prefix() {
             return Err(ParseError::new(
                 token.clone(),
@@ -66,32 +79,63 @@ impl Expression {
         }
 
         let token = parser.lexer.expect()?;
-        match &token.token_kind {
-            TokenKind::Ident(literal) => Ok(Expression::IdentifierLiteral(Identifier(
-                literal.to_string(),
-            ))),
+        let (expression, mut tokens) = match &token.token_kind {
+            TokenKind::Ident(literal) => (
+                Expression::IdentifierLiteral(Identifier(literal.to_string())),
+                vec![],
+            ),
             TokenKind::Int(integer_literal) => match integer_literal.parse::<i32>() {
-                Ok(parsed_number) => Ok(Expression::IntegerLiteral(parsed_number)),
-                Err(error) => Err(ParseError::new(
-                    token.clone(),
-                    ParseErrorKind::ParseIntegerError(error),
-                )),
+                Ok(parsed_number) => (Expression::IntegerLiteral(parsed_number), vec![]),
+                Err(error) => {
+                    return Err(ParseError::new(
+                        token.clone(),
+                        ParseErrorKind::ParseIntegerError(error),
+                    ))
+                }
             },
-            TokenKind::Str(string_literal) => Ok(Expression::StringLiteral(string_literal.clone())),
-            TokenKind::Bang => Self::create_prefix_expression(parser, PrefixOperator::Bang),
-            TokenKind::Minus => Self::create_prefix_expression(parser, PrefixOperator::Minus),
-            TokenKind::LParen => Self::create_grouped_expression(parser),
-            TokenKind::If => IfExpression::parse_if_expression(parser),
-            TokenKind::Func => FunctionLiteral::parse(parser),
-            TokenKind::True => Ok(Expression::BooleanLiteral(true)),
-            TokenKind::False => Ok(Expression::BooleanLiteral(false)),
-            TokenKind::LBracket => ArrayLiteral::parse(parser),
-            TokenKind::LBrace => Ok(Expression::HashLiteral(Self::parse_hash_literal(parser)?)),
-            _ => Err(ParseError::new(
-                token.clone(),
-                ParseErrorKind::NoPrefixExpression,
-            )),
-        }
+            TokenKind::Str(string_literal) => {
+                (Expression::StringLiteral(string_literal.clone()), vec![])
+            }
+            TokenKind::Bang => {
+                let (expression, mut parsed_tokens) =
+                    Self::create_prefix_expression(parser, PrefixOperator::Bang)?;
+                tokens.append(&mut parsed_tokens);
+
+                (expression, vec![])
+            }
+            TokenKind::Minus => {
+                let (expression, mut parsed_tokens) =
+                    Self::create_prefix_expression(parser, PrefixOperator::Minus)?;
+                tokens.append(&mut parsed_tokens);
+
+                (expression, vec![])
+            }
+            TokenKind::LParen => {
+                let (expression, mut parsed_tokens) = Self::create_grouped_expression(parser)?;
+                tokens.append(&mut parsed_tokens);
+
+                (expression, vec![])
+            }
+            TokenKind::If => IfExpression::parse_if_expression(parser)?,
+            TokenKind::Func => FunctionLiteral::parse(parser)?,
+            TokenKind::True => (Expression::BooleanLiteral(true), vec![]),
+            TokenKind::False => (Expression::BooleanLiteral(false), vec![]),
+            TokenKind::LBracket => ArrayLiteral::parse(parser)?,
+            TokenKind::LBrace => {
+                let (expr, tokens) = Self::parse_hash_literal(parser)?;
+                (Expression::HashLiteral(expr), tokens)
+            }
+            _ => {
+                return Err(ParseError::new(
+                    token.clone(),
+                    ParseErrorKind::NoPrefixExpression,
+                ))
+            }
+        };
+
+        tokens.insert(0, token);
+
+        Ok((expression, tokens))
     }
 
     pub fn parse_literal(parser: &mut Parser) -> Result<Identifier, ParseError> {
@@ -108,38 +152,49 @@ impl Expression {
     fn create_prefix_expression(
         parser: &mut Parser,
         operator: PrefixOperator,
-    ) -> Result<Expression, ParseError> {
-        let right = Self::parse(parser, Precedence::Prefix)?;
-        Ok(Expression::Prefix {
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let (right, tokens) = Self::parse(parser, Precedence::Prefix)?;
+
+        let prefix_expression = Expression::Prefix {
             right: Box::new(right),
             operator,
-        })
+        };
+
+        Ok((prefix_expression, tokens))
     }
 
-    fn create_grouped_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
-        let grouped_expression = Self::parse(parser, Precedence::Lowest);
-        parser.lexer.expect_token(TokenKind::RParen)?;
-        grouped_expression
+    fn create_grouped_expression(
+        parser: &mut Parser,
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let (expression, mut tokens) = Self::parse(parser, Precedence::Lowest)?;
+        tokens.push(parser.lexer.expect_token(TokenKind::RParen)?);
+
+        Ok((expression, tokens))
     }
 
-    pub fn parse_blockstatement(parser: &mut Parser) -> Result<BlockStatement, StatementError> {
+    pub fn parse_blockstatement(
+        parser: &mut Parser,
+    ) -> Result<(BlockStatement, Vec<Token>), StatementError> {
+        let mut tokens: Vec<Token> = Vec::new();
         let mut statements: Vec<StatementType> = Vec::new();
         while !parser.lexer.next_token_is(&TokenKind::Lasagna)
             && !parser.lexer.next_token_is(&TokenKind::Else)
             && parser.lexer.has_next()
         {
-            let new_statement = parser.parse_statement_type()?;
+            let (new_statement, mut parsed_tokens) = parser.parse_statement_type()?;
+            tokens.append(&mut parsed_tokens);
             statements.push(new_statement);
         }
 
-        Ok(BlockStatement { statements })
+        let block_statement = BlockStatement { statements };
+        Ok((block_statement, tokens))
     }
 
     fn parse_infix_expression(
         parser: &mut Parser,
         left: Expression,
         token: &Token,
-    ) -> Result<Expression, ParseError> {
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
         event!(
             Level::DEBUG,
             "Parsing infix expression for token {:?}",
@@ -148,13 +203,14 @@ impl Expression {
         match token.token_kind.has_infix() {
             HasInfix::Arithmic(operator) => {
                 let precedence = token.token_kind.get_precedence();
-                let right = Self::parse(parser, precedence)?;
+                let (right, tokens) = Self::parse(parser, precedence)?;
 
-                Ok(Expression::Infix {
+                let infix_expr = Expression::Infix {
                     left: Box::from(left),
                     right: Box::from(right),
                     operator,
-                })
+                };
+                Ok((infix_expr, tokens))
             }
             HasInfix::Call() => CallExpression::parse(parser, left),
             HasInfix::Index() => Expression::parse_index_expression(parser, left),
@@ -168,66 +224,85 @@ impl Expression {
     pub fn parse_expression_list(
         parser: &mut Parser,
         end: &TokenKind,
-    ) -> Result<Vec<Expression>, ParseError> {
+    ) -> Result<(Vec<Expression>, Vec<Token>), ParseError> {
         let mut parameters: Vec<Expression> = Vec::from([]);
+        let mut tokens: Vec<Token> = Vec::new();
+
         while let Some(token) = parser.lexer.peek() {
             match &token.token_kind {
                 token if token == end => {
-                    parser.lexer.consume();
-                    return Ok(parameters);
+                    if let Some(token) = parser.lexer.consume() {
+                        tokens.push(token);
+                    }
+
+                    return Ok((parameters, tokens));
                 }
                 TokenKind::Comma => {
-                    parser.lexer.consume();
+                    if let Some(token) = parser.lexer.consume() {
+                        tokens.push(token);
+                    }
                 }
                 _ => {
-                    parameters.push(Expression::parse(parser, Precedence::Lowest)?);
+                    let (expression, mut parsed_tokens) =
+                        Expression::parse(parser, Precedence::Lowest)?;
+                    tokens.append(&mut parsed_tokens);
+
+                    parameters.push(expression);
                 }
             }
         }
 
-        Ok(parameters)
+        Ok((parameters, tokens))
     }
 
     fn parse_index_expression(
         parser: &mut Parser,
         left: Expression,
-    ) -> Result<Expression, ParseError> {
-        let index = Expression::parse(parser, Precedence::Lowest)?;
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let (index, mut tokens) = Expression::parse(parser, Precedence::Lowest)?;
 
-        parser.lexer.expect_token(TokenKind::RBracket)?;
+        let token = parser.lexer.expect_token(TokenKind::RBracket)?;
+        tokens.push(token);
 
-        Ok(Expression::Index {
+        let index_expr = Expression::Index {
             left: Box::new(left),
             index: Box::new(index),
-        })
+        };
+
+        Ok((index_expr, tokens))
     }
 
     pub fn parse_hash_literal(
         parser: &mut Parser,
-    ) -> Result<Vec<(Expression, Expression)>, ParseError> {
+    ) -> Result<(Vec<(Expression, Expression)>, Vec<Token>), ParseError> {
+        let mut tokens: Vec<Token> = Vec::new();
         let mut keypairs: Vec<(Expression, Expression)> = Vec::new();
+
         while let Some(token) = parser.lexer.peek() {
             match &token.token_kind {
                 TokenKind::RBrace => {
-                    parser.lexer.consume();
-                    return Ok(keypairs);
+                    tokens.push(parser.lexer.expect()?);
+                    return Ok((keypairs, tokens));
                 }
                 TokenKind::Comma => {
-                    parser.lexer.consume();
+                    tokens.push(parser.lexer.expect()?);
                 }
                 _ => {
-                    let key = Expression::parse(parser, Precedence::Lowest)?;
+                    let (key, mut parsed_tokens) = Expression::parse(parser, Precedence::Lowest)?;
+                    tokens.append(&mut parsed_tokens);
                     event!(Level::DEBUG, "Parsed key expression {:?}", key);
 
-                    parser.lexer.expect_token(TokenKind::Colon)?;
-                    let value = Expression::parse(parser, Precedence::Lowest)?;
+                    tokens.push(parser.lexer.expect_token(TokenKind::Colon)?);
+
+                    let (value, mut parsed_tokens) = Expression::parse(parser, Precedence::Lowest)?;
+                    tokens.append(&mut parsed_tokens);
                     event!(Level::DEBUG, "Parsed value expression {:?}", value);
                     keypairs.push((key, value));
                 }
             }
         }
 
-        Ok(keypairs)
+        Ok((keypairs, tokens))
     }
 }
 
@@ -237,6 +312,7 @@ mod tests {
         parser::{
             ast::{Identifier, Operator, PrefixOperator, StatementType},
             expressions::expression::Expression,
+            lexer::token::{Token, TokenKind},
         },
         test_util,
     };
@@ -366,22 +442,42 @@ mod tests {
         use Expression::*;
         use Operator::*;
 
-        let test_cases: Vec<(String, StatementType)> = vec![
+        let test_cases: Vec<(String, StatementType, Vec<TokenKind>)> = vec![
             (
                 "5 + 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Plus),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::Add,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 - 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Minus),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::Minus,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 * 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Multiply),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::Asterix,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 / 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), DividedBy),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::Slash,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 > 5".to_string(),
@@ -390,18 +486,38 @@ mod tests {
                     IntegerLiteral(5),
                     GreaterThan,
                 ),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::GreaterThan,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 < 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), LessThan),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::LessThan,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 == 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), Equals),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::Equal,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "5 != 5".to_string(),
                 test_util::create_infix_test_case(IntegerLiteral(5), IntegerLiteral(5), NotEquals),
+                vec![
+                    TokenKind::Int("5".to_owned()),
+                    TokenKind::NotEqual,
+                    TokenKind::Int("5".to_owned()),
+                ],
             ),
             (
                 "true == true".to_string(),
@@ -410,6 +526,7 @@ mod tests {
                     BooleanLiteral(true),
                     Equals,
                 ),
+                vec![TokenKind::True, TokenKind::Equal, TokenKind::True],
             ),
             (
                 "true != false".to_string(),
@@ -418,6 +535,7 @@ mod tests {
                     BooleanLiteral(false),
                     NotEquals,
                 ),
+                vec![TokenKind::True, TokenKind::NotEqual, TokenKind::False],
             ),
             (
                 "false == false".to_string(),
@@ -426,18 +544,37 @@ mod tests {
                     BooleanLiteral(false),
                     Equals,
                 ),
+                vec![TokenKind::False, TokenKind::Equal, TokenKind::False],
             ),
         ];
 
-        let asserter = |expected: &StatementType, input: &String| {
-            let statements = test_util::expect_parsed_program(input);
+        {
+            test_cases
+                .iter()
+                .for_each(|(input, expected_ast, expected_tokens)| {
+                    let statements = test_util::expect_parsed_program(input);
 
-            let actual_statement = statements.first().expect("Should be one statement");
+                    let actual_statement = statements.first().expect("Should be one statement");
 
-            assert_eq!(&actual_statement.statement_type, expected);
+                    assert_eq!(&actual_statement.statement_type, expected_ast);
+
+                    let mut actual_token_kinds: Vec<TokenKind> = actual_statement
+                        .tokens
+                        .iter()
+                        .map(|token| token.token_kind.clone())
+                        .collect();
+
+                    let mut expected_tokens = expected_tokens.to_vec();
+
+                    actual_token_kinds.sort();
+                    expected_tokens.sort();
+
+                    assert_eq!(
+                        expected_tokens, actual_token_kinds,
+                        "Failed parsing tokens for {input}"
+                    );
+                });
         };
-
-        test_util::assert_list(test_cases, asserter);
     }
 
     #[test]

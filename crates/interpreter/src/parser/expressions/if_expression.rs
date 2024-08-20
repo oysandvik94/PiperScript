@@ -1,6 +1,6 @@
 use crate::parser::{
     ast::BlockStatement,
-    lexer::token::{Precedence, TokenKind},
+    lexer::token::{Precedence, Token, TokenKind},
     parse_errors::{ParseError, ParseErrorKind},
     Parser,
 };
@@ -15,39 +15,56 @@ pub struct IfExpression {
 }
 
 impl IfExpression {
-    pub fn parse_if_expression(parser: &mut Parser) -> Result<Expression, ParseError> {
-        let condition = Expression::parse(parser, Precedence::Lowest)?;
+    pub fn parse_if_expression(
+        parser: &mut Parser,
+    ) -> Result<(Expression, Vec<Token>), ParseError> {
+        let mut tokens: Vec<Token> = Vec::new();
+        let (condition, mut parsed_tokens) = Expression::parse(parser, Precedence::Lowest)?;
+        tokens.append(&mut parsed_tokens);
 
-        parser.lexer.expect_token(TokenKind::Colon)?;
+        tokens.push(parser.lexer.expect_token(TokenKind::Colon)?);
 
-        let consequence = Expression::parse_blockstatement(parser).map_err(handle_if_error())?;
+        let (consequence, mut parsed_tokens) =
+            Expression::parse_blockstatement(parser).map_err(handle_if_error())?;
+        tokens.append(&mut parsed_tokens);
 
-        let alternative = Self::parse_alternative(parser)?;
+        let (alternative, mut parsed_tokens) = Self::parse_alternative(parser)?;
+        tokens.append(&mut parsed_tokens);
 
-        Ok(Expression::If(IfExpression {
+        let if_expr = Expression::If(IfExpression {
             condition: Box::from(condition),
             consequence,
             alternative,
-        }))
+        });
+        Ok((if_expr, tokens))
     }
 
-    fn parse_alternative(parser: &mut Parser) -> Result<Option<BlockStatement>, ParseError> {
+    fn parse_alternative(
+        parser: &mut Parser,
+    ) -> Result<(Option<BlockStatement>, Vec<Token>), ParseError> {
+        let mut tokens: Vec<Token> = Vec::new();
         let token = parser.lexer.expect()?;
+
         let alternative = match token.token_kind {
             TokenKind::Lasagna => Ok(None),
             TokenKind::Else => {
-                parser.lexer.expect_token(TokenKind::Colon)?;
-                let else_block =
-                    Some(Expression::parse_blockstatement(parser).map_err(handle_if_error())?);
-                parser.lexer.expect_token(TokenKind::Lasagna)?;
-                Ok(else_block)
+                tokens.push(parser.lexer.expect_token(TokenKind::Colon)?);
+
+                let (else_block, mut parsed_tokens) =
+                    Expression::parse_blockstatement(parser).map_err(handle_if_error())?;
+                tokens.append(&mut parsed_tokens);
+
+                tokens.push(parser.lexer.expect_token(TokenKind::Lasagna)?);
+                Ok(Some(else_block))
             }
             _ => Err(ParseError::new(
                 token.clone(),
                 ParseErrorKind::UnfinishedIfStatement,
             )),
         }?;
-        Ok(alternative)
+
+        tokens.push(token);
+        Ok((alternative, tokens))
     }
 }
 
