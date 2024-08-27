@@ -312,7 +312,7 @@ mod tests {
         parser::{
             ast::{Identifier, Operator, PrefixOperator, StatementType},
             expressions::expression::Expression,
-            lexer::token::{Token, TokenKind},
+            lexer::token::TokenKind,
         },
         test_util,
     };

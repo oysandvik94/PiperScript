@@ -263,24 +263,9 @@ impl<'a> Lexer<'a> {
     /// However, we need to figure out a good strategy to parse, since we dont use
     /// statement seperators, and newlines dont matter
     pub fn iterate_to_next_statement(&mut self) {
-        // FIXME: This does not work if the parser fails on a token that
-        // is a valid statement-starter, as it will loop forever
-        // if self
-        //     .current_token
-        //     .as_ref()
-        //     .map_or(false, |token| token.token_kind.is_beginning_of_statement())
-        // {
-        //     event!(
-        //         Level::TRACE,
-        //         "Current token {:?} is already valid beginning",
-        //         self.current_token
-        //     );
-        //     return;
-        // }
-
+        event!(Level::TRACE, "Iterating to next statement");
         while let Some(token) = self.consume() {
-            event!(Level::TRACE, "Iterating to next statement: {:?}", token);
-            if token.token_kind.is_beginning_of_statement() {
+            if let TokenKind::NewLine = token.token_kind {
                 event!(Level::TRACE, "Found beginning, stop advancing");
                 break;
             }

@@ -56,10 +56,25 @@ impl<'a> Parser<'a> {
                     statements.push(parsed_statement)
                 }
                 Err(parse_error) => {
-                    // TODO: maybe it is possible to defer creating the error object
-                    // with the correct document location to here
+                    event!(
+                        Level::DEBUG,
+                        "Found an error on line {}",
+                        &parse_error.parse_error.token.location.line_number
+                    );
+                    event!(Level::DEBUG, "Lexer is at: {:?}", self.lexer.peek());
+
+                    match self.lexer.peek() {
+                        Some(current_token) => {
+                            if current_token.location > parse_error.parse_error.token.location {
+                                parse_errors.push(parse_error);
+                                continue;
+                            }
+                        }
+                        None => break,
+                    }
+
+                    parse_errors.push(parse_error);
                     self.lexer.iterate_to_next_statement();
-                    parse_errors.push(parse_error)
                 }
             };
         }

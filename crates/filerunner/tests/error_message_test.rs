@@ -16,38 +16,36 @@ pub fn setup_logger() {
 }
 
 #[test]
-#[ignore = "this still needs work"]
 fn test_error_message() {
     setup_logger();
 
     let mut test_file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     test_file_path.push("tests/test_error.las");
     let file_name = test_file_path.to_str().unwrap();
-
     let file_content = fs::read_to_string(file_name).expect("Should be able to read string");
 
     let mut parser = Parser::new(&file_content);
     let program = parser.parse_program();
 
-    let first_expected_parse_error = "Error on line 2: expected binding to let statement\n";
-    let second_expected_parse_error = "Error on line 4: expected identifier in let statement\n";
+    let expected_error_messages = [
+        "Error on line 2: expected binding to let statement\n",
+        "Error on line 4: expected identifier in let statement\n",
+    ];
+
     match program {
         ParsedProgram::InvalidProgram(parse_errors) => {
             if parse_errors.len() != 2 {
                 for ele in parse_errors {
                     println!("{ele}");
                 }
-                panic!("Expected 2 parse errors, but got the above ones instaed");
+                panic!("Expected 2 parse errors, but got the above ones instead");
             }
-
-            assert_eq!(
-                first_expected_parse_error,
-                parse_errors.first().unwrap().to_string()
-            );
-            assert_eq!(
-                second_expected_parse_error,
-                parse_errors.get(1).unwrap().to_string()
-            );
+            for (idx, expected_message) in expected_error_messages.iter().enumerate() {
+                assert_eq!(
+                    expected_message,
+                    &parse_errors.get(idx).unwrap().to_string()
+                );
+            }
         }
         _ => panic!("Should return error"),
     }
