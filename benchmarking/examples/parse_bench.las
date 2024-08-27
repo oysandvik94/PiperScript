@@ -99,3 +99,92 @@ let factorial: fn(n):
 ~
 
 print(factorial(5))
+
+let vara: 1
+let varb: 2
+let varc: 3
+let vard: 4
+
+let deeply_nested_func: fn(xa):
+    let funcb: fn(xb):
+        let funcc: fn(xc):
+            let funcd: fn(xd):
+                return xa + xb + xc + xd
+            ~
+        ~
+    ~
+~
+
+let large_nested_structure: {
+    "levela": {
+        "levelb": {
+            "levelc": {
+                "leveld": {
+                    "data": [1, 2, 3, 4]
+                }
+            }
+        }
+    }
+}
+
+let complex_function_recursive: fn(pa, pb, pc, pd, i, result):
+    if i > 1000000:
+        return result
+    else:
+        let new_result: if i / 2 == 0:
+            result + (pa * i) / pb
+        else:
+            result - (pc * i) / pd
+        ~
+        complex_function_recursive(pa, pb, pc, pd, i + 1, new_result)
+    ~
+~
+
+let complex_function: fn(pa, pb, pc, pd):
+    complex_function_recursive(pa, pb, pc, pd, 1, 0)
+~
+
+print(complex_function(1, 2, 3, 4))
+print(complex_function(5, 6, 7, 8))
+
+let massive_expression: (vara + varb) * (varc - vard) / (vara * varb) + 
+                        (varb + varc) * (vard - vara) / (varb * varc) +
+                        (varc + vard) * (vara - varb) / (varc * vard)
+
+print(massive_expression)
+
+let nested_condition: fn(x, depth):
+    if depth == 0:
+        print("Deeply nested condition reached")
+    else:
+        if x == 1:
+            if x < 2:
+                if x > 0:
+                    nested_condition(x, depth - 1)
+                ~
+            ~
+        ~
+    ~
+~
+
+nested_condition(1, 10)
+
+let deep_recursion: fn(n):
+    if n == 0:
+        0
+    else:
+        1 + deep_recursion(n - 1)
+    ~
+~
+
+print(deep_recursion(100))
+
+let generate_sequence: fn(start, end):
+    if start > end:
+        []
+    else:
+        [start] + generate_sequence(start + 1, end)
+    ~
+~
+
+print(generate_sequence(1, 10))
