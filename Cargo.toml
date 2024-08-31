@@ -3,9 +3,7 @@ resolver = "2"
 
 members = [
     "crates/interpreter",
-    "crates/repl",
     "crates/piper",
-    "crates/filerunner",
     "crates/piperfmt",
     "crates/son_of_anton",
 ]

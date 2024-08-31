@@ -2,7 +2,9 @@ use args::{PiperArgs, PiperCommands};
 use clap::Parser;
 use tracing_subscriber::FmtSubscriber;
 
-mod args;
+pub mod args;
+mod filerunner;
+mod repl;
 
 pub fn setup_logging() {
     let subscriber = FmtSubscriber::builder()
@@ -14,7 +16,7 @@ pub fn setup_logging() {
 pub fn execute_piper() -> Result<(), std::io::Error> {
     let cli = PiperArgs::parse();
     match &cli.command {
-        PiperCommands::Repl => repl::execute_repl()?,
+        PiperCommands::Repl => repl::execute_repl(&cli)?,
         PiperCommands::Run { filename } => filerunner::execute_file(filename)?,
         PiperCommands::Check { filename } => filerunner::parse_file(filename)?,
     }

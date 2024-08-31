@@ -5,6 +5,9 @@ use clap::{Parser, Subcommand};
 pub struct PiperArgs {
     #[command(subcommand)]
     pub command: PiperCommands,
+
+    #[arg(long, global = true)]
+    pub use_vm: bool,
 }
 
 #[derive(Subcommand)]

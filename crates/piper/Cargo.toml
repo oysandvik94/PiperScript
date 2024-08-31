@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-repl = { path = "../repl/" }
-filerunner = { path = "../filerunner/" }
+interpreter = { path = "../interpreter" }
 clap = { version = "4.5.11", features = ["derive"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
