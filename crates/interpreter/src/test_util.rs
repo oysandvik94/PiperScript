@@ -246,8 +246,11 @@ pub fn run_vm_tests<T: Display>(test_cases: Vec<VmTestCase<T>>) {
         let mut vm = VirtualMachine::new(bytecode);
         let result = vm.run().unwrap();
 
-        // let stack_elem = vm.stack_top();
-
-        assert_eq!(test_case.expected.to_string(), result.to_string());
+        assert_eq!(
+            test_case.expected.to_string(),
+            result.to_string(),
+            "Test failed for testcase: {}",
+            test_case.input
+        );
     }
 }

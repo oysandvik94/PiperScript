@@ -76,14 +76,14 @@ impl Compiler {
 
         match operator {
             Operator::Bang => todo!(),
-            Operator::Minus => todo!(),
+            Operator::Minus => self.add_instruction(Instruction::Sub),
             Operator::Plus => self.add_instruction(Instruction::Add),
-            Operator::Multiply => todo!(),
+            Operator::Multiply => self.add_instruction(Instruction::Mul),
             Operator::Equals => todo!(),
             Operator::NotEquals => todo!(),
             Operator::GreaterThan => todo!(),
             Operator::LessThan => todo!(),
-            Operator::DividedBy => todo!(),
+            Operator::DividedBy => self.add_instruction(Instruction::Div),
         };
     }
 
@@ -117,6 +117,11 @@ mod tests {
     fn test_integer_arithmetic() {
         let test_cases: Vec<CompilerTestCase> = vec![
             CompilerTestCase {
+                input: String::from("1"),
+                expected_constants: vec![PrimitiveObject::Integer(1)],
+                expected_instructions: vec![Instruction::OpConstant(0), Instruction::Pop],
+            },
+            CompilerTestCase {
                 input: String::from("1 + 2"),
                 expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
                 expected_instructions: vec![
@@ -127,9 +132,34 @@ mod tests {
                 ],
             },
             CompilerTestCase {
-                input: String::from("1"),
-                expected_constants: vec![PrimitiveObject::Integer(1)],
-                expected_instructions: vec![Instruction::OpConstant(0), Instruction::Pop],
+                input: String::from("5 - 3"),
+                expected_constants: vec![PrimitiveObject::Integer(5), PrimitiveObject::Integer(3)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::Sub,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("1 * 2"),
+                expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::Mul,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("2 / 1"),
+                expected_constants: vec![PrimitiveObject::Integer(2), PrimitiveObject::Integer(1)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::Div,
+                    Instruction::Pop,
+                ],
             },
         ];
 

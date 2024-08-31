@@ -5,6 +5,9 @@ use std::fmt::Display;
 pub enum Instruction {
     OpConstant(u16),
     Add,
+    Sub,
+    Mul,
+    Div,
     Pop,
 }
 
@@ -14,6 +17,9 @@ impl Display for Instruction {
             Instruction::OpConstant(num) => write!(f, "OpConstant({num})"),
             Instruction::Add => write!(f, "Add"),
             Instruction::Pop => write!(f, "Pop"),
+            Instruction::Sub => write!(f, "Sub"),
+            Instruction::Mul => write!(f, "Mul"),
+            Instruction::Div => write!(f, "Div"),
         }
     }
 }

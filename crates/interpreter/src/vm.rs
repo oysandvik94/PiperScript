@@ -30,30 +30,45 @@ impl VirtualMachine {
     pub fn run(&mut self) -> Result<Object> {
         let mut instruction_pointer = 0;
         while instruction_pointer < self.instructions.len() {
-            let operation: &Instruction = &self.instructions[instruction_pointer];
+            // To avoid borrowing conflicts, retrieve the operation index first
+            let operation = &self.instructions[instruction_pointer];
             instruction_pointer += 1;
 
             match operation {
                 Instruction::OpConstant(constant_index) => {
+                    // TODO: We can probably avoid cloning here if we store references on the stack?
                     let constant = self.constants[*constant_index as usize].clone();
                     self.push(Object::Primitive(constant))?;
                 }
-                Instruction::Add => {
-                    let right = self.pop()?;
-                    let left = self.pop()?;
-
-                    let res = match (right, left) {
-                        (
-                            Object::Primitive(PrimitiveObject::Integer(left)),
-                            Object::Primitive(PrimitiveObject::Integer(right)),
-                        ) => left + right,
-                        _ => todo!(),
-                    };
+                Instruction::Pop => {
+                    // Call `pop` on `self`, which is a mutable borrow
+                    self.last_popped = self.pop()?;
+                }
+                Instruction::Sub => {
+                    let (left, right) = self.execute_integer_binary()?;
+                    let res = left - right;
 
                     self.push(Object::primitive_from_int(res))?;
                 }
-                Instruction::Pop => self.last_popped = self.pop()?,
-            }
+                Instruction::Add => {
+                    let (left, right) = self.execute_integer_binary()?;
+                    let res = left + right;
+
+                    self.push(Object::primitive_from_int(res))?;
+                }
+                Instruction::Mul => {
+                    let (left, right) = self.execute_integer_binary()?;
+                    let res = left * right;
+
+                    self.push(Object::primitive_from_int(res))?;
+                }
+                Instruction::Div => {
+                    let (left, right) = self.execute_integer_binary()?;
+                    let res = left / right;
+
+                    self.push(Object::primitive_from_int(res))?;
+                }
+            };
         }
 
         Ok(self.last_popped.clone())
@@ -80,6 +95,19 @@ impl VirtualMachine {
             None => bail!(InternalError::PoppedEmptyStack),
         }
     }
+
+    fn execute_integer_binary(&mut self) -> Result<(i32, i32)> {
+        let right = self.pop()?;
+        let left = self.pop()?;
+
+        match (left, right) {
+            (
+                Object::Primitive(PrimitiveObject::Integer(left)),
+                Object::Primitive(PrimitiveObject::Integer(right)),
+            ) => Ok((left, right)),
+            _ => todo!(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -100,6 +128,18 @@ mod tests {
             VmTestCase {
                 input: "1 + 2",
                 expected: 3,
+            },
+            VmTestCase {
+                input: "5 - 3",
+                expected: 2,
+            },
+            VmTestCase {
+                input: "4 * 3",
+                expected: 12,
+            },
+            VmTestCase {
+                input: "10 / 2",
+                expected: 5,
             },
         ];
 
