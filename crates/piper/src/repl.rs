@@ -1,13 +1,8 @@
 use std::io::{stdin, stdout, Write};
 
-use interpreter::{
-    compiler::Compiler,
-    eval::{self, objects::Environment, EvaledProgram},
-    parser::{ParsedProgram, Parser},
-    vm::VirtualMachine,
-};
+use interpreter::eval::{self, objects::Environment, EvaledProgram};
 
-use crate::args::PiperArgs;
+use crate::{args::PiperArgs, execute_code};
 
 pub fn execute_repl(args: &PiperArgs) -> Result<(), std::io::Error> {
     println!("Welcome to piperscript, try and write some code:");
@@ -24,26 +19,7 @@ pub fn execute_repl(args: &PiperArgs) -> Result<(), std::io::Error> {
                 let input = buffer.trim_end();
 
                 if args.use_vm {
-                    let mut parser = Parser::new(input);
-                    match parser.parse_program() {
-                        ParsedProgram::ValidProgram(ast) => {
-                            let mut compiler: Compiler = Compiler::default();
-                            compiler.compile(ast);
-                            let bytecode = compiler.bytecode();
-
-                            let mut vm = VirtualMachine::new(bytecode);
-                            vm.run().unwrap();
-
-                            let stack_elem = vm.stack_top();
-                            println!("{stack_elem}");
-                        }
-                        ParsedProgram::InvalidProgram(errors) => {
-                            eprintln!("Found parse errors:");
-                            errors.into_iter().for_each(|error| {
-                                eprintln!("{error}");
-                            });
-                        }
-                    }
+                    execute_code(input);
                 } else {
                     let evaluated_output = eval::eval(input, repl_scope);
                     handle_output(evaluated_output);

@@ -5,11 +5,18 @@ use interpreter::{
     parser::{ParsedProgram, Parser},
 };
 
-pub fn execute_file(filename: &str) -> Result<(), std::io::Error> {
+use crate::{args::PiperArgs, execute_code};
+
+pub fn execute_file(filename: &str, args: &PiperArgs) -> Result<(), std::io::Error> {
     let file_content = fs::read_to_string(filename)?;
     let execution_scope = &mut Environment::new_env_reference();
-    let evaluated_output = eval::eval(&file_content, execution_scope);
-    handle_output(evaluated_output);
+
+    if args.use_vm {
+        execute_code(&file_content);
+    } else {
+        let evaluated_output = eval::eval(&file_content, execution_scope);
+        handle_output(evaluated_output);
+    }
 
     Ok(())
 }
