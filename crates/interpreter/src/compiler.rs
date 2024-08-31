@@ -1,4 +1,4 @@
-use bytecode::{Instructions, OpCode};
+use bytecode::OpCode;
 
 use crate::{
     eval::objects::PrimitiveObject,
@@ -13,21 +13,16 @@ pub mod internal_error;
 
 #[derive(Default)]
 pub struct Compiler {
-    pub instructions: Instructions,
+    pub instructions: Vec<OpCode>,
     pub constants: Vec<PrimitiveObject>,
 }
 
 pub struct ByteCode {
-    pub instructions: Instructions,
+    pub instructions: Vec<OpCode>,
     pub constants: Vec<PrimitiveObject>,
 }
 
 impl Compiler {
-    fn emit(&mut self, op_code: OpCode, operands: &[u16]) -> usize {
-        let instruction = bytecode::make(op_code, operands);
-        self.add_instruction(&instruction)
-    }
-
     pub fn compile(&mut self, ast: Vec<Statement>) {
         for node in ast {
             match node.statement_type {
@@ -50,7 +45,7 @@ impl Compiler {
                 let integer_object = PrimitiveObject::Integer(*integer);
                 let constant_index = self.add_constant(integer_object);
 
-                self.emit(OpCode::OpConstant, &[constant_index as u16]);
+                self.add_instruction(OpCode::OpConstant(constant_index as u16));
             }
             Expression::BooleanLiteral(_) => todo!(),
             Expression::Array(_) => todo!(),
@@ -79,7 +74,7 @@ impl Compiler {
         match operator {
             Operator::Bang => todo!(),
             Operator::Minus => todo!(),
-            Operator::Plus => self.emit(OpCode::Add, &[]),
+            Operator::Plus => self.add_instruction(OpCode::Add),
             Operator::Multiply => todo!(),
             Operator::Equals => todo!(),
             Operator::NotEquals => todo!(),
@@ -101,16 +96,15 @@ impl Compiler {
         }
     }
 
-    fn add_instruction(&mut self, instruction: &[u8]) -> usize {
-        let new_instruction_position = self.instructions.0.len();
-        self.instructions.0.extend_from_slice(instruction);
+    fn add_instruction(&mut self, instruction: OpCode) -> usize {
+        let new_instruction_position = self.instructions.len();
+        self.instructions.push(instruction);
         new_instruction_position
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use bytecode::OpCode;
 
     use crate::test_util::{self, CompilerTestCase};
 
@@ -121,11 +115,7 @@ mod tests {
         let test_cases: Vec<CompilerTestCase> = vec![CompilerTestCase {
             input: String::from("1 + 2"),
             expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
-            expected_instructions: vec![
-                Instructions(bytecode::make(OpCode::OpConstant, &[0])),
-                Instructions(bytecode::make(OpCode::OpConstant, &[1])),
-                Instructions(bytecode::make(OpCode::Add, &[])),
-            ],
+            expected_instructions: vec![OpCode::OpConstant(0), OpCode::OpConstant(1), OpCode::Add],
         }];
 
         test_util::run_compiler_tests(test_cases);

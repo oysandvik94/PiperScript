@@ -1,11 +1,7 @@
 pub mod runtime_error;
 
 use crate::{
-    compiler::{
-        bytecode::{self, Instructions, OpCode},
-        internal_error::InternalError,
-        ByteCode,
-    },
+    compiler::{bytecode::OpCode, internal_error::InternalError, ByteCode},
     eval::objects::{Object, PrimitiveObject},
 };
 
@@ -16,7 +12,7 @@ const STACK_SIZE: usize = 2048;
 
 pub struct VirtualMachine {
     constants: Vec<PrimitiveObject>,
-    instructions: Instructions,
+    instructions: Vec<OpCode>,
     stack: Vec<Object>,
     stack_pointer: usize,
 }
@@ -33,22 +29,13 @@ impl VirtualMachine {
 
     pub fn run(&mut self) -> Result<Object> {
         let mut instruction_pointer = 0;
-        while instruction_pointer < self.instructions.0.len() {
-            let operation_byte: u8 = self.instructions.0[instruction_pointer];
-            let operation = bytecode::OpCode::try_from(operation_byte)?;
+        while instruction_pointer < self.instructions.len() {
+            let operation: &OpCode = &self.instructions[instruction_pointer];
             instruction_pointer += 1;
 
             match operation {
-                OpCode::OpConstant => {
-                    let operands: [u8; 2] = [
-                        self.instructions.0[instruction_pointer],
-                        self.instructions.0[instruction_pointer + 1],
-                    ];
-
-                    let constant_index = self.read_u16(operands);
-                    instruction_pointer += 2;
-
-                    let constant = self.constants[constant_index].clone();
+                OpCode::OpConstant(constant_index) => {
+                    let constant = self.constants[*constant_index as usize].clone();
                     self.push(Object::Primitive(constant))?;
                 }
                 OpCode::Add => {
@@ -107,15 +94,6 @@ impl VirtualMachine {
 
         self.stack.last().cloned().unwrap_or(Object::Void)
     }
-
-    fn read_u16(&self, bytes: [u8; 2]) -> usize {
-        u16::from_be_bytes(bytes) as usize
-    }
-
-    // fn read_u16(&self, instruction_pointer: usize) -> usize {
-    //     let bytes = &self.instructions.0[instruction_pointer..instruction_pointer + 2];
-    //     u16::from_be_bytes([bytes[0], bytes[1]]) as usize
-    // }
 }
 
 #[cfg(test)]

@@ -13,6 +13,8 @@ use super::{
     if_expression::IfExpression,
 };
 
+type ExpressionPair = (Expression, Expression);
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
     IdentifierLiteral(Identifier),
@@ -20,7 +22,7 @@ pub enum Expression {
     IntegerLiteral(i32),
     BooleanLiteral(bool),
     Array(ArrayLiteral),
-    HashLiteral(Vec<(Expression, Expression)>),
+    HashLiteral(Vec<ExpressionPair>),
     Index {
         left: Box<Expression>,
         index: Box<Expression>,
@@ -274,7 +276,7 @@ impl Expression {
 
     pub fn parse_hash_literal(
         parser: &mut Parser,
-    ) -> Result<(Vec<(Expression, Expression)>, Vec<Token>), ParseError> {
+    ) -> Result<(Vec<ExpressionPair>, Vec<Token>), ParseError> {
         let mut tokens: Vec<Token> = Vec::new();
         let mut keypairs: Vec<(Expression, Expression)> = Vec::new();
 
