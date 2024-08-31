@@ -28,7 +28,10 @@ impl Compiler {
             match node.statement_type {
                 StatementType::Assign(_) => todo!(),
                 StatementType::Return(_) => todo!(),
-                StatementType::Expression(expression) => self.compile_expression(&expression),
+                StatementType::Expression(expression) => {
+                    self.compile_expression(&expression);
+                    self.add_instruction(Instruction::Pop);
+                }
             }
         }
     }
@@ -112,15 +115,23 @@ mod tests {
 
     #[test]
     fn test_integer_arithmetic() {
-        let test_cases: Vec<CompilerTestCase> = vec![CompilerTestCase {
-            input: String::from("1 + 2"),
-            expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
-            expected_instructions: vec![
-                Instruction::OpConstant(0),
-                Instruction::OpConstant(1),
-                Instruction::Add,
-            ],
-        }];
+        let test_cases: Vec<CompilerTestCase> = vec![
+            CompilerTestCase {
+                input: String::from("1 + 2"),
+                expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::Add,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("1"),
+                expected_constants: vec![PrimitiveObject::Integer(1)],
+                expected_instructions: vec![Instruction::OpConstant(0), Instruction::Pop],
+            },
+        ];
 
         test_util::run_compiler_tests(test_cases);
     }

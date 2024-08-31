@@ -244,10 +244,10 @@ pub fn run_vm_tests<T: Display>(test_cases: Vec<VmTestCase<T>>) {
         let bytecode = compiler.bytecode();
 
         let mut vm = VirtualMachine::new(bytecode);
-        vm.run().unwrap();
+        let result = vm.run().unwrap();
 
-        let stack_elem = vm.stack_top();
+        // let stack_elem = vm.stack_top();
 
-        assert_eq!(test_case.expected.to_string(), stack_elem.to_string());
+        assert_eq!(test_case.expected.to_string(), result.to_string());
     }
 }

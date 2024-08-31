@@ -34,10 +34,9 @@ pub fn execute_code(input: &str) {
             let bytecode = compiler.bytecode();
 
             let mut vm = VirtualMachine::new(bytecode);
-            vm.run().unwrap();
+            let result = vm.run().unwrap();
 
-            let stack_elem = vm.stack_top();
-            println!("{stack_elem}");
+            println!("{result}");
         }
         ParsedProgram::InvalidProgram(errors) => {
             eprintln!("Found parse errors:");

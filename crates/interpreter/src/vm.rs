@@ -14,7 +14,7 @@ pub struct VirtualMachine {
     constants: Vec<PrimitiveObject>,
     instructions: Vec<Instruction>,
     stack: Vec<Object>,
-    stack_pointer: usize,
+    last_popped: Object,
 }
 
 impl VirtualMachine {
@@ -23,7 +23,7 @@ impl VirtualMachine {
             instructions: bytecode.instructions,
             constants: bytecode.constants,
             stack: Vec::with_capacity(STACK_SIZE),
-            stack_pointer: 0,
+            last_popped: Object::Void,
         }
     }
 
@@ -52,16 +52,17 @@ impl VirtualMachine {
 
                     self.push(Object::primitive_from_int(res))?;
                 }
+                Instruction::Pop => self.last_popped = self.pop()?,
             }
         }
 
-        Ok(Object::Void)
+        Ok(self.last_popped.clone())
     }
 
     /// Unclear whether we need to manage a stack stack_pointer
     /// at this point in the book, or if we can just use the stack api like normal
     fn push(&mut self, object: Object) -> Result<()> {
-        if self.stack_pointer >= STACK_SIZE {
+        if self.stack.len() >= STACK_SIZE {
             bail!(RuntimeError::StackOverflowError);
         }
 
@@ -69,30 +70,15 @@ impl VirtualMachine {
         // self.stack_pointer += 1;
 
         self.stack.push(object);
-        self.stack_pointer += 1;
 
         Ok(())
     }
 
     fn pop(&mut self) -> Result<Object> {
-        self.stack_pointer -= 1;
         match self.stack.pop() {
             Some(object) => Ok(object),
             None => bail!(InternalError::PoppedEmptyStack),
         }
-    }
-
-    pub fn stack_top(&self) -> Object {
-        if self.stack_pointer == 0 {
-            return Object::Void;
-        }
-
-        // This can panic, so should be handled,
-        // but check later if we can use safe api
-        // without losing performance instead
-        // self.stack[self.stack_pointer].clone()
-
-        self.stack.last().cloned().unwrap_or(Object::Void)
     }
 }
 

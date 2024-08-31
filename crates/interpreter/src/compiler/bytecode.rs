@@ -5,6 +5,7 @@ use std::fmt::Display;
 pub enum Instruction {
     OpConstant(u16),
     Add,
+    Pop,
 }
 
 impl Display for Instruction {
@@ -12,6 +13,7 @@ impl Display for Instruction {
         match self {
             Instruction::OpConstant(num) => write!(f, "OpConstant({num})"),
             Instruction::Add => write!(f, "Add"),
+            Instruction::Pop => write!(f, "Pop"),
         }
     }
 }
