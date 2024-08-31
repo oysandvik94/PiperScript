@@ -1,7 +1,7 @@
 pub mod runtime_error;
 
 use crate::{
-    compiler::{bytecode::OpCode, internal_error::InternalError, ByteCode},
+    compiler::{bytecode::Instruction, internal_error::InternalError, ByteCode},
     eval::objects::{Object, PrimitiveObject},
 };
 
@@ -12,7 +12,7 @@ const STACK_SIZE: usize = 2048;
 
 pub struct VirtualMachine {
     constants: Vec<PrimitiveObject>,
-    instructions: Vec<OpCode>,
+    instructions: Vec<Instruction>,
     stack: Vec<Object>,
     stack_pointer: usize,
 }
@@ -30,15 +30,15 @@ impl VirtualMachine {
     pub fn run(&mut self) -> Result<Object> {
         let mut instruction_pointer = 0;
         while instruction_pointer < self.instructions.len() {
-            let operation: &OpCode = &self.instructions[instruction_pointer];
+            let operation: &Instruction = &self.instructions[instruction_pointer];
             instruction_pointer += 1;
 
             match operation {
-                OpCode::OpConstant(constant_index) => {
+                Instruction::OpConstant(constant_index) => {
                     let constant = self.constants[*constant_index as usize].clone();
                     self.push(Object::Primitive(constant))?;
                 }
-                OpCode::Add => {
+                Instruction::Add => {
                     let right = self.pop()?;
                     let left = self.pop()?;
 

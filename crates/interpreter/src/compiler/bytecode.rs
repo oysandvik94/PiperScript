@@ -2,16 +2,16 @@ use std::fmt::Display;
 
 #[repr(u8)]
 #[derive(Clone, Debug, PartialEq)]
-pub enum OpCode {
+pub enum Instruction {
     OpConstant(u16),
     Add,
 }
 
-impl Display for OpCode {
+impl Display for Instruction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            OpCode::OpConstant(num) => write!(f, "OpConstant({num})"),
-            OpCode::Add => write!(f, "Add"),
+            Instruction::OpConstant(num) => write!(f, "OpConstant({num})"),
+            Instruction::Add => write!(f, "Add"),
         }
     }
 }
@@ -22,6 +22,6 @@ mod tests {
 
     #[test]
     fn assert_operation_size() {
-        assert_eq!(size_of::<OpCode>(), 4);
+        assert_eq!(size_of::<Instruction>(), 4);
     }
 }

@@ -4,7 +4,7 @@ use tracing::{event, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::{
-    compiler::{bytecode::OpCode, Compiler},
+    compiler::{bytecode::Instruction, Compiler},
     eval::{
         self,
         objects::{Environment, Object, PrimitiveObject},
@@ -190,7 +190,7 @@ pub fn setup_logger() {
 pub struct CompilerTestCase {
     pub input: String,
     pub expected_constants: Vec<PrimitiveObject>,
-    pub expected_instructions: Vec<OpCode>,
+    pub expected_instructions: Vec<Instruction>,
 }
 
 pub fn run_compiler_tests(test_cases: Vec<CompilerTestCase>) {
@@ -208,7 +208,7 @@ pub fn run_compiler_tests(test_cases: Vec<CompilerTestCase>) {
     }
 }
 
-fn test_instructions(expected_instructions: Vec<OpCode>, instructions: Vec<OpCode>) {
+fn test_instructions(expected_instructions: Vec<Instruction>, instructions: Vec<Instruction>) {
     assert_eq!(
         expected_instructions.len(),
         instructions.len(),

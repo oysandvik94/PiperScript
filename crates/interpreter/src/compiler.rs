@@ -1,4 +1,4 @@
-use bytecode::OpCode;
+use bytecode::Instruction;
 
 use crate::{
     eval::objects::PrimitiveObject,
@@ -13,12 +13,12 @@ pub mod internal_error;
 
 #[derive(Default)]
 pub struct Compiler {
-    pub instructions: Vec<OpCode>,
+    pub instructions: Vec<Instruction>,
     pub constants: Vec<PrimitiveObject>,
 }
 
 pub struct ByteCode {
-    pub instructions: Vec<OpCode>,
+    pub instructions: Vec<Instruction>,
     pub constants: Vec<PrimitiveObject>,
 }
 
@@ -45,7 +45,7 @@ impl Compiler {
                 let integer_object = PrimitiveObject::Integer(*integer);
                 let constant_index = self.add_constant(integer_object);
 
-                self.add_instruction(OpCode::OpConstant(constant_index as u16));
+                self.add_instruction(Instruction::OpConstant(constant_index as u16));
             }
             Expression::BooleanLiteral(_) => todo!(),
             Expression::Array(_) => todo!(),
@@ -74,7 +74,7 @@ impl Compiler {
         match operator {
             Operator::Bang => todo!(),
             Operator::Minus => todo!(),
-            Operator::Plus => self.add_instruction(OpCode::Add),
+            Operator::Plus => self.add_instruction(Instruction::Add),
             Operator::Multiply => todo!(),
             Operator::Equals => todo!(),
             Operator::NotEquals => todo!(),
@@ -96,7 +96,7 @@ impl Compiler {
         }
     }
 
-    fn add_instruction(&mut self, instruction: OpCode) -> usize {
+    fn add_instruction(&mut self, instruction: Instruction) -> usize {
         let new_instruction_position = self.instructions.len();
         self.instructions.push(instruction);
         new_instruction_position
@@ -115,7 +115,11 @@ mod tests {
         let test_cases: Vec<CompilerTestCase> = vec![CompilerTestCase {
             input: String::from("1 + 2"),
             expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
-            expected_instructions: vec![OpCode::OpConstant(0), OpCode::OpConstant(1), OpCode::Add],
+            expected_instructions: vec![
+                Instruction::OpConstant(0),
+                Instruction::OpConstant(1),
+                Instruction::Add,
+            ],
         }];
 
         test_util::run_compiler_tests(test_cases);
