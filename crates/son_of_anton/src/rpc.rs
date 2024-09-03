@@ -45,8 +45,6 @@ pub struct Response<T> {
 
 pub fn encode_response<T: Serialize>(message: Response<T>) -> Result<String> {
     let content = serde_json::to_string(&message).context("Could not serialize message")?;
-    event!(Level::DEBUG, "Responding with {}", content);
-
     let resp = format!("Content-Length: {}\r\n\r\n{}", content.len(), content);
     Ok(resp)
 }

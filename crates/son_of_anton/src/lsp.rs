@@ -1,6 +1,7 @@
 pub mod initialize;
 
 use std::io::{Stdout, Write};
+use std::process::exit;
 
 use anyhow::anyhow;
 use anyhow::Result;
@@ -39,6 +40,14 @@ impl SonOfAnton {
                 let _ = deserialize_request::<InitializedParams>(&lsp_request)?;
                 event!(Level::INFO, "Server was initialized");
             }
+            "shutdown" => {
+                event!(Level::INFO, "Shutting down server by request of the client");
+                self.send_response(lsp_request, serde_json::Value::Null)?;
+            }
+            "exit" => {
+                event!(Level::INFO, "Exiting after confirmation by client");
+                exit(0)
+            }
             unknown_method => {
                 event!(
                     Level::DEBUG,
@@ -61,11 +70,7 @@ impl SonOfAnton {
             result: Some(resp),
         };
         let resp = rpc::encode_response(resp)?;
-        event!(
-            Level::DEBUG,
-            "Sending initialize response to server: {:?}",
-            resp
-        );
+        event!(Level::DEBUG, "Sending response to server: {:?}", resp);
         self.writer.write_all(resp.as_bytes())?;
         self.writer.flush()?;
         Ok(())
