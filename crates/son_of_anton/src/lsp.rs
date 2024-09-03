@@ -2,8 +2,9 @@ pub mod initialize;
 
 use std::io::{Stdout, Write};
 
+use anyhow::anyhow;
 use anyhow::Result;
-use initialize::{InitalizeParams, InitializeResponse};
+use lsp_types::{InitializeParams, InitializedParams};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::from_str;
 use tracing::{event, Level};
@@ -22,13 +23,28 @@ impl SonOfAnton {
     pub fn handle_message(&mut self, lsp_request: LspRequest) -> Result<()> {
         match lsp_request.request.method.as_str() {
             "initialize" => {
-                let _ = fun_name::<InitalizeParams>(&lsp_request)?;
+                let params: InitializeParams =
+                    deserialize_request::<InitializeParams>(&lsp_request)?;
 
-                let resp: InitializeResponse = initialize::handle_initialize();
+                let client_name = match params.client_info {
+                    Some(info) => info.name,
+                    None => "Unknown client".to_owned(),
+                };
+
+                event!(Level::INFO, "Initializing with client: {client_name}");
+                let resp = initialize::handle_initialize();
                 self.send_response(lsp_request, resp)?;
             }
-            _ => {
-                event!(Level::DEBUG, "Received unknown request from server",);
+            "initialized" => {
+                let _ = deserialize_request::<InitializedParams>(&lsp_request)?;
+                event!(Level::INFO, "Server was initialized");
+            }
+            unknown_method => {
+                event!(
+                    Level::DEBUG,
+                    "Received unknown request from server: method = {}",
+                    unknown_method
+                );
             }
         }
 
@@ -56,7 +72,7 @@ impl SonOfAnton {
     }
 }
 
-fn fun_name<T>(lsp_request: &LspRequest) -> Result<Option<T>>
+fn deserialize_request<T>(lsp_request: &LspRequest) -> Result<T>
 where
     T: DeserializeOwned + std::fmt::Debug,
 {
@@ -66,5 +82,7 @@ where
         "Received request from server: {:?}",
         deserialized_request
     );
-    Ok(deserialized_request.params)
+    deserialized_request
+        .params
+        .ok_or_else(|| anyhow!("Expected params to be Some, but got None"))
 }

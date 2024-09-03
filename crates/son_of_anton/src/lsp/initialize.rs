@@ -1,45 +1,14 @@
-use serde::{Deserialize, Serialize};
+use lsp_types::{HoverProviderCapability, InitializeResult, ServerCapabilities, ServerInfo};
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct InitalizeParams {
-    client_info: Option<ClientInfo>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ClientInfo {
-    pub name: String,
-    pub version: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct InitializeResponse {
-    capabilities: ServerCapabilities,
-    server_info: ServerInfo,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerCapabilities {
-    hover_provider: Option<bool>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerInfo {
-    name: String,
-    version: String,
-}
-
-pub fn handle_initialize() -> InitializeResponse {
-    InitializeResponse {
+pub fn handle_initialize() -> InitializeResult {
+    InitializeResult {
         capabilities: ServerCapabilities {
-            hover_provider: Some(true),
+            hover_provider: Some(HoverProviderCapability::Simple(true)),
+            ..Default::default()
         },
-        server_info: ServerInfo {
+        server_info: Some(ServerInfo {
             name: "Son of Anton".to_string(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
-        },
+            version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        }),
     }
 }
