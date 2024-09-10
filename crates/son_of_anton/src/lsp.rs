@@ -1,3 +1,5 @@
+pub mod document_change;
+mod document_open;
 pub mod initialize;
 
 use std::io::{Stdout, Write};
@@ -5,20 +7,27 @@ use std::process::exit;
 
 use anyhow::anyhow;
 use anyhow::Result;
-use lsp_types::{InitializeParams, InitializedParams};
+use lsp_types::{
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializedParams,
+};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::from_str;
 use tracing::{event, Level};
 
+use crate::document_store::DocumentStore;
 use crate::rpc::{self, LspRequest, Request, Response};
 
 pub struct SonOfAnton {
     writer: Stdout,
+    document_store: DocumentStore,
 }
 
 impl SonOfAnton {
     pub fn from(writer: Stdout) -> Self {
-        Self { writer }
+        Self {
+            writer,
+            document_store: DocumentStore::new(),
+        }
     }
 
     pub fn handle_message(&mut self, lsp_request: LspRequest) -> Result<()> {
@@ -35,6 +44,14 @@ impl SonOfAnton {
                 event!(Level::INFO, "Initializing with client: {client_name}");
                 let resp = initialize::handle_initialize();
                 self.send_response(lsp_request, resp)?;
+            }
+            "textDocument/didOpen" => {
+                let params: DidOpenTextDocumentParams = deserialize_request(&lsp_request)?;
+                document_open::handle_open(params, self);
+            }
+            "textDocument/didChange" => {
+                let params: DidChangeTextDocumentParams = deserialize_request(&lsp_request)?;
+                document_change::handle_change(params, self)?;
             }
             "initialized" => {
                 let _ = deserialize_request::<InitializedParams>(&lsp_request)?;
@@ -84,7 +101,7 @@ where
     let deserialized_request: Request<T> = from_str(&lsp_request.content)?;
     event!(
         Level::DEBUG,
-        "Received request from server: {:?}",
+        "Received request from server: {:#?}",
         deserialized_request
     );
     deserialized_request

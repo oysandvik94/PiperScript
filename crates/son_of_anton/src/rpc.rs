@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use tracing::{event, Level};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct BaseMessage {
