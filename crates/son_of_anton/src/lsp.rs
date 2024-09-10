@@ -1,3 +1,4 @@
+pub mod diagnostics;
 pub mod document_change;
 mod document_open;
 pub mod initialize;
@@ -8,7 +9,9 @@ use std::process::exit;
 use anyhow::anyhow;
 use anyhow::Result;
 use lsp_types::{
-    DidChangeTextDocumentParams, DidOpenTextDocumentParams, InitializeParams, InitializedParams,
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, DocumentDiagnosticParams,
+    FullDocumentDiagnosticReport, InitializeParams, InitializedParams,
+    RelatedFullDocumentDiagnosticReport,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::from_str;
@@ -52,6 +55,19 @@ impl SonOfAnton {
             "textDocument/didChange" => {
                 let params: DidChangeTextDocumentParams = deserialize_request(&lsp_request)?;
                 document_change::handle_change(params, self)?;
+            }
+            "textDocument/diagnostic" => {
+                let params: DocumentDiagnosticParams = deserialize_request(&lsp_request)?;
+
+                let diagnostics = diagnostics::run_diagnostics(params.text_document.uri, self)?;
+                let response = RelatedFullDocumentDiagnosticReport {
+                    related_documents: None,
+                    full_document_diagnostic_report: FullDocumentDiagnosticReport {
+                        result_id: None,
+                        items: diagnostics,
+                    },
+                };
+                self.send_response(lsp_request, response)?;
             }
             "initialized" => {
                 let _ = deserialize_request::<InitializedParams>(&lsp_request)?;

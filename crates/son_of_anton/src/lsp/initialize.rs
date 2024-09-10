@@ -1,6 +1,6 @@
 use lsp_types::{
-    HoverProviderCapability, InitializeResult, ServerCapabilities, ServerInfo,
-    TextDocumentSyncCapability, TextDocumentSyncKind,
+    DiagnosticOptions, DiagnosticServerCapabilities, HoverProviderCapability, InitializeResult,
+    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
 };
 
 pub fn handle_initialize() -> InitializeResult {
@@ -8,6 +8,11 @@ pub fn handle_initialize() -> InitializeResult {
         capabilities: ServerCapabilities {
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            diagnostic_provider: Some(DiagnosticServerCapabilities::Options(DiagnosticOptions {
+                inter_file_dependencies: false,
+                workspace_diagnostics: false,
+                ..Default::default()
+            })),
             ..Default::default()
         },
         server_info: Some(ServerInfo {

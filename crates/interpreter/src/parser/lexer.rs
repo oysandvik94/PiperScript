@@ -15,7 +15,7 @@ pub struct Lexer<'a> {
     chars: Chars<'a>,
     current_pos: usize,
     current_token: Option<Token>,
-    current_line_number: u16,
+    current_line_number: u32,
 }
 
 impl<'a> Lexer<'a> {
@@ -53,13 +53,18 @@ impl<'a> Lexer<'a> {
 
     fn advance(&mut self) {
         self.current_token = if let Some(c) = self.chars.next() {
+            let start = self.current_pos;
             self.current_pos += c.len_utf8();
+            let end = self.current_pos;
+
             let token_kind = self.tokenize(c);
 
             let token = Token {
                 token_kind,
                 location: Location {
                     line_number: self.current_line_number,
+                    start,
+                    end,
                 },
             };
             Some(token)
@@ -94,6 +99,8 @@ impl<'a> Lexer<'a> {
                     // TODO: need to figure out last line of file
                     location: Location {
                         line_number: self.current_line_number,
+                        start: self.current_pos,
+                        end: self.current_pos,
                     },
                 },
                 ParseErrorKind::ExpectedToken,
@@ -115,6 +122,8 @@ impl<'a> Lexer<'a> {
                 token_kind: TokenKind::EOF,
                 location: Location {
                     line_number: self.current_line_number,
+                    start: self.current_pos,
+                    end: self.current_pos,
                 },
             },
             ParseErrorKind::ExpectedToken,
@@ -284,6 +293,8 @@ impl<'a> Lexer<'a> {
                     token_kind: TokenKind::EOF,
                     location: Location {
                         line_number: self.current_line_number,
+                        start: self.current_pos,
+                        end: self.current_pos,
                     },
                 },
                 ParseErrorKind::ExpectedToken,
@@ -311,6 +322,8 @@ impl<'a> Lexer<'a> {
                     token_kind: TokenKind::EOF,
                     location: Location {
                         line_number: self.current_line_number,
+                        start: self.current_pos,
+                        end: self.current_pos,
                     },
                 },
                 ParseErrorKind::ExpectedToken,

@@ -16,7 +16,9 @@ impl Debug for Token {
 
 #[derive(PartialEq, Debug, Clone, Eq, PartialOrd, Ord)]
 pub struct Location {
-    pub line_number: u16,
+    pub line_number: u32,
+    pub start: usize,
+    pub end: usize,
 }
 
 #[derive(PartialEq, Debug, Clone, PartialOrd, Ord, Eq)]

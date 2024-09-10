@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
 
 #[derive(Debug)]
 pub struct StatementError {
-    parse_error: ParseError,
+    pub parse_error: ParseError,
     statement_type: StatementErrorType,
 }
 
@@ -154,7 +154,16 @@ impl Display for StatementError {
                 },
                 _ => writeln!(f, "{}", self.parse_error),
             },
-            StatementErrorType::Expression => writeln!(f, "{}", self.parse_error),
+            StatementErrorType::Expression => match &self.parse_error.kind {
+                ParseErrorKind::NoPrefixExpression => match &self.parse_error.token.token_kind {
+                    TokenKind::Colon => writeln!(
+                        f,
+                        "Found an unexpected colon. Did you intend to write a `let` statement?"
+                    ),
+                    _ => writeln!(f, "{}", self.parse_error),
+                },
+                _ => writeln!(f, "{}", self.parse_error),
+            },
         }
     }
 }
