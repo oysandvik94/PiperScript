@@ -50,7 +50,12 @@ impl Compiler {
 
                 self.add_instruction(Instruction::OpConstant(constant_index as u16));
             }
-            Expression::BooleanLiteral(_) => todo!(),
+            Expression::BooleanLiteral(value) => {
+                _ = self.add_instruction(match value {
+                    true => Instruction::True,
+                    false => Instruction::False,
+                })
+            }
             Expression::Array(_) => todo!(),
             Expression::HashLiteral(_) => todo!(),
             Expression::Index { left: _, index: _ } => todo!(),
@@ -71,20 +76,47 @@ impl Compiler {
         right: &Expression,
         operator: &Operator,
     ) {
-        self.compile_expression(left);
-        self.compile_expression(right);
-
         match operator {
             Operator::Bang => todo!(),
-            Operator::Minus => self.add_instruction(Instruction::Sub),
-            Operator::Plus => self.add_instruction(Instruction::Add),
-            Operator::Multiply => self.add_instruction(Instruction::Mul),
-            Operator::Equals => todo!(),
-            Operator::NotEquals => todo!(),
-            Operator::GreaterThan => todo!(),
-            Operator::LessThan => todo!(),
-            Operator::DividedBy => self.add_instruction(Instruction::Div),
+            Operator::Minus => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::Sub)
+            }
+            Operator::Plus => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::Add)
+            }
+            Operator::Multiply => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::Mul)
+            }
+            Operator::Equals => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::Equal)
+            }
+            Operator::NotEquals => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::NotEqual)
+            }
+            Operator::GreaterThan => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::GreaterThan)
+            }
+            Operator::LessThan => {
+                self.compile_expression(right);
+                self.compile_expression(left);
+                self.add_instruction(Instruction::GreaterThan)
+            }
+            Operator::DividedBy => {
+                self.compile_left_right(left, right);
+                self.add_instruction(Instruction::Div)
+            }
         };
+    }
+
+    fn compile_left_right(&mut self, left: &Expression, right: &Expression) {
+        self.compile_expression(left);
+        self.compile_expression(right);
     }
 
     fn add_constant(&mut self, object: PrimitiveObject) -> usize {
@@ -158,6 +190,84 @@ mod tests {
                     Instruction::OpConstant(0),
                     Instruction::OpConstant(1),
                     Instruction::Div,
+                    Instruction::Pop,
+                ],
+            },
+        ];
+
+        test_util::run_compiler_tests(test_cases);
+    }
+
+    #[test]
+    fn test_boolean_expressions() {
+        let test_cases: Vec<CompilerTestCase> = vec![
+            CompilerTestCase {
+                input: String::from("true"),
+                expected_constants: vec![],
+                expected_instructions: vec![Instruction::True, Instruction::Pop],
+            },
+            CompilerTestCase {
+                input: String::from("false"),
+                expected_constants: vec![],
+                expected_instructions: vec![Instruction::False, Instruction::Pop],
+            },
+            CompilerTestCase {
+                input: String::from("1 > 2"),
+                expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::GreaterThan,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("1 < 2"),
+                expected_constants: vec![PrimitiveObject::Integer(2), PrimitiveObject::Integer(1)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::GreaterThan,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("1 == 2"),
+                expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::Equal,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("1 != 2"),
+                expected_constants: vec![PrimitiveObject::Integer(1), PrimitiveObject::Integer(2)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::OpConstant(1),
+                    Instruction::NotEqual,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("true == false"),
+                expected_constants: vec![],
+                expected_instructions: vec![
+                    Instruction::True,
+                    Instruction::False,
+                    Instruction::Equal,
+                    Instruction::Pop,
+                ],
+            },
+            CompilerTestCase {
+                input: String::from("true != false"),
+                expected_constants: vec![],
+                expected_instructions: vec![
+                    Instruction::True,
+                    Instruction::False,
+                    Instruction::NotEqual,
                     Instruction::Pop,
                 ],
             },

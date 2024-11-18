@@ -5,7 +5,7 @@ use crate::{
     eval::objects::{Object, PrimitiveObject},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Ok, Result};
 use runtime_error::RuntimeError;
 
 const STACK_SIZE: usize = 2048;
@@ -13,6 +13,7 @@ const STACK_SIZE: usize = 2048;
 pub struct VirtualMachine {
     constants: Vec<PrimitiveObject>,
     instructions: Vec<Instruction>,
+    instruction_pointer: usize,
     stack: Vec<Object>,
     last_popped: Object,
 }
@@ -21,6 +22,7 @@ impl VirtualMachine {
     pub fn new(bytecode: ByteCode) -> VirtualMachine {
         VirtualMachine {
             instructions: bytecode.instructions,
+            instruction_pointer: 0,
             constants: bytecode.constants,
             stack: Vec::with_capacity(STACK_SIZE),
             last_popped: Object::Void,
@@ -28,13 +30,12 @@ impl VirtualMachine {
     }
 
     pub fn run(&mut self) -> Result<Object> {
-        let mut instruction_pointer = 0;
-        while instruction_pointer < self.instructions.len() {
+        // let mut instruction_pointer = 0;
+        while self.instruction_pointer < self.instructions.len() {
             // To avoid borrowing conflicts, retrieve the operation index first
-            let operation = &self.instructions[instruction_pointer];
-            instruction_pointer += 1;
+            // let operation = &self.instructions[instruction_pointer];
 
-            match operation {
+            match &self.instructions[self.instruction_pointer] {
                 Instruction::OpConstant(constant_index) => {
                     // TODO: We can probably avoid cloning here if we store references on the stack?
                     let constant = self.constants[*constant_index as usize].clone();
@@ -68,10 +69,49 @@ impl VirtualMachine {
 
                     self.push(Object::primitive_from_int(res))?;
                 }
+                // TODO: Check if it matters to use constants here for boolean
+                Instruction::True => self.push(Object::primitive_from_bool(true))?,
+                Instruction::False => self.push(Object::primitive_from_bool(false))?,
+                Instruction::Equal | Instruction::NotEqual | Instruction::GreaterThan => {
+                    self.execute_comparison()?;
+                }
             };
+
+            self.instruction_pointer += 1;
         }
 
         Ok(self.last_popped.clone())
+    }
+
+    fn execute_comparison(&mut self) -> Result<()> {
+        let right = self.pop()?;
+        let left = self.pop()?;
+
+        let operation = &self.instructions[self.instruction_pointer];
+        match (left, right) {
+            (
+                Object::Primitive(PrimitiveObject::Integer(left)),
+                Object::Primitive(PrimitiveObject::Integer(right)),
+            ) => self.execute_integer_comparison(&left, &right),
+            (
+                Object::Primitive(PrimitiveObject::Boolean(left)),
+                Object::Primitive(PrimitiveObject::Boolean(right)),
+            ) => match operation {
+                Instruction::Equal => self.push(Object::primitive_from_bool(left == right)),
+                Instruction::NotEqual => self.push(Object::primitive_from_bool(left != right)),
+                _ => Ok(()),
+            },
+            _ => bail!(RuntimeError::TypeError),
+        }
+    }
+
+    fn execute_integer_comparison(&mut self, left: &i32, right: &i32) -> Result<()> {
+        match self.instructions[self.instruction_pointer] {
+            Instruction::Equal => self.push(Object::primitive_from_bool(left == right)),
+            Instruction::NotEqual => self.push(Object::primitive_from_bool(left != right)),
+            Instruction::GreaterThan => self.push(Object::primitive_from_bool(left > right)),
+            _ => Ok(()),
+        }
     }
 
     /// Unclear whether we need to manage a stack stack_pointer
@@ -140,6 +180,86 @@ mod tests {
             VmTestCase {
                 input: "10 / 2",
                 expected: 5,
+            },
+        ];
+
+        test_util::run_vm_tests(tests);
+    }
+
+    #[test]
+    fn test_boolean_expression() {
+        let tests: Vec<VmTestCase<bool>> = vec![
+            VmTestCase {
+                input: "false",
+                expected: false,
+            },
+            VmTestCase {
+                input: "true",
+                expected: true,
+            },
+            VmTestCase {
+                input: "1 < 2",
+                expected: true,
+            },
+            VmTestCase {
+                input: "1 > 2",
+                expected: false,
+            },
+            VmTestCase {
+                input: "1 < 1",
+                expected: false,
+            },
+            VmTestCase {
+                input: "1 > 1",
+                expected: false,
+            },
+            VmTestCase {
+                input: "1 == 1",
+                expected: true,
+            },
+            VmTestCase {
+                input: "1 != 1",
+                expected: false,
+            },
+            VmTestCase {
+                input: "1 == 2",
+                expected: false,
+            },
+            VmTestCase {
+                input: "1 != 2",
+                expected: true,
+            },
+            VmTestCase {
+                input: "true == true",
+                expected: true,
+            },
+            VmTestCase {
+                input: "false == false",
+                expected: true,
+            },
+            VmTestCase {
+                input: "true != false",
+                expected: true,
+            },
+            VmTestCase {
+                input: "false != true",
+                expected: true,
+            },
+            VmTestCase {
+                input: "(1 < 2) == true",
+                expected: true,
+            },
+            VmTestCase {
+                input: "(1 < 2) == false",
+                expected: false,
+            },
+            VmTestCase {
+                input: "(1 > 2) == true",
+                expected: false,
+            },
+            VmTestCase {
+                input: "(1 > 2) == false",
+                expected: true,
             },
         ];
 

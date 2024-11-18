@@ -203,31 +203,40 @@ pub fn run_compiler_tests(test_cases: Vec<CompilerTestCase>) {
 
         let bytecode = compiler.bytecode();
 
-        test_instructions(test_case.expected_instructions, bytecode.instructions);
-        test_constants(test_case.expected_constants, bytecode.constants);
+        test_instructions(&test_case, bytecode.instructions);
+        test_constants(&test_case, bytecode.constants);
     }
 }
 
-fn test_instructions(expected_instructions: Vec<Instruction>, instructions: Vec<Instruction>) {
+fn test_instructions(test_case: &CompilerTestCase, instructions: Vec<Instruction>) {
     assert_eq!(
-        expected_instructions.len(),
+        test_case.expected_instructions.len(),
         instructions.len(),
-        "Instuctions should have same size"
+        "Testing {:?}: Instructions should have the same size",
+        test_case.input
     );
 
     instructions
         .into_iter()
-        .zip(expected_instructions)
+        .zip(test_case.expected_instructions.clone())
         .for_each(|(actual, expected)| assert_eq!(expected, actual, "Wrong instruction."));
 }
 
-fn test_constants(expected_constants: Vec<PrimitiveObject>, constants: Vec<PrimitiveObject>) {
-    assert_eq!(expected_constants.len(), constants.len());
+fn test_constants(test_case: &CompilerTestCase, constants: Vec<PrimitiveObject>) {
+    assert_eq!(test_case.expected_constants.len(), constants.len());
 
-    expected_constants
+    test_case
+        .expected_constants
+        .clone()
         .into_iter()
         .zip(constants)
-        .for_each(|(expected, actual)| assert_eq!(expected, actual, "Got incorrect constant"));
+        .for_each(|(expected, actual)| {
+            assert_eq!(
+                expected, actual,
+                "Testing {:?}: Got incorrect constant",
+                test_case.input
+            )
+        });
 }
 
 pub struct VmTestCase<T> {
@@ -244,7 +253,9 @@ pub fn run_vm_tests<T: Display>(test_cases: Vec<VmTestCase<T>>) {
         let bytecode = compiler.bytecode();
 
         let mut vm = VirtualMachine::new(bytecode);
-        let result = vm.run().unwrap();
+        let result = vm.run().unwrap_or_else(|e| {
+            panic!("Failed for testcase: {:?}\nError: {:?}", test_case.input, e)
+        });
 
         assert_eq!(
             test_case.expected.to_string(),

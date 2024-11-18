@@ -4,4 +4,6 @@ use thiserror::Error;
 pub enum RuntimeError {
     #[error("Stackoverflow")]
     StackOverflowError,
+    #[error("Incompatible types")]
+    TypeError,
 }
