@@ -6,4 +6,8 @@ pub enum RuntimeError {
     StackOverflowError,
     #[error("Incompatible types")]
     TypeError,
+    #[error("Operand cannot be used with !")]
+    UnknownBangOperand,
+    #[error("Operand cannot be used with -")]
+    UnknownMinusOperand,
 }

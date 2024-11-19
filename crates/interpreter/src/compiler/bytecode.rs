@@ -11,7 +11,9 @@ pub enum Instruction {
     False,
     Equal,
     NotEqual,
-    GreaterThan
+    GreaterThan,
+    Bang,
+    Minus
 }
 
 #[cfg(test)]

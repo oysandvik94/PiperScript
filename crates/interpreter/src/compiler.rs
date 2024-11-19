@@ -3,7 +3,7 @@ use bytecode::Instruction;
 use crate::{
     eval::objects::PrimitiveObject,
     parser::{
-        ast::{Operator, Statement, StatementType},
+        ast::{Operator, PrefixOperator, Statement, StatementType},
         expressions::expression::Expression,
     },
 };
@@ -59,10 +59,18 @@ impl Compiler {
             Expression::Array(_) => todo!(),
             Expression::HashLiteral(_) => todo!(),
             Expression::Index { left: _, index: _ } => todo!(),
-            Expression::Prefix {
-                right: _,
-                operator: _,
-            } => todo!(),
+            Expression::Prefix { right, operator } => {
+                self.compile_expression(right);
+
+                match operator {
+                    PrefixOperator::Bang => {
+                        self.add_instruction(Instruction::Bang);
+                    }
+                    PrefixOperator::Minus => {
+                        self.add_instruction(Instruction::Minus);
+                    }
+                }
+            }
             Expression::If(_) => todo!(),
             Expression::Function(_) => todo!(),
             Expression::Call(_) => todo!(),
@@ -193,6 +201,15 @@ mod tests {
                     Instruction::Pop,
                 ],
             },
+            CompilerTestCase {
+                input: String::from("-1"),
+                expected_constants: vec![PrimitiveObject::Integer(1)],
+                expected_instructions: vec![
+                    Instruction::OpConstant(0),
+                    Instruction::Minus,
+                    Instruction::Pop,
+                ],
+            },
         ];
 
         test_util::run_compiler_tests(test_cases);
@@ -270,6 +287,11 @@ mod tests {
                     Instruction::NotEqual,
                     Instruction::Pop,
                 ],
+            },
+            CompilerTestCase {
+                input: String::from("!true"),
+                expected_constants: vec![],
+                expected_instructions: vec![Instruction::True, Instruction::Bang, Instruction::Pop],
             },
         ];
 

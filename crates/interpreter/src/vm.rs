@@ -75,6 +75,12 @@ impl VirtualMachine {
                 Instruction::Equal | Instruction::NotEqual | Instruction::GreaterThan => {
                     self.execute_comparison()?;
                 }
+                Instruction::Bang => {
+                    self.execute_bang()?;
+                }
+                Instruction::Minus => {
+                    self.execute_minus()?;
+                }
             };
 
             self.instruction_pointer += 1;
@@ -148,6 +154,26 @@ impl VirtualMachine {
             _ => todo!(),
         }
     }
+
+    fn execute_bang(&mut self) -> Result<()> {
+        let operand = self.pop()?;
+
+        if let Object::Primitive(PrimitiveObject::Boolean(boolean)) = operand {
+            self.push(Object::primitive_from_bool(!boolean))
+        } else {
+            bail!(RuntimeError::UnknownBangOperand)
+        }
+    }
+
+    fn execute_minus(&mut self) -> Result<()> {
+        let operand = self.pop()?;
+
+        if let Object::Primitive(PrimitiveObject::Integer(integer)) = operand {
+            self.push(Object::primitive_from_int(-integer))
+        } else {
+            bail!(RuntimeError::UnknownMinusOperand)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -180,6 +206,22 @@ mod tests {
             VmTestCase {
                 input: "10 / 2",
                 expected: 5,
+            },
+            VmTestCase {
+                input: "-5",
+                expected: -5,
+            },
+            VmTestCase {
+                input: "-10",
+                expected: -10,
+            },
+            VmTestCase {
+                input: "-50 + 100 + -50",
+                expected: 0,
+            },
+            VmTestCase {
+                input: "(5 + 10 * 2 + 15 / 3) * 2 + -10",
+                expected: 50,
             },
         ];
 
@@ -260,6 +302,22 @@ mod tests {
             VmTestCase {
                 input: "(1 > 2) == false",
                 expected: true,
+            },
+            VmTestCase {
+                input: "!true",
+                expected: false,
+            },
+            VmTestCase {
+                input: "!false",
+                expected: true,
+            },
+            VmTestCase {
+                input: "!!true",
+                expected: true,
+            },
+            VmTestCase {
+                input: "!!false",
+                expected: false,
             },
         ];
 
