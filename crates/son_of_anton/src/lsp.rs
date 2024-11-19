@@ -1,6 +1,7 @@
 pub mod diagnostics;
 pub mod document_change;
 mod document_open;
+mod formatting;
 pub mod initialize;
 
 use std::io::{Stdout, Write};
@@ -8,10 +9,11 @@ use std::process::exit;
 
 use anyhow::anyhow;
 use anyhow::Result;
+use lsp_types::notification::DidSaveTextDocument;
 use lsp_types::{
-    DidChangeTextDocumentParams, DidOpenTextDocumentParams, DocumentDiagnosticParams,
-    FullDocumentDiagnosticReport, InitializeParams, InitializedParams,
-    RelatedFullDocumentDiagnosticReport,
+    DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
+    DocumentDiagnosticParams, DocumentFormattingParams, FullDocumentDiagnosticReport,
+    InitializeParams, InitializedParams, RelatedFullDocumentDiagnosticReport,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::from_str;
@@ -55,6 +57,16 @@ impl SonOfAnton {
             "textDocument/didChange" => {
                 let params: DidChangeTextDocumentParams = deserialize_request(&lsp_request)?;
                 document_change::handle_change(params, self)?;
+            }
+            "textDocument/didSave" => {
+                let params: DidSaveTextDocumentParams = deserialize_request(&lsp_request)?;
+                // TODO: Decide what to do on save
+            }
+            "textDocument/formatting" => {
+                let params: DocumentFormattingParams = deserialize_request(&lsp_request)?;
+
+                let formatted_text = formatting::handle_formatting(params, self)?;
+                self.send_response(lsp_request, formatted_text);
             }
             "textDocument/diagnostic" => {
                 let params: DocumentDiagnosticParams = deserialize_request(&lsp_request)?;

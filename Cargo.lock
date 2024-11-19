@@ -416,6 +416,7 @@ dependencies = [
  "anyhow",
  "interpreter",
  "lsp-types",
+ "piperfmt",
  "serde",
  "serde_json",
  "tracing",

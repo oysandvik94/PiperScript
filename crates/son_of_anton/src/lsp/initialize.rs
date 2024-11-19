@@ -1,6 +1,6 @@
 use lsp_types::{
     DiagnosticOptions, DiagnosticServerCapabilities, HoverProviderCapability, InitializeResult,
-    ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    OneOf, ServerCapabilities, ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
 };
 
 pub fn handle_initialize() -> InitializeResult {
@@ -13,6 +13,7 @@ pub fn handle_initialize() -> InitializeResult {
                 workspace_diagnostics: false,
                 ..Default::default()
             })),
+            document_formatting_provider: Some(OneOf::Left(true)),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
