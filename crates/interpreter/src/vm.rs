@@ -81,6 +81,8 @@ impl VirtualMachine {
                 Instruction::Minus => {
                     self.execute_minus()?;
                 }
+                Instruction::Jump(_) => todo!(),
+                Instruction::JumpNotTruthy(_) => todo!(),
             };
 
             self.instruction_pointer += 1;

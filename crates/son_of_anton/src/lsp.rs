@@ -9,7 +9,6 @@ use std::process::exit;
 
 use anyhow::anyhow;
 use anyhow::Result;
-use lsp_types::notification::DidSaveTextDocument;
 use lsp_types::{
     DidChangeTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
     DocumentDiagnosticParams, DocumentFormattingParams, FullDocumentDiagnosticReport,

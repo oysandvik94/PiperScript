@@ -1,5 +1,5 @@
 #[repr(u8)]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Instruction {
     OpConstant(u16),
     Add,
@@ -13,7 +13,9 @@ pub enum Instruction {
     NotEqual,
     GreaterThan,
     Bang,
-    Minus
+    Minus,
+    Jump(u16),
+    JumpNotTruthy(u16),
 }
 
 #[cfg(test)]
